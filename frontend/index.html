@@ -8,6 +8,14 @@
 <link rel="canonical" href="https://logjobs-brasil.onrender.com/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
 <meta property="og:type" content="website">
 <meta property="og:title" content="LogJobs Brasil — Vagas em Logística">
 <meta property="og:description" content="O maior portal de vagas de logística do Brasil. Encontre oportunidades para entregadores, motoristas, estoquistas e mais.">
@@ -35,6 +43,7 @@
       <a href="#vagas">Vagas</a>
       <a href="#" data-lista-espera="empresa">Empresas</a>
       <a href="#" data-em-breve="Dashboard de vagas, empresas e tendências">Dashboard</a>
+      <button class="btn-tema" id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
       <button class="btn-login" data-lista-espera="candidato">Entrar</button>
     </nav>
 

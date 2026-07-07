@@ -93,6 +93,14 @@ def pagina_vaga_html(vaga):
 <meta name="description" content="{descricao_meta}">
 <link rel="canonical" href="{_esc(url_vaga)}">
 <link rel="stylesheet" href="/css/style.css">
+<script>
+  (function () {{
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {{
+      document.documentElement.setAttribute('data-theme', tema);
+    }}
+  }})();
+</script>
 <meta property="og:type" content="website">
 <meta property="og:title" content="{_esc(vaga.cargo)} — {_esc(vaga.empresa)}">
 <meta property="og:description" content="{descricao_meta}">

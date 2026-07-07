@@ -11,6 +11,32 @@ function escapeHtml(valor) {
   }[c]));
 }
 
+/* ===== Tema claro/escuro ===== */
+
+const CHAVE_TEMA = 'logjobs-tema';
+const btnTema = document.getElementById('btnTema');
+
+function temaAtivo() {
+  const armazenado = localStorage.getItem(CHAVE_TEMA);
+  if (armazenado === 'dark' || armazenado === 'light') return armazenado;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function aplicarIconeTema(tema) {
+  if (btnTema) btnTema.textContent = tema === 'dark' ? '☀️' : '🌙';
+}
+
+aplicarIconeTema(temaAtivo());
+
+if (btnTema) {
+  btnTema.addEventListener('click', () => {
+    const novoTema = temaAtivo() === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', novoTema);
+    localStorage.setItem(CHAVE_TEMA, novoTema);
+    aplicarIconeTema(novoTema);
+  });
+}
+
 const navToggle = document.getElementById('navToggle');
 const navLinks = document.getElementById('navLinks');
 
