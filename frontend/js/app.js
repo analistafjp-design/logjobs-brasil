@@ -60,10 +60,10 @@ function renderizarVagas(vagas) {
   vagasGrid.innerHTML = vagas.map((vaga) => `
     <article class="vaga">
       <div class="vaga-topo">
-        <h3>${escapeHtml(vaga.empresa)}</h3>
+        <h3><a href="/vagas/${escapeHtml(vaga.id)}">${escapeHtml(vaga.empresa)}</a></h3>
         <span class="tag">${escapeHtml(vaga.categoria || '')}</span>
       </div>
-      <p class="vaga-info">${escapeHtml(vaga.cargo)} • ${escapeHtml(vaga.cidade)}${vaga.estado ? ', ' + escapeHtml(vaga.estado) : ''}</p>
+      <p class="vaga-info"><a href="/vagas/${escapeHtml(vaga.id)}">${escapeHtml(vaga.cargo)}</a> • ${escapeHtml(vaga.cidade)}${vaga.estado ? ', ' + escapeHtml(vaga.estado) : ''}</p>
       <div class="vaga-rodape">
         <span class="salario">${escapeHtml(formatarSalario(vaga.salario))}</span>
         ${botaoCandidatura(vaga)}

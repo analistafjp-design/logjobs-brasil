@@ -321,6 +321,11 @@ img{
   font-weight:700;
 }
 
+.vaga h3 a:hover,
+.vaga-info a:hover{
+  text-decoration:underline;
+}
+
 .tag{
   background:#E8F5EC;
   color:var(--verde);

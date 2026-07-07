@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import func
@@ -16,6 +17,7 @@ from models import Atualizacao, Candidatura, Interessado, Vaga
 from rate_limit import limitar_por_ip
 from scheduler import atualizar_vagas_periodicamente, iniciar_agendador, parar_agendador, remover_vagas_exemplo_se_ha_reais
 from seed_data import VAGAS_EXEMPLO
+from seo import ROBOTS_TXT, pagina_sitemap_xml, pagina_vaga_html
 
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
@@ -232,6 +234,25 @@ def criar_interessado(dados: InteressadoEntrada, request: Request, db: Session =
     db.refresh(interessado)
 
     return {"id": interessado.id, "mensagem": "Cadastro recebido! Avisaremos você em breve."}
+
+
+@app.get("/vagas/{vaga_id}", response_class=HTMLResponse)
+def pagina_vaga(vaga_id: int, db: Session = Depends(get_db)):
+    vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    return pagina_vaga_html(vaga)
+
+
+@app.get("/sitemap.xml", response_class=PlainTextResponse)
+def sitemap(db: Session = Depends(get_db)):
+    vagas = db.query(Vaga).order_by(Vaga.id.desc()).limit(1000).all()
+    return PlainTextResponse(pagina_sitemap_xml(vagas), media_type="application/xml")
+
+
+@app.get("/robots.txt", response_class=PlainTextResponse)
+def robots():
+    return PlainTextResponse(ROBOTS_TXT)
 
 
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"

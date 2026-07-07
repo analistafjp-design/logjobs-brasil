@@ -52,3 +52,11 @@ O endpoint `POST /api/atualizar-agora` (força uma busca de vagas fora do agenda
 ## Deploy (Render)
 
 O `render.yaml` já está configurado como *Blueprint*: sobe o backend (que também serve o frontend) e provisiona o banco Postgres automaticamente. Basta conectar o repositório no [Render](https://render.com) via **New → Blueprint** e configurar as variáveis `JOOBLE_API_KEY` e `ADMIN_TOKEN` (opcionais) no painel.
+
+## SEO
+
+- Cada vaga tem uma página própria e indexável em `/vagas/{id}`, com dados estruturados [`JobPosting`](https://schema.org/JobPosting) (schema.org) — o formato que o Google exige para aparecer no Google for Jobs.
+- `/sitemap.xml` e `/robots.txt` são gerados automaticamente a partir das vagas no banco.
+- A home tem Open Graph e Twitter Card para bom preview ao compartilhar o link.
+- As páginas de vaga e o `robots.txt`/`sitemap.xml` usam a variável `RENDER_EXTERNAL_URL` (que o Render define sozinho) para montar URLs absolutas. Se quiser usar um domínio próprio, defina a variável `SITE_URL` manualmente.
+- **Atenção:** o `<link rel="canonical">` e as tags Open Graph da página inicial (`frontend/index.html`) estão fixos apontando para `https://logjobs-brasil.onrender.com/`, porque o `index.html` é um arquivo estático (não gerado pelo backend). Se o domínio final for diferente, atualize esses dois valores manualmente nesse arquivo.
