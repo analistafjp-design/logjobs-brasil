@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.exc import IntegrityError
@@ -10,6 +11,26 @@ from models import Atualizacao, Vaga
 logger = logging.getLogger("logjobs.scheduler")
 
 INTERVALO_MINUTOS = 20
+DIAS_EXPIRACAO_VAGA = 60
+
+
+def remover_vagas_expiradas():
+    """Remove vagas reais (fonte='jooble') com mais de DIAS_EXPIRACAO_VAGA dias.
+    Vagas de logística têm alta rotatividade; sem isso, o banco acumularia
+    para sempre anúncios que a empresa provavelmente já fechou."""
+    limite = datetime.utcnow() - timedelta(days=DIAS_EXPIRACAO_VAGA)
+    db = SessionLocal()
+    try:
+        removidas = (
+            db.query(Vaga)
+            .filter(Vaga.fonte == "jooble", Vaga.criada_em < limite)
+            .delete(synchronize_session=False)
+        )
+        if removidas:
+            db.commit()
+            logger.info("Removidas %s vagas expiradas (mais de %s dias).", removidas, DIAS_EXPIRACAO_VAGA)
+    finally:
+        db.close()
 
 
 def remover_vagas_exemplo_se_ha_reais():
@@ -70,6 +91,7 @@ def atualizar_vagas_periodicamente():
         db.close()
 
     remover_vagas_exemplo_se_ha_reais()
+    remover_vagas_expiradas()
 
 
 scheduler = BackgroundScheduler()

@@ -229,6 +229,25 @@ img{
   border-color:var(--azul);
 }
 
+.btn-carregar-mais{
+  background:var(--branco);
+  border:1px solid var(--borda);
+  padding:14px 28px;
+  border-radius:12px;
+  font-weight:600;
+  font-size:15px;
+  color:var(--texto);
+  box-shadow:var(--sombra);
+  transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease;
+}
+
+.btn-carregar-mais:hover,
+.btn-carregar-mais:focus-visible{
+  transform:translateY(-3px);
+  box-shadow:var(--sombra-hover);
+  border-color:var(--azul);
+}
+
 /* ===== Estatísticas ===== */
 
 .estatisticas{

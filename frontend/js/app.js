@@ -34,8 +34,12 @@ const statEmpresas = document.getElementById('statEmpresas');
 const statCidades = document.getElementById('statCidades');
 const searchForm = document.querySelector('.search-box');
 const limparFiltro = document.getElementById('limparFiltro');
+const carregarMaisBotao = document.getElementById('carregarMais');
 
+const TAMANHO_PAGINA = 20;
 let vagasCarregadas = [];
+let filtroAtual = {};
+let totalDisponivel = 0;
 
 function formatarSalario(valor) {
   if (!valor) return 'A combinar';
@@ -49,15 +53,8 @@ function botaoCandidatura(vaga) {
   return `<button class="btn-candidatar" data-vaga-id="${escapeHtml(vaga.id)}">Candidatar-se</button>`;
 }
 
-function renderizarVagas(vagas) {
-  if (!vagasGrid) return;
-
-  if (vagas.length === 0) {
-    vagasGrid.innerHTML = '<p class="vagas-carregando">Nenhuma vaga encontrada para esse filtro.</p>';
-    return;
-  }
-
-  vagasGrid.innerHTML = vagas.map((vaga) => `
+function vagaParaHtml(vaga) {
+  return `
     <article class="vaga">
       <div class="vaga-topo">
         <h3><a href="/vagas/${escapeHtml(vaga.id)}">${escapeHtml(vaga.empresa)}</a></h3>
@@ -69,27 +66,69 @@ function renderizarVagas(vagas) {
         ${botaoCandidatura(vaga)}
       </div>
     </article>
-  `).join('');
+  `;
+}
+
+function renderizarVagas(vagas) {
+  if (!vagasGrid) return;
+
+  if (vagas.length === 0) {
+    vagasGrid.innerHTML = '<p class="vagas-carregando">Nenhuma vaga encontrada para esse filtro.</p>';
+    return;
+  }
+
+  vagasGrid.innerHTML = vagas.map(vagaParaHtml).join('');
+}
+
+function atualizarBotaoCarregarMais() {
+  if (!carregarMaisBotao) return;
+  carregarMaisBotao.hidden = vagasCarregadas.length >= totalDisponivel;
 }
 
 async function buscarVagas(params = {}) {
+  filtroAtual = params;
+
   if (vagasGrid) {
     vagasGrid.innerHTML = '<p class="vagas-carregando">Carregando vagas...</p>';
   }
 
-  const query = new URLSearchParams(params).toString();
+  const query = new URLSearchParams({ ...params, limit: TAMANHO_PAGINA, offset: 0 }).toString();
 
   try {
-    const resposta = await fetch(`${API_BASE}/vagas${query ? '?' + query : ''}`);
+    const resposta = await fetch(`${API_BASE}/vagas?${query}`);
     const dados = await resposta.json();
     vagasCarregadas = dados.vagas || [];
+    totalDisponivel = dados.total || 0;
     renderizarVagas(vagasCarregadas);
+    atualizarBotaoCarregarMais();
   } catch (erro) {
     if (vagasGrid) {
       vagasGrid.innerHTML = '<p class="vagas-carregando">Não foi possível carregar as vagas. Tente novamente em instantes.</p>';
     }
     console.error('Erro ao buscar vagas:', erro);
   }
+}
+
+async function carregarMaisVagas() {
+  const query = new URLSearchParams({ ...filtroAtual, limit: TAMANHO_PAGINA, offset: vagasCarregadas.length }).toString();
+
+  try {
+    const resposta = await fetch(`${API_BASE}/vagas?${query}`);
+    const dados = await resposta.json();
+    vagasCarregadas = vagasCarregadas.concat(dados.vagas || []);
+    totalDisponivel = dados.total || 0;
+
+    if (vagasGrid) {
+      vagasGrid.insertAdjacentHTML('beforeend', (dados.vagas || []).map(vagaParaHtml).join(''));
+    }
+    atualizarBotaoCarregarMais();
+  } catch (erro) {
+    console.error('Erro ao carregar mais vagas:', erro);
+  }
+}
+
+if (carregarMaisBotao) {
+  carregarMaisBotao.addEventListener('click', carregarMaisVagas);
 }
 
 async function carregarEstatisticas() {

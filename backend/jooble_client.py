@@ -1,8 +1,22 @@
 import os
+import re
+
 import requests
 
 JOOBLE_API_KEY = os.getenv("JOOBLE_API_KEY")
 JOOBLE_URL = "https://jooble.org/api/{key}"
+
+_TAG_HTML = re.compile(r"<[^>]+>")
+_ESPACOS = re.compile(r"\s+")
+
+
+def _limpar_html(texto):
+    """Remove tags HTML (o Jooble costuma destacar palavras-chave com <b> no snippet)
+    e normaliza espaços, deixando a descrição legível como texto puro."""
+    if not texto:
+        return texto
+    sem_tags = _TAG_HTML.sub("", texto)
+    return _ESPACOS.sub(" ", sem_tags).strip()
 
 PALAVRAS_CHAVE = "logistica entregador motorista estoquista conferente operador de empilhadeira"
 
@@ -35,7 +49,7 @@ def _buscar_uma_regiao(keywords: str, location: str):
             "modalidade": None,
             "veiculo": None,
             "categoria": "Importado (Jooble)",
-            "descricao": item.get("snippet", ""),
+            "descricao": _limpar_html(item.get("snippet", "")),
             "beneficios": None,
             "requisitos": None,
             "link": item.get("link"),

@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 
 from database import Base, SessionLocal, engine, get_db
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_regioes
+from migrations import adicionar_colunas_faltantes
 from models import Atualizacao, Candidatura, Interessado, Vaga
 from rate_limit import limitar_por_ip
 from scheduler import atualizar_vagas_periodicamente, iniciar_agendador, parar_agendador, remover_vagas_exemplo_se_ha_reais
@@ -22,6 +23,7 @@ from seo import ROBOTS_TXT, pagina_sitemap_xml, pagina_vaga_html
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
 Base.metadata.create_all(bind=engine)
+adicionar_colunas_faltantes(engine, Base)
 
 app = FastAPI(title="LogJobs Brasil")
 
@@ -147,8 +149,12 @@ def estatisticas(db: Session = Depends(get_db)):
         "vagas": total_vagas,
         "empresas": total_empresas,
         "cidades": total_cidades,
-        "atualizacao": "24h",
     }
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 
 @app.get("/api/categorias")

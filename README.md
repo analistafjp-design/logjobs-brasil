@@ -49,6 +49,16 @@ Em produção (Render), o SQLite **não deve ser usado**: o disco do plano free 
 
 O endpoint `POST /api/atualizar-agora` (força uma busca de vagas fora do agendamento normal) exige um cabeçalho `X-Admin-Token` com o valor da variável de ambiente `ADMIN_TOKEN`. Sem essa variável configurada, o endpoint fica sempre bloqueado (403). Configure `ADMIN_TOKEN` com um valor secreto próprio caso queira usá-lo.
 
+## Mudanças de schema (migrações)
+
+O projeto não usa uma ferramenta de migração como Alembic. Em vez disso, `backend/migrations.py` compara os modelos com o banco real a cada inicialização e adiciona automaticamente qualquer **coluna nova** que estiver faltando (útil para não quebrar o banco já populado em produção quando um campo novo é adicionado ao código).
+
+Isso cobre o caso mais comum (adicionar uma coluna), mas **não** cobre mudanças mais complexas — remover/renomear coluna, mudar tipo, adicionar constraint em tabela já populada. Para esses casos, uma migração manual (ou adotar Alembic) continua sendo necessária.
+
+## Limpeza automática de vagas antigas
+
+Vagas importadas do Jooble com mais de 60 dias são removidas automaticamente a cada execução do agendador (`backend/scheduler.py`), já que vagas de logística têm alta rotatividade e o anúncio original provavelmente já não existe mais depois desse prazo.
+
 ## Deploy (Render)
 
 O `render.yaml` já está configurado como *Blueprint*: sobe o backend (que também serve o frontend) e provisiona o banco Postgres automaticamente. Basta conectar o repositório no [Render](https://render.com) via **New → Blueprint** e configurar as variáveis `JOOBLE_API_KEY` e `ADMIN_TOKEN` (opcionais) no painel.
