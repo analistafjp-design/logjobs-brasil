@@ -1,5 +1,16 @@
 const API_BASE = '/api';
 
+function escapeHtml(valor) {
+  const texto = valor === null || valor === undefined ? '' : String(valor);
+  return texto.replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[c]));
+}
+
 const navToggle = document.getElementById('navToggle');
 const navLinks = document.getElementById('navLinks');
 
@@ -31,6 +42,13 @@ function formatarSalario(valor) {
   return `R$ ${Number(valor).toLocaleString('pt-BR')}/mês`;
 }
 
+function botaoCandidatura(vaga) {
+  if (vaga.link) {
+    return `<a class="btn-candidatar" href="${escapeHtml(vaga.link)}" target="_blank" rel="noopener noreferrer">Ver vaga original ↗</a>`;
+  }
+  return `<button class="btn-candidatar" data-vaga-id="${escapeHtml(vaga.id)}">Candidatar-se</button>`;
+}
+
 function renderizarVagas(vagas) {
   if (!vagasGrid) return;
 
@@ -42,13 +60,13 @@ function renderizarVagas(vagas) {
   vagasGrid.innerHTML = vagas.map((vaga) => `
     <article class="vaga">
       <div class="vaga-topo">
-        <h3>${vaga.empresa}</h3>
-        <span class="tag">${vaga.categoria || ''}</span>
+        <h3>${escapeHtml(vaga.empresa)}</h3>
+        <span class="tag">${escapeHtml(vaga.categoria || '')}</span>
       </div>
-      <p class="vaga-info">${vaga.cargo} • ${vaga.cidade}${vaga.estado ? ', ' + vaga.estado : ''}</p>
+      <p class="vaga-info">${escapeHtml(vaga.cargo)} • ${escapeHtml(vaga.cidade)}${vaga.estado ? ', ' + escapeHtml(vaga.estado) : ''}</p>
       <div class="vaga-rodape">
-        <span class="salario">${formatarSalario(vaga.salario)}</span>
-        <button class="btn-candidatar" data-vaga-id="${vaga.id}">Candidatar-se</button>
+        <span class="salario">${escapeHtml(formatarSalario(vaga.salario))}</span>
+        ${botaoCandidatura(vaga)}
       </div>
     </article>
   `).join('');
@@ -163,17 +181,22 @@ function mostrarToast(mensagem) {
 const modalOverlay = document.getElementById('modalOverlay');
 const modalConteudo = document.getElementById('modalConteudo');
 const modalFechar = document.getElementById('modalFechar');
+let elementoFocoAnterior = null;
 
 function abrirModal(html) {
   if (!modalOverlay || !modalConteudo) return;
+  elementoFocoAnterior = document.activeElement;
   modalConteudo.innerHTML = html;
   modalOverlay.hidden = false;
+  const primeiroCampo = modalConteudo.querySelector('input, button');
+  primeiroCampo?.focus();
 }
 
 function fecharModal() {
   if (!modalOverlay) return;
   modalOverlay.hidden = true;
   modalConteudo.innerHTML = '';
+  elementoFocoAnterior?.focus();
 }
 
 if (modalFechar) modalFechar.addEventListener('click', fecharModal);
@@ -181,18 +204,35 @@ if (modalOverlay) {
   modalOverlay.addEventListener('click', (event) => {
     if (event.target === modalOverlay) fecharModal();
   });
+  modalOverlay.addEventListener('keydown', (event) => {
+    if (event.key !== 'Tab') return;
+    const focaveis = modalOverlay.querySelectorAll('input, button, a[href]');
+    if (focaveis.length === 0) return;
+    const primeiro = focaveis[0];
+    const ultimo = focaveis[focaveis.length - 1];
+    if (event.shiftKey && document.activeElement === primeiro) {
+      event.preventDefault();
+      ultimo.focus();
+    } else if (!event.shiftKey && document.activeElement === ultimo) {
+      event.preventDefault();
+      primeiro.focus();
+    }
+  });
 }
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') fecharModal();
 });
 
+const CAMPO_HONEYPOT = `<input type="text" name="empresa_no_meio" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0" aria-hidden="true">`;
+
 /* ===== Candidatura ===== */
 
 function abrirModalCandidatura(vaga) {
   abrirModal(`
-    <h2>Candidatar-se: ${vaga.cargo}</h2>
-    <p class="modal-subtitulo">${vaga.empresa} • ${vaga.cidade}${vaga.estado ? ', ' + vaga.estado : ''}</p>
+    <h2>Candidatar-se: ${escapeHtml(vaga.cargo)}</h2>
+    <p class="modal-subtitulo">${escapeHtml(vaga.empresa)} • ${escapeHtml(vaga.cidade)}${vaga.estado ? ', ' + escapeHtml(vaga.estado) : ''}</p>
     <form id="formCandidatura">
+      ${CAMPO_HONEYPOT}
       <label>Nome completo
         <input type="text" name="nome" required autocomplete="name">
       </label>
@@ -222,20 +262,24 @@ function abrirModalCandidatura(vaga) {
           nome: form.nome.value.trim(),
           email: form.email.value.trim(),
           telefone: form.telefone.value.trim() || null,
+          empresa_no_meio: form.empresa_no_meio.value,
         }),
       });
 
-      if (!resposta.ok) throw new Error('Falha ao enviar candidatura');
+      if (!resposta.ok) {
+        if (resposta.status === 429) throw new Error('Muitas tentativas. Aguarde alguns minutos.');
+        throw new Error('Falha ao enviar candidatura');
+      }
 
       abrirModal(`
         <div class="modal-sucesso">
           <div class="icone">✅</div>
           <h2>Candidatura enviada!</h2>
-          <p class="modal-subtitulo">A empresa ${vaga.empresa} vai analisar seu perfil para a vaga de ${vaga.cargo}.</p>
+          <p class="modal-subtitulo">A empresa ${escapeHtml(vaga.empresa)} vai analisar seu perfil para a vaga de ${escapeHtml(vaga.cargo)}.</p>
         </div>
       `);
     } catch (erro) {
-      erroEl.textContent = 'Não foi possível enviar sua candidatura. Tente novamente.';
+      erroEl.textContent = erro.message || 'Não foi possível enviar sua candidatura. Tente novamente.';
       erroEl.hidden = false;
       console.error(erro);
     }
@@ -245,7 +289,7 @@ function abrirModalCandidatura(vaga) {
 if (vagasGrid) {
   vagasGrid.addEventListener('click', (event) => {
     const botao = event.target.closest('.btn-candidatar');
-    if (!botao) return;
+    if (!botao || botao.tagName === 'A') return;
     const vaga = vagasCarregadas.find((v) => String(v.id) === botao.dataset.vagaId);
     if (vaga) abrirModalCandidatura(vaga);
   });
@@ -260,9 +304,10 @@ function abrirModalListaEspera(tipo) {
     : 'O login completo de candidatos está em desenvolvimento. Deixe seu contato e avisaremos assim que estiver no ar.';
 
   abrirModal(`
-    <h2>${titulo}</h2>
-    <p class="modal-subtitulo">${subtitulo}</p>
+    <h2>${escapeHtml(titulo)}</h2>
+    <p class="modal-subtitulo">${escapeHtml(subtitulo)}</p>
     <form id="formInteressado">
+      ${CAMPO_HONEYPOT}
       <label>Nome
         <input type="text" name="nome" required autocomplete="name">
       </label>
@@ -288,10 +333,14 @@ function abrirModalListaEspera(tipo) {
           nome: form.nome.value.trim(),
           email: form.email.value.trim(),
           tipo,
+          empresa_no_meio: form.empresa_no_meio.value,
         }),
       });
 
-      if (!resposta.ok) throw new Error('Falha ao enviar cadastro');
+      if (!resposta.ok) {
+        if (resposta.status === 429) throw new Error('Muitas tentativas. Aguarde alguns minutos.');
+        throw new Error('Falha ao enviar cadastro');
+      }
 
       abrirModal(`
         <div class="modal-sucesso">
@@ -301,7 +350,7 @@ function abrirModalListaEspera(tipo) {
         </div>
       `);
     } catch (erro) {
-      erroEl.textContent = 'Não foi possível enviar seu cadastro. Tente novamente.';
+      erroEl.textContent = erro.message || 'Não foi possível enviar seu cadastro. Tente novamente.';
       erroEl.hidden = false;
       console.error(erro);
     }

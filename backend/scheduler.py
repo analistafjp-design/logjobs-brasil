@@ -1,6 +1,7 @@
 import logging
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_regioes
@@ -44,14 +45,21 @@ def atualizar_vagas_periodicamente():
             chave = (dados["cargo"], dados["empresa"], dados["cidade"])
             if chave in chaves_existentes:
                 continue
-            db.add(Vaga(**dados))
             chaves_existentes.add(chave)
-            vagas_novas += 1
+
+            # Insert individualmente: a constraint única no banco protege contra
+            # duplicatas mesmo se outra instância inserir a mesma vaga em paralelo.
+            db.add(Vaga(**dados))
+            try:
+                db.commit()
+                vagas_novas += 1
+            except IntegrityError:
+                db.rollback()
 
         db.add(Atualizacao(
             jooble_configurado=1 if JOOBLE_API_KEY else 0,
             vagas_novas=vagas_novas,
-            vagas_totais=db.query(Vaga).count() + vagas_novas,
+            vagas_totais=db.query(Vaga).count(),
         ))
         db.commit()
         logger.info("Atualização concluída: %s vagas novas.", vagas_novas)

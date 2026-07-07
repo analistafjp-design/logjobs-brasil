@@ -1,18 +1,23 @@
+import os
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import Base, SessionLocal, engine, get_db
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_regioes
 from models import Atualizacao, Candidatura, Interessado, Vaga
+from rate_limit import limitar_por_ip
 from scheduler import atualizar_vagas_periodicamente, iniciar_agendador, parar_agendador, remover_vagas_exemplo_se_ha_reais
 from seed_data import VAGAS_EXEMPLO
+
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
 Base.metadata.create_all(bind=engine)
 
@@ -31,15 +36,17 @@ def popular_banco_se_vazio():
     try:
         if db.query(Vaga).count() == 0:
             vagas_reais = buscar_vagas_todas_regioes()
+            dados_iniciais = vagas_reais if vagas_reais else [
+                {**dados, "fonte": "exemplo"} for dados in VAGAS_EXEMPLO
+            ]
 
-            if vagas_reais:
-                for dados in vagas_reais:
-                    db.add(Vaga(**dados))
-            else:
-                for dados in VAGAS_EXEMPLO:
-                    db.add(Vaga(**dados, fonte="exemplo"))
-
-            db.commit()
+            for dados in dados_iniciais:
+                db.add(Vaga(**dados))
+                try:
+                    db.commit()
+                except IntegrityError:
+                    # Outra instância pode ter populado o banco ao mesmo tempo.
+                    db.rollback()
     finally:
         db.close()
 
@@ -96,6 +103,8 @@ def listar_vagas(
                 "modalidade": v.modalidade,
                 "veiculo": v.veiculo,
                 "categoria": v.categoria,
+                "link": v.link,
+                "fonte": v.fonte,
             }
             for v in vagas
         ],
@@ -121,6 +130,8 @@ def obter_vaga(vaga_id: int, db: Session = Depends(get_db)):
         "descricao": vaga.descricao,
         "beneficios": vaga.beneficios,
         "requisitos": vaga.requisitos,
+        "link": vaga.link,
+        "fonte": vaga.fonte,
     }
 
 
@@ -161,7 +172,10 @@ def status_atualizacao(db: Session = Depends(get_db)):
 
 
 @app.post("/api/atualizar-agora")
-def forcar_atualizacao():
+def forcar_atualizacao(x_admin_token: Optional[str] = Header(default=None)):
+    if not ADMIN_TOKEN or x_admin_token != ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
     atualizar_vagas_periodicamente()
     return {"mensagem": "Atualização executada."}
 
@@ -171,10 +185,16 @@ class CandidaturaEntrada(BaseModel):
     nome: str
     email: EmailStr
     telefone: Optional[str] = None
+    empresa_no_meio: Optional[str] = None  # honeypot: deve ficar vazio
 
 
 @app.post("/api/candidaturas")
-def criar_candidatura(dados: CandidaturaEntrada, db: Session = Depends(get_db)):
+def criar_candidatura(dados: CandidaturaEntrada, request: Request, db: Session = Depends(get_db)):
+    if dados.empresa_no_meio:
+        raise HTTPException(status_code=400, detail="Requisição inválida")
+
+    limitar_por_ip(request, "candidatura", max_pedidos=5, janela_segundos=600)
+
     vaga = db.query(Vaga).filter(Vaga.id == dados.vaga_id).first()
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
@@ -196,10 +216,16 @@ class InteressadoEntrada(BaseModel):
     nome: str
     email: EmailStr
     tipo: str
+    empresa_no_meio: Optional[str] = None  # honeypot: deve ficar vazio
 
 
 @app.post("/api/interessados")
-def criar_interessado(dados: InteressadoEntrada, db: Session = Depends(get_db)):
+def criar_interessado(dados: InteressadoEntrada, request: Request, db: Session = Depends(get_db)):
+    if dados.empresa_no_meio:
+        raise HTTPException(status_code=400, detail="Requisição inválida")
+
+    limitar_por_ip(request, "interessado", max_pedidos=5, janela_segundos=600)
+
     interessado = Interessado(nome=dados.nome, email=dados.email, tipo=dados.tipo)
     db.add(interessado)
     db.commit()

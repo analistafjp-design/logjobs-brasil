@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, UniqueConstraint
 from sqlalchemy.sql import func
 
 from database import Base
@@ -6,6 +6,9 @@ from database import Base
 
 class Vaga(Base):
     __tablename__ = "vagas"
+    __table_args__ = (
+        UniqueConstraint("cargo", "empresa", "cidade", name="uq_vaga_cargo_empresa_cidade"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     cargo = Column(String, nullable=False, index=True)
@@ -19,6 +22,7 @@ class Vaga(Base):
     beneficios = Column(String, nullable=True)
     requisitos = Column(String, nullable=True)
     categoria = Column(String, nullable=False, index=True)
+    link = Column(String, nullable=True)
     fonte = Column(String, default="exemplo")
     criada_em = Column(DateTime(timezone=True), server_default=func.now())
 

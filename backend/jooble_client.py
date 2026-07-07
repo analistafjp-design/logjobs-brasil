@@ -38,6 +38,7 @@ def _buscar_uma_regiao(keywords: str, location: str):
             "descricao": item.get("snippet", ""),
             "beneficios": None,
             "requisitos": None,
+            "link": item.get("link"),
             "fonte": "jooble",
         })
     return vagas
