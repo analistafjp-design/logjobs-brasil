@@ -16,7 +16,13 @@ from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_regioes
 from migrations import adicionar_colunas_faltantes
 from models import Atualizacao, Candidatura, Interessado, Vaga
 from rate_limit import limitar_por_ip
-from scheduler import atualizar_vagas_periodicamente, iniciar_agendador, parar_agendador, remover_vagas_exemplo_se_ha_reais
+from scheduler import (
+    atualizar_vagas_periodicamente,
+    iniciar_agendador,
+    parar_agendador,
+    reclassificar_vagas_sem_categoria,
+    remover_vagas_exemplo_se_ha_reais,
+)
 from seed_data import VAGAS_EXEMPLO
 from seo import ROBOTS_TXT, pagina_sitemap_xml, pagina_vaga_html
 
@@ -59,6 +65,7 @@ def popular_banco_se_vazio():
 def on_startup():
     popular_banco_se_vazio()
     remover_vagas_exemplo_se_ha_reais()
+    reclassificar_vagas_sem_categoria()
     iniciar_agendador()
 
 

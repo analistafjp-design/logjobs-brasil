@@ -5,13 +5,29 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
-from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_regioes
+from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_regioes, classificar_categoria
 from models import Atualizacao, Vaga
 
 logger = logging.getLogger("logjobs.scheduler")
 
 INTERVALO_MINUTOS = 20
 DIAS_EXPIRACAO_VAGA = 60
+
+
+def reclassificar_vagas_sem_categoria():
+    """Corrige vagas do Jooble salvas antes de existir a classificação por
+    palavra-chave (categoria genérica 'Importado (Jooble)'), que nunca batiam
+    com nenhum botão de filtro do site."""
+    db = SessionLocal()
+    try:
+        vagas = db.query(Vaga).filter(Vaga.categoria == "Importado (Jooble)").all()
+        for vaga in vagas:
+            vaga.categoria = classificar_categoria(vaga.cargo)
+        if vagas:
+            db.commit()
+            logger.info("Reclassificadas %s vagas com categoria genérica.", len(vagas))
+    finally:
+        db.close()
 
 
 def remover_vagas_expiradas():

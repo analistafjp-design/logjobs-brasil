@@ -18,6 +18,37 @@ def _limpar_html(texto):
     sem_tags = _TAG_HTML.sub("", texto)
     return _ESPACOS.sub(" ", sem_tags).strip()
 
+
+# Ordem importa: padrões mais específicos primeiro (ex.: "empilhadeira" antes de
+# "operador" genérico), para classificar corretamente o cargo em uma das
+# categorias usadas pelos filtros do site.
+_PADROES_CATEGORIA = [
+    (re.compile(r"empilhadeira", re.I), "Operador"),
+    (re.compile(r"motoboy", re.I), "Motoboy"),
+    (re.compile(r"entregador|delivery", re.I), "Entregador"),
+    (re.compile(r"caminhoneiro|carreteiro|caminh[aã]o", re.I), "Caminhoneiro"),
+    (re.compile(r"motorista", re.I), "Motorista"),
+    (re.compile(r"estoquista|estoque", re.I), "Estoquista"),
+    (re.compile(r"conferente", re.I), "Conferente"),
+    (re.compile(r"auxiliar", re.I), "Auxiliar Logístico"),
+    (re.compile(r"supervisor", re.I), "Supervisor"),
+    (re.compile(r"coordenador", re.I), "Coordenador"),
+    (re.compile(r"analista", re.I), "Analista"),
+    (re.compile(r"gestor|gerente", re.I), "Gestor"),
+    (re.compile(r"operador", re.I), "Operador"),
+]
+
+
+def classificar_categoria(cargo: str) -> str:
+    """Classifica o cargo em uma das categorias usadas pelos filtros do site,
+    a partir de palavras-chave no título da vaga. Sem correspondência, cai
+    numa categoria genérica que ainda aparece normalmente na busca."""
+    for padrao, categoria in _PADROES_CATEGORIA:
+        if padrao.search(cargo or ""):
+            return categoria
+    return "Logística"
+
+
 PALAVRAS_CHAVE = "logistica entregador motorista estoquista conferente operador de empilhadeira"
 
 REGIOES = [
@@ -40,15 +71,16 @@ def _buscar_uma_regiao(keywords: str, location: str):
     vagas = []
     for item in dados.get("jobs", []):
         cidade = item.get("location", "").split(",")[0].strip() or "Não informado"
+        cargo = item.get("title", "")[:255]
         vagas.append({
-            "cargo": item.get("title", "")[:255],
+            "cargo": cargo,
             "empresa": item.get("company") or "Não informado",
             "cidade": cidade,
             "estado": location.split(",")[-1].strip() if "," in location else "",
             "salario": None,
             "modalidade": None,
             "veiculo": None,
-            "categoria": "Importado (Jooble)",
+            "categoria": classificar_categoria(cargo),
             "descricao": _limpar_html(item.get("snippet", "")),
             "beneficios": None,
             "requisitos": None,
