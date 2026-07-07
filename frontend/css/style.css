@@ -365,6 +365,13 @@ img{
   background:var(--azul-escuro);
 }
 
+.vagas-carregando{
+  grid-column:1 / -1;
+  text-align:center;
+  color:var(--texto-suave);
+  padding:40px 0;
+}
+
 /* ===== Footer ===== */
 
 .footer{

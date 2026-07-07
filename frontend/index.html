@@ -42,25 +42,25 @@
   </section>
 
   <section class="categorias" aria-label="Categorias de vagas">
-    <button class="categoria">🚚 <span>Entregador</span></button>
-    <button class="categoria">🚛 <span>Motorista</span></button>
-    <button class="categoria">📦 <span>Estoquista</span></button>
-    <button class="categoria">🏢 <span>Conferente</span></button>
-    <button class="categoria">📋 <span>Auxiliar Logístico</span></button>
-    <button class="categoria">🚜 <span>Operador</span></button>
+    <button class="categoria" data-categoria="Entregador">🚚 <span>Entregador</span></button>
+    <button class="categoria" data-categoria="Motorista">🚛 <span>Motorista</span></button>
+    <button class="categoria" data-categoria="Estoquista">📦 <span>Estoquista</span></button>
+    <button class="categoria" data-categoria="Conferente">🏢 <span>Conferente</span></button>
+    <button class="categoria" data-categoria="Auxiliar Logístico">📋 <span>Auxiliar Logístico</span></button>
+    <button class="categoria" data-categoria="Operador">🚜 <span>Operador</span></button>
   </section>
 
-  <section class="estatisticas" aria-label="Estatísticas da plataforma">
+  <section class="estatisticas" aria-label="Estatísticas da plataforma" id="estatisticas">
     <div class="card">
-      <h2>1.250</h2>
+      <h2 id="statVagas">—</h2>
       <p>Vagas ativas</p>
     </div>
     <div class="card">
-      <h2>320</h2>
+      <h2 id="statEmpresas">—</h2>
       <p>Empresas parceiras</p>
     </div>
     <div class="card">
-      <h2>89</h2>
+      <h2 id="statCidades">—</h2>
       <p>Cidades atendidas</p>
     </div>
     <div class="card">
@@ -72,44 +72,11 @@
   <section class="vagas" id="vagas">
     <div class="section-header">
       <h2>🔥 Vagas em destaque</h2>
-      <a href="#" class="ver-todas">Ver todas as vagas →</a>
+      <a href="#" class="ver-todas" id="limparFiltro">Ver todas as vagas →</a>
     </div>
 
-    <div class="vagas-grid">
-      <article class="vaga">
-        <div class="vaga-topo">
-          <h3>Mercado Livre</h3>
-          <span class="tag">Novo</span>
-        </div>
-        <p class="vaga-info">🚚 Entregador • Rio de Janeiro, RJ</p>
-        <div class="vaga-rodape">
-          <span class="salario">R$ 2.800/mês</span>
-          <button class="btn-candidatar">Candidatar-se</button>
-        </div>
-      </article>
-
-      <article class="vaga">
-        <div class="vaga-topo">
-          <h3>Shopee Express</h3>
-          <span class="tag">Novo</span>
-        </div>
-        <p class="vaga-info">🚛 Motorista • Niterói, RJ</p>
-        <div class="vaga-rodape">
-          <span class="salario">R$ 3.500/mês</span>
-          <button class="btn-candidatar">Candidatar-se</button>
-        </div>
-      </article>
-
-      <article class="vaga">
-        <div class="vaga-topo">
-          <h3>Loggi</h3>
-        </div>
-        <p class="vaga-info">📋 Auxiliar Logístico • São Gonçalo, RJ</p>
-        <div class="vaga-rodape">
-          <span class="salario">R$ 2.600/mês</span>
-          <button class="btn-candidatar">Candidatar-se</button>
-        </div>
-      </article>
+    <div class="vagas-grid" id="vagasGrid">
+      <p class="vagas-carregando">Carregando vagas...</p>
     </div>
   </section>
 
