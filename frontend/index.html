@@ -15,9 +15,9 @@
 
     <nav class="nav-links" id="navLinks">
       <a href="#vagas">Vagas</a>
-      <a href="#empresas">Empresas</a>
-      <a href="#dashboard">Dashboard</a>
-      <button class="btn-login">Entrar</button>
+      <a href="#" data-lista-espera="empresa">Empresas</a>
+      <a href="#" data-em-breve="Dashboard de vagas, empresas e tendências">Dashboard</a>
+      <button class="btn-login" data-lista-espera="candidato">Entrar</button>
     </nav>
 
     <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks">
@@ -91,27 +91,36 @@
 
     <div class="footer-col">
       <h4>Candidatos</h4>
-      <a href="#">Buscar vagas</a>
-      <a href="#">Criar currículo</a>
-      <a href="#">Alertas de vagas</a>
+      <a href="#vagas">Buscar vagas</a>
+      <a href="#" data-em-breve="Criar currículo online">Criar currículo</a>
+      <a href="#" data-lista-espera="candidato">Alertas de vagas</a>
     </div>
 
     <div class="footer-col">
       <h4>Empresas</h4>
-      <a href="#">Anunciar vaga</a>
-      <a href="#">Planos</a>
-      <a href="#">Dashboard</a>
+      <a href="#" data-lista-espera="empresa">Anunciar vaga</a>
+      <a href="#" data-lista-espera="empresa">Planos</a>
+      <a href="#" data-em-breve="Dashboard de vagas, empresas e tendências">Dashboard</a>
     </div>
 
     <div class="footer-col">
       <h4>LogJobs</h4>
-      <a href="#">Sobre</a>
-      <a href="#">Contato</a>
+      <a href="https://github.com/analistafjp-design/logjobs-brasil/blob/main/docs/PVD.md" target="_blank" rel="noopener">Sobre</a>
+      <a href="mailto:contato@logjobsbrasil.com.br">Contato</a>
     </div>
   </div>
 
   <p class="footer-copy">&copy; 2026 LogJobs Brasil. Todos os direitos reservados.</p>
 </footer>
+
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+    <button class="modal-fechar" id="modalFechar" aria-label="Fechar">&times;</button>
+    <div id="modalConteudo"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
 
 <script src="js/app.js"></script>
 </body>

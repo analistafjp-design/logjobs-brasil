@@ -4,12 +4,13 @@ from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, EmailStr
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import Base, SessionLocal, engine, get_db
 from jooble_client import buscar_vagas_jooble
-from models import Vaga
+from models import Candidatura, Interessado, Vaga
 from seed_data import VAGAS_EXEMPLO
 
 Base.metadata.create_all(bind=engine)
@@ -130,6 +131,48 @@ def estatisticas(db: Session = Depends(get_db)):
 def categorias(db: Session = Depends(get_db)):
     linhas = db.query(Vaga.categoria, func.count(Vaga.id)).group_by(Vaga.categoria).all()
     return [{"categoria": categoria, "total": total} for categoria, total in linhas]
+
+
+class CandidaturaEntrada(BaseModel):
+    vaga_id: int
+    nome: str
+    email: EmailStr
+    telefone: Optional[str] = None
+
+
+@app.post("/api/candidaturas")
+def criar_candidatura(dados: CandidaturaEntrada, db: Session = Depends(get_db)):
+    vaga = db.query(Vaga).filter(Vaga.id == dados.vaga_id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+
+    candidatura = Candidatura(
+        vaga_id=dados.vaga_id,
+        nome=dados.nome,
+        email=dados.email,
+        telefone=dados.telefone,
+    )
+    db.add(candidatura)
+    db.commit()
+    db.refresh(candidatura)
+
+    return {"id": candidatura.id, "mensagem": "Candidatura enviada com sucesso!"}
+
+
+class InteressadoEntrada(BaseModel):
+    nome: str
+    email: EmailStr
+    tipo: str
+
+
+@app.post("/api/interessados")
+def criar_interessado(dados: InteressadoEntrada, db: Session = Depends(get_db)):
+    interessado = Interessado(nome=dados.nome, email=dados.email, tipo=dados.tipo)
+    db.add(interessado)
+    db.commit()
+    db.refresh(interessado)
+
+    return {"id": interessado.id, "mensagem": "Cadastro recebido! Avisaremos você em breve."}
 
 
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
