@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from database import Base, SessionLocal, engine, get_db
-from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_regioes
+from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_categorias
 from migrations import adicionar_colunas_faltantes
 from models import Atualizacao, Candidatura, Interessado, Vaga
 from rate_limit import limitar_por_ip
@@ -45,7 +45,7 @@ def popular_banco_se_vazio():
     db = SessionLocal()
     try:
         if db.query(Vaga).count() == 0:
-            vagas_reais = buscar_vagas_todas_regioes()
+            vagas_reais = buscar_vagas_todas_categorias()
             dados_iniciais = vagas_reais if vagas_reais else [
                 {**dados, "fonte": "exemplo"} for dados in VAGAS_EXEMPLO
             ]

@@ -5,7 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
-from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_regioes, classificar_categoria
+from jooble_client import JOOBLE_API_KEY, buscar_vagas_proxima_categoria, classificar_categoria
 from models import Atualizacao, Vaga
 
 logger = logging.getLogger("logjobs.scheduler")
@@ -15,17 +15,25 @@ DIAS_EXPIRACAO_VAGA = 60
 
 
 def reclassificar_vagas_sem_categoria():
-    """Corrige vagas do Jooble salvas antes de existir a classificação por
-    palavra-chave (categoria genérica 'Importado (Jooble)'), que nunca batiam
-    com nenhum botão de filtro do site."""
+    """Corrige vagas do Jooble com categoria genérica ('Importado (Jooble)' do
+    código antigo, ou 'Logística' quando nenhuma palavra-chave bateu na época),
+    tentando de novo com os padrões de classificação mais atuais."""
     db = SessionLocal()
     try:
-        vagas = db.query(Vaga).filter(Vaga.categoria == "Importado (Jooble)").all()
+        vagas = (
+            db.query(Vaga)
+            .filter(Vaga.categoria.in_(["Importado (Jooble)", "Logística"]))
+            .all()
+        )
+        atualizadas = 0
         for vaga in vagas:
-            vaga.categoria = classificar_categoria(vaga.cargo)
-        if vagas:
+            nova_categoria = classificar_categoria(vaga.cargo)
+            if nova_categoria != vaga.categoria:
+                vaga.categoria = nova_categoria
+                atualizadas += 1
+        if atualizadas:
             db.commit()
-            logger.info("Reclassificadas %s vagas com categoria genérica.", len(vagas))
+            logger.info("Reclassificadas %s vagas com categoria genérica.", atualizadas)
     finally:
         db.close()
 
@@ -65,13 +73,15 @@ def remover_vagas_exemplo_se_ha_reais():
 
 
 def atualizar_vagas_periodicamente():
-    """Busca vagas novas no Jooble em várias regiões e insere apenas as que ainda não existem.
-    Sem JOOBLE_API_KEY configurada, apenas registra que a execução foi pulada."""
+    """Busca vagas novas no Jooble (uma categoria por execução, alternando entre
+    elas) e insere apenas as que ainda não existem. Sem JOOBLE_API_KEY
+    configurada, apenas registra que a execução foi pulada."""
     db = SessionLocal()
     vagas_novas = 0
 
     try:
-        vagas_encontradas = buscar_vagas_todas_regioes()
+        indice_categoria = db.query(Atualizacao).count()
+        vagas_encontradas = buscar_vagas_proxima_categoria(indice_categoria)
 
         chaves_existentes = {
             (v.cargo, v.empresa, v.cidade)
