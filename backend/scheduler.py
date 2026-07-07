@@ -11,6 +11,21 @@ logger = logging.getLogger("logjobs.scheduler")
 INTERVALO_MINUTOS = 20
 
 
+def remover_vagas_exemplo_se_ha_reais():
+    """Remove as vagas de exemplo assim que houver pelo menos uma vaga real (fonte='jooble') no banco,
+    para não misturar dados ilustrativos com vagas de verdade."""
+    db = SessionLocal()
+    try:
+        tem_vagas_reais = db.query(Vaga).filter(Vaga.fonte == "jooble").first() is not None
+        if tem_vagas_reais:
+            removidas = db.query(Vaga).filter(Vaga.fonte == "exemplo").delete()
+            if removidas:
+                db.commit()
+                logger.info("Removidas %s vagas de exemplo (vagas reais já disponíveis).", removidas)
+    finally:
+        db.close()
+
+
 def atualizar_vagas_periodicamente():
     """Busca vagas novas no Jooble em várias regiões e insere apenas as que ainda não existem.
     Sem JOOBLE_API_KEY configurada, apenas registra que a execução foi pulada."""
@@ -45,6 +60,8 @@ def atualizar_vagas_periodicamente():
         logger.exception("Falha ao atualizar vagas periodicamente")
     finally:
         db.close()
+
+    remover_vagas_exemplo_se_ha_reais()
 
 
 scheduler = BackgroundScheduler()

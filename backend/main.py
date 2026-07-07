@@ -9,9 +9,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import Base, SessionLocal, engine, get_db
-from jooble_client import JOOBLE_API_KEY, buscar_vagas_jooble
+from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_regioes
 from models import Atualizacao, Candidatura, Interessado, Vaga
-from scheduler import atualizar_vagas_periodicamente, iniciar_agendador, parar_agendador
+from scheduler import atualizar_vagas_periodicamente, iniciar_agendador, parar_agendador, remover_vagas_exemplo_se_ha_reais
 from seed_data import VAGAS_EXEMPLO
 
 Base.metadata.create_all(bind=engine)
@@ -30,11 +30,14 @@ def popular_banco_se_vazio():
     db = SessionLocal()
     try:
         if db.query(Vaga).count() == 0:
-            for dados in VAGAS_EXEMPLO:
-                db.add(Vaga(**dados, fonte="exemplo"))
+            vagas_reais = buscar_vagas_todas_regioes()
 
-            for dados in buscar_vagas_jooble():
-                db.add(Vaga(**dados))
+            if vagas_reais:
+                for dados in vagas_reais:
+                    db.add(Vaga(**dados))
+            else:
+                for dados in VAGAS_EXEMPLO:
+                    db.add(Vaga(**dados, fonte="exemplo"))
 
             db.commit()
     finally:
@@ -44,6 +47,7 @@ def popular_banco_se_vazio():
 @app.on_event("startup")
 def on_startup():
     popular_banco_se_vazio()
+    remover_vagas_exemplo_se_ha_reais()
     iniciar_agendador()
 
 
