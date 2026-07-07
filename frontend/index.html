@@ -3,148 +3,149 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>LogJobs Brasil</title>
-
+<meta name="description" content="LogJobs Brasil — o maior portal de vagas de logística do Brasil. Encontre oportunidades para entregadores, motoristas, estoquistas e mais.">
+<title>LogJobs Brasil — Vagas em Logística</title>
 <link rel="stylesheet" href="css/style.css">
-
 </head>
 <body>
 
-<nav class="navbar">
+<header class="navbar" id="navbar">
+  <div class="navbar-inner">
+    <a href="#" class="logo">🚚 <span>LogJobs Brasil</span></a>
 
-    <div class="logo">
-        🚚 <span>LogJobs Brasil</span>
+    <nav class="nav-links" id="navLinks">
+      <a href="#vagas">Vagas</a>
+      <a href="#empresas">Empresas</a>
+      <a href="#dashboard">Dashboard</a>
+      <button class="btn-login">Entrar</button>
+    </nav>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <h1>Encontre sua próxima vaga na logística</h1>
+      <p>Milhares de vagas para entregadores, motoristas, auxiliares de logística, estoquistas e muito mais — atualizadas todos os dias.</p>
+
+      <form class="search-box" role="search" aria-label="Buscar vagas">
+        <input type="text" placeholder="Cargo ou palavra-chave" aria-label="Cargo ou palavra-chave">
+        <input type="text" placeholder="Cidade" aria-label="Cidade">
+        <button type="submit">🔍 Buscar vagas</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="categorias" aria-label="Categorias de vagas">
+    <button class="categoria">🚚 <span>Entregador</span></button>
+    <button class="categoria">🚛 <span>Motorista</span></button>
+    <button class="categoria">📦 <span>Estoquista</span></button>
+    <button class="categoria">🏢 <span>Conferente</span></button>
+    <button class="categoria">📋 <span>Auxiliar Logístico</span></button>
+    <button class="categoria">🚜 <span>Operador</span></button>
+  </section>
+
+  <section class="estatisticas" aria-label="Estatísticas da plataforma">
+    <div class="card">
+      <h2>1.250</h2>
+      <p>Vagas ativas</p>
+    </div>
+    <div class="card">
+      <h2>320</h2>
+      <p>Empresas parceiras</p>
+    </div>
+    <div class="card">
+      <h2>89</h2>
+      <p>Cidades atendidas</p>
+    </div>
+    <div class="card">
+      <h2>24h</h2>
+      <p>Atualização contínua</p>
+    </div>
+  </section>
+
+  <section class="vagas" id="vagas">
+    <div class="section-header">
+      <h2>🔥 Vagas em destaque</h2>
+      <a href="#" class="ver-todas">Ver todas as vagas →</a>
     </div>
 
-    <ul>
+    <div class="vagas-grid">
+      <article class="vaga">
+        <div class="vaga-topo">
+          <h3>Mercado Livre</h3>
+          <span class="tag">Novo</span>
+        </div>
+        <p class="vaga-info">🚚 Entregador • Rio de Janeiro, RJ</p>
+        <div class="vaga-rodape">
+          <span class="salario">R$ 2.800/mês</span>
+          <button class="btn-candidatar">Candidatar-se</button>
+        </div>
+      </article>
 
-        <li><a href="#">Início</a></li>
+      <article class="vaga">
+        <div class="vaga-topo">
+          <h3>Shopee Express</h3>
+          <span class="tag">Novo</span>
+        </div>
+        <p class="vaga-info">🚛 Motorista • Niterói, RJ</p>
+        <div class="vaga-rodape">
+          <span class="salario">R$ 3.500/mês</span>
+          <button class="btn-candidatar">Candidatar-se</button>
+        </div>
+      </article>
 
-        <li><a href="#">Vagas</a></li>
+      <article class="vaga">
+        <div class="vaga-topo">
+          <h3>Loggi</h3>
+        </div>
+        <p class="vaga-info">📋 Auxiliar Logístico • São Gonçalo, RJ</p>
+        <div class="vaga-rodape">
+          <span class="salario">R$ 2.600/mês</span>
+          <button class="btn-candidatar">Candidatar-se</button>
+        </div>
+      </article>
+    </div>
+  </section>
 
-        <li><a href="#">Empresas</a></li>
+</main>
 
-        <li><a href="#">Dashboard</a></li>
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="logo">🚚 LogJobs Brasil</span>
+      <p>O maior portal especializado em empregos de logística do Brasil.</p>
+    </div>
 
-        <li><button class="btn-login">Entrar</button></li>
+    <div class="footer-col">
+      <h4>Candidatos</h4>
+      <a href="#">Buscar vagas</a>
+      <a href="#">Criar currículo</a>
+      <a href="#">Alertas de vagas</a>
+    </div>
 
-    </ul>
+    <div class="footer-col">
+      <h4>Empresas</h4>
+      <a href="#">Anunciar vaga</a>
+      <a href="#">Planos</a>
+      <a href="#">Dashboard</a>
+    </div>
 
-</nav>
+    <div class="footer-col">
+      <h4>LogJobs</h4>
+      <a href="#">Sobre</a>
+      <a href="#">Contato</a>
+    </div>
+  </div>
 
-<section class="hero">
-
-<h1>
-Encontre sua próxima vaga na logística
-</h1>
-
-<p>
-Milhares de vagas para entregadores, motoristas, auxiliares de logística,
-estoquistas e muito mais.
-</p>
-
-<div class="search-box">
-
-<input type="text" placeholder="Cargo ou palavra-chave">
-
-<input type="text" placeholder="Cidade">
-
-<button>🔍 Buscar</button>
-
-</div>
-
-</section>
-
-<section class="categorias">
-
-<div class="categoria">🚚 Entregador</div>
-
-<div class="categoria">🚛 Motorista</div>
-
-<div class="categoria">📦 Estoquista</div>
-
-<div class="categoria">🏢 Conferente</div>
-
-<div class="categoria">📋 Auxiliar Logístico</div>
-
-<div class="categoria">🚜 Operador</div>
-
-</section>
-
-<section class="estatisticas">
-
-<div class="card">
-
-<h2>1250</h2>
-
-<p>Vagas</p>
-
-</div>
-
-<div class="card">
-
-<h2>320</h2>
-
-<p>Empresas</p>
-
-</div>
-
-<div class="card">
-
-<h2>89</h2>
-
-<p>Cidades</p>
-
-</div>
-
-<div class="card">
-
-<h2>24h</h2>
-
-<p>Atualização</p>
-
-</div>
-
-</section>
-
-<section class="vagas">
-
-<h2>🔥 Vagas em destaque</h2>
-
-<div class="vaga">
-
-<h3>Mercado Livre</h3>
-
-<p>Entregador • Rio de Janeiro</p>
-
-<span>R$ 2.800</span>
-
-</div>
-
-<div class="vaga">
-
-<h3>Shopee Express</h3>
-
-<p>Motorista • Niterói</p>
-
-<span>R$ 3.500</span>
-
-</div>
-
-<div class="vaga">
-
-<h3>Loggi</h3>
-
-<p>Auxiliar Logístico • São Gonçalo</p>
-
-<span>R$ 2.600</span>
-
-</div>
-
-</section>
+  <p class="footer-copy">&copy; 2026 LogJobs Brasil. Todos os direitos reservados.</p>
+</footer>
 
 <script src="js/app.js"></script>
-
 </body>
 </html>
