@@ -4,12 +4,17 @@ import requests
 JOOBLE_API_KEY = os.getenv("JOOBLE_API_KEY")
 JOOBLE_URL = "https://jooble.org/api/{key}"
 
+PALAVRAS_CHAVE = "logistica entregador motorista estoquista conferente operador de empilhadeira"
 
-def buscar_vagas_jooble(keywords: str = "logistica entregador motorista", location: str = "Brasil"):
-    """Busca vagas na API do Jooble. Retorna lista vazia se JOOBLE_API_KEY não estiver configurada."""
-    if not JOOBLE_API_KEY:
-        return []
+REGIOES = [
+    "São Paulo, SP", "Rio de Janeiro, RJ", "Belo Horizonte, MG", "Curitiba, PR",
+    "Porto Alegre, RS", "Salvador, BA", "Recife, PE", "Fortaleza, CE",
+    "Brasília, DF", "Manaus, AM", "Goiânia, GO", "Florianópolis, SC",
+    "Vitória, ES", "Belém, PA", "Campo Grande, MS", "Cuiabá, MT",
+]
 
+
+def _buscar_uma_regiao(keywords: str, location: str):
     response = requests.post(
         JOOBLE_URL.format(key=JOOBLE_API_KEY),
         json={"keywords": keywords, "location": location},
@@ -20,11 +25,12 @@ def buscar_vagas_jooble(keywords: str = "logistica entregador motorista", locati
 
     vagas = []
     for item in dados.get("jobs", []):
+        cidade = item.get("location", "").split(",")[0].strip() or "Não informado"
         vagas.append({
-            "cargo": item.get("title", ""),
+            "cargo": item.get("title", "")[:255],
             "empresa": item.get("company") or "Não informado",
-            "cidade": item.get("location", "").split(",")[0].strip() or "Não informado",
-            "estado": "",
+            "cidade": cidade,
+            "estado": location.split(",")[-1].strip() if "," in location else "",
             "salario": None,
             "modalidade": None,
             "veiculo": None,
@@ -34,4 +40,27 @@ def buscar_vagas_jooble(keywords: str = "logistica entregador motorista", locati
             "requisitos": None,
             "fonte": "jooble",
         })
+    return vagas
+
+
+def buscar_vagas_jooble(keywords: str = PALAVRAS_CHAVE, location: str = "Brasil"):
+    """Busca vagas na API do Jooble para uma única região. Retorna lista vazia se JOOBLE_API_KEY não estiver configurada."""
+    if not JOOBLE_API_KEY:
+        return []
+
+    return _buscar_uma_regiao(keywords, location)
+
+
+def buscar_vagas_todas_regioes():
+    """Busca vagas na API do Jooble em várias capitais brasileiras para maximizar a cobertura regional.
+    Retorna lista vazia se JOOBLE_API_KEY não estiver configurada."""
+    if not JOOBLE_API_KEY:
+        return []
+
+    vagas = []
+    for regiao in REGIOES:
+        try:
+            vagas.extend(_buscar_uma_regiao(PALAVRAS_CHAVE, regiao))
+        except requests.RequestException:
+            continue
     return vagas

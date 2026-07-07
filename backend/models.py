@@ -42,3 +42,13 @@ class Interessado(Base):
     email = Column(String, nullable=False)
     tipo = Column(String, nullable=False)
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Atualizacao(Base):
+    __tablename__ = "atualizacoes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    executada_em = Column(DateTime(timezone=True), server_default=func.now())
+    jooble_configurado = Column(Integer, default=0)
+    vagas_novas = Column(Integer, default=0)
+    vagas_totais = Column(Integer, default=0)

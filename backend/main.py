@@ -9,8 +9,9 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import Base, SessionLocal, engine, get_db
-from jooble_client import buscar_vagas_jooble
-from models import Candidatura, Interessado, Vaga
+from jooble_client import JOOBLE_API_KEY, buscar_vagas_jooble
+from models import Atualizacao, Candidatura, Interessado, Vaga
+from scheduler import atualizar_vagas_periodicamente, iniciar_agendador, parar_agendador
 from seed_data import VAGAS_EXEMPLO
 
 Base.metadata.create_all(bind=engine)
@@ -43,6 +44,12 @@ def popular_banco_se_vazio():
 @app.on_event("startup")
 def on_startup():
     popular_banco_se_vazio()
+    iniciar_agendador()
+
+
+@app.on_event("shutdown")
+def on_shutdown():
+    parar_agendador()
 
 
 @app.get("/api/vagas")
@@ -131,6 +138,28 @@ def estatisticas(db: Session = Depends(get_db)):
 def categorias(db: Session = Depends(get_db)):
     linhas = db.query(Vaga.categoria, func.count(Vaga.id)).group_by(Vaga.categoria).all()
     return [{"categoria": categoria, "total": total} for categoria, total in linhas]
+
+
+@app.get("/api/status")
+def status_atualizacao(db: Session = Depends(get_db)):
+    ultima = db.query(Atualizacao).order_by(Atualizacao.id.desc()).first()
+    total_por_fonte = dict(
+        db.query(Vaga.fonte, func.count(Vaga.id)).group_by(Vaga.fonte).all()
+    )
+
+    return {
+        "jooble_configurado": bool(JOOBLE_API_KEY),
+        "intervalo_atualizacao_minutos": 20,
+        "ultima_atualizacao": ultima.executada_em.isoformat() if ultima else None,
+        "vagas_novas_na_ultima_atualizacao": ultima.vagas_novas if ultima else None,
+        "vagas_por_fonte": total_por_fonte,
+    }
+
+
+@app.post("/api/atualizar-agora")
+def forcar_atualizacao():
+    atualizar_vagas_periodicamente()
+    return {"mensagem": "Atualização executada."}
 
 
 class CandidaturaEntrada(BaseModel):

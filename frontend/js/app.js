@@ -86,6 +86,40 @@ async function carregarEstatisticas() {
   }
 }
 
+const statAtualizacao = document.getElementById('statAtualizacao');
+const statAtualizacaoLegenda = document.getElementById('statAtualizacaoLegenda');
+
+function tempoDecorrido(isoString) {
+  const minutos = Math.max(0, Math.round((Date.now() - new Date(isoString).getTime()) / 60000));
+  if (minutos < 1) return 'agora mesmo';
+  if (minutos === 1) return 'há 1 min';
+  if (minutos < 60) return `há ${minutos} min`;
+  const horas = Math.round(minutos / 60);
+  return horas === 1 ? 'há 1h' : `há ${horas}h`;
+}
+
+async function carregarStatusAtualizacao() {
+  try {
+    const resposta = await fetch(`${API_BASE}/status`);
+    const dados = await resposta.json();
+
+    if (dados.ultima_atualizacao) {
+      if (statAtualizacao) statAtualizacao.textContent = tempoDecorrido(dados.ultima_atualizacao);
+      if (statAtualizacaoLegenda) {
+        statAtualizacaoLegenda.textContent = dados.jooble_configurado
+          ? 'Última atualização automática'
+          : 'Última verificação (aguardando fonte real)';
+      }
+    } else if (statAtualizacaoLegenda) {
+      statAtualizacaoLegenda.textContent = dados.jooble_configurado
+        ? 'Atualização automática a cada 20 min'
+        : 'Atualização a cada 20 min (fonte real pendente)';
+    }
+  } catch (erro) {
+    console.error('Erro ao buscar status de atualização:', erro);
+  }
+}
+
 if (searchForm) {
   searchForm.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -290,3 +324,4 @@ document.querySelectorAll('[data-em-breve]').forEach((el) => {
 
 buscarVagas();
 carregarEstatisticas();
+carregarStatusAtualizacao();
