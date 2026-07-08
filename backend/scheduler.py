@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_proxima_categoria, classificar_categoria
-from models import Atualizacao, Marcador, Vaga
+from models import Atualizacao, Candidatura, Marcador, Vaga
 
 logger = logging.getLogger("logjobs.scheduler")
 
@@ -26,6 +26,9 @@ def aplicar_correcao_geografica_uma_vez():
     try:
         if db.query(Marcador).filter(Marcador.chave == CHAVE_CORRECAO_GEOGRAFICA).first():
             return
+        ids_removidos = [v.id for v in db.query(Vaga.id).filter(Vaga.fonte == "jooble").all()]
+        if ids_removidos:
+            db.query(Candidatura).filter(Candidatura.vaga_id.in_(ids_removidos)).delete(synchronize_session=False)
         removidas = db.query(Vaga).filter(Vaga.fonte == "jooble").delete()
         db.add(Marcador(chave=CHAVE_CORRECAO_GEOGRAFICA))
         db.commit()
@@ -66,6 +69,11 @@ def remover_vagas_expiradas():
     limite = datetime.utcnow() - timedelta(days=DIAS_EXPIRACAO_VAGA)
     db = SessionLocal()
     try:
+        ids_expirados = [
+            v.id for v in db.query(Vaga.id).filter(Vaga.fonte == "jooble", Vaga.criada_em < limite).all()
+        ]
+        if ids_expirados:
+            db.query(Candidatura).filter(Candidatura.vaga_id.in_(ids_expirados)).delete(synchronize_session=False)
         removidas = (
             db.query(Vaga)
             .filter(Vaga.fonte == "jooble", Vaga.criada_em < limite)

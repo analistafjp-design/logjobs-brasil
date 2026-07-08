@@ -106,6 +106,17 @@ O ícone (`frontend/icon.svg`) é SVG em vez de PNG, porque o ambiente de desenv
 
 Disponível em `/ranking.html` (linkado na navbar e no rodapé), via `GET /api/ranking`: top 15 empresas por número de vagas ativas e top 15 por salário médio informado (exige pelo menos 2 vagas com salário cadastrado para entrar no ranking salarial, evitando que uma única vaga distorça a média). Não há ranking por "avaliação" porque o projeto não tem sistema de avaliações de empresas — não faria sentido inventar dados.
 
+## Painel de empresas (self-service)
+
+Disponível em `/empresa.html` (linkado como "Empresas" na navbar de todas as páginas). Qualquer usuário pode criar uma conta do tipo "empresa" pelo mesmo modal de cadastro usado por candidatos (`tipo: "empresa"`); não há aprovação manual nem cobrança — é honestamente um cadastro livre, sem verificação de CNPJ ou pagamento, já que essas integrações não foram implementadas (ver seção sobre integrações pendentes).
+
+Uma conta de empresa logada pode, via `/api/empresa/*` (protegido por JWT + checagem de `usuario.tipo == "empresa"`, não pelo token de admin):
+- Publicar, editar e excluir suas próprias vagas (`GET/POST/PATCH/DELETE /api/empresa/vagas`) — as vagas publicadas aparecem imediatamente na busca pública, com `fonte: "empresa"`.
+- Ver quantas candidaturas cada vaga recebeu e os dados de cada candidato (`GET /api/empresa/candidaturas/{vaga_id}`).
+- Ver um resumo (`GET /api/empresa/estatisticas`): total de vagas publicadas e total de candidaturas recebidas.
+
+Uma empresa só enxerga e só pode editar/excluir vagas que ela mesma publicou (filtro por `usuario_id` no banco) — vagas importadas do Jooble ou cadastradas pelo admin não aparecem nesse painel. Excluir uma vaga também remove as candidaturas associadas a ela, evitando que uma vaga nova acabe "herdando" candidaturas antigas por reaproveitamento de ID no banco.
+
 ## Painel administrativo
 
 Disponível em `/admin.html` (não linkado na navegação pública — acesso direto pela URL). Protegido pelo mesmo `X-Admin-Token` / `ADMIN_TOKEN` usado em `/api/atualizar-agora` (veja abaixo); sem essa variável configurada, o painel fica sempre bloqueado. O token é guardado em `sessionStorage` (não sobrevive ao fechar a aba).

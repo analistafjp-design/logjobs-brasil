@@ -768,6 +768,7 @@ function abrirModalAuth(modoInicial) {
         renderAreaConta();
         await carregarFavoritos();
         if (vagasCarregadas.length) renderizarVagas(vagasCarregadas);
+        if (typeof aoAutenticar === 'function') aoAutenticar();
         fecharModal();
         mostrarToast(`👋 Bem-vindo(a), ${dados.usuario.nome.split(' ')[0]}!`);
       } catch (erro) {

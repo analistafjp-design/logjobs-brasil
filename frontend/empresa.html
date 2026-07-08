@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Painel da Empresa — LogJobs Brasil</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#0F62FE">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
+</head>
+<body>
+
+<header class="navbar" id="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="logo">🚚 <span>LogJobs Brasil</span></a>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html#vagas">Vagas</a>
+      <a href="mapa.html">Mapa</a>
+      <a href="ranking.html">Ranking</a>
+      <a href="calculadora.html">Salários</a>
+      <a href="blog.html">Blog</a>
+      <a href="empresa.html">Empresas</a>
+      <a href="dashboard.html">Dashboard</a>
+      <button class="btn-tema" id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
+      <span id="areaConta"></span>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main class="perfil-main">
+  <div class="perfil-container">
+
+    <div id="empresaBloqueado" class="perfil-card" hidden>
+      <h1>Painel da empresa</h1>
+      <p class="modal-subtitulo" id="empresaBloqueadoTexto">Faça login com uma conta de empresa para publicar e gerenciar suas vagas.</p>
+      <div class="vaga-acoes">
+        <button class="btn-candidatar" id="btnEntrarEmpresa">Entrar</button>
+        <button class="admin-acao-btn editar" id="btnCadastrarEmpresa">Criar conta de empresa</button>
+      </div>
+    </div>
+
+    <div id="empresaConteudo" hidden>
+      <h1>Painel da empresa</h1>
+
+      <section class="perfil-card">
+        <div class="estatisticas" style="margin: 0; padding: 0;">
+          <div class="card">
+            <h2 id="empresaStatVagas">—</h2>
+            <p>Vagas publicadas</p>
+          </div>
+          <div class="card">
+            <h2 id="empresaStatCandidaturas">—</h2>
+            <p>Candidaturas recebidas</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="perfil-card">
+        <div class="admin-toolbar">
+          <h2 style="margin: 0;">Minhas vagas</h2>
+          <button class="btn-candidatar" id="btnNovaVagaEmpresa">+ Publicar vaga</button>
+        </div>
+
+        <form id="formVagaEmpresa" class="admin-form" hidden>
+          <h3 id="formVagaEmpresaTitulo">Nova vaga</h3>
+          <input type="hidden" name="id">
+          <div class="admin-form-grid">
+            <label>Cargo <input type="text" name="cargo" required></label>
+            <label>Empresa <input type="text" name="empresa" required></label>
+            <label>Cidade <input type="text" name="cidade" required></label>
+            <label>Estado (UF) <input type="text" name="estado" maxlength="2" required></label>
+            <label>Categoria <input type="text" name="categoria" required></label>
+            <label>Salário <input type="number" step="0.01" name="salario"></label>
+            <label>Modalidade
+              <select name="modalidade">
+                <option value="">—</option>
+                <option>Presencial</option>
+                <option>Híbrido</option>
+                <option>Remoto</option>
+              </select>
+            </label>
+            <label>Turno
+              <select name="turno">
+                <option value="">—</option>
+                <option>Manhã</option>
+                <option>Tarde</option>
+                <option>Noite</option>
+                <option>Comercial</option>
+                <option>Escala 12x36</option>
+              </select>
+            </label>
+            <label>Tipo de contratação
+              <select name="tipo_contratacao">
+                <option value="">—</option>
+                <option>CLT</option>
+                <option>PJ</option>
+                <option>Temporário</option>
+                <option>Estágio</option>
+                <option>Autônomo</option>
+              </select>
+            </label>
+            <label>Veículo próprio <input type="text" name="veiculo"></label>
+          </div>
+          <label>Descrição <textarea name="descricao" rows="3"></textarea></label>
+          <label>Benefícios <input type="text" name="beneficios" placeholder="Separados por vírgula"></label>
+          <label>Requisitos <input type="text" name="requisitos" placeholder="Separados por vírgula"></label>
+          <p class="modal-erro" id="formVagaEmpresaErro" hidden></p>
+          <div class="admin-form-acoes">
+            <button type="submit" class="modal-enviar">Salvar</button>
+            <button type="button" class="btn-sair" id="btnCancelarVagaEmpresa">Cancelar</button>
+          </div>
+        </form>
+
+        <div class="admin-tabela-wrap">
+          <table class="admin-tabela" id="tabelaVagasEmpresa">
+            <thead>
+              <tr><th>Cargo</th><th>Cidade/UF</th><th>Categoria</th><th>Salário</th><th>Candidaturas</th><th></th></tr>
+            </thead>
+            <tbody><tr><td colspan="6">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="perfil-card" id="secaoCandidaturasVaga" hidden>
+        <div class="admin-toolbar">
+          <h2 id="candidaturasVagaTitulo" style="margin: 0;">Candidaturas</h2>
+          <button class="btn-sair" id="btnFecharCandidaturasVaga">Fechar</button>
+        </div>
+        <div class="admin-tabela-wrap">
+          <table class="admin-tabela">
+            <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Data</th></tr></thead>
+            <tbody id="tabelaCandidaturasVaga"><tr><td colspan="4">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+  </div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-fechar" id="modalFechar" aria-label="Fechar">&times;</button>
+    <div id="modalConteudo"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/app.js"></script>
+<script src="js/empresa.js"></script>
+</body>
+</html>

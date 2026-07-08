@@ -551,6 +551,7 @@ def admin_excluir_vaga(vaga_id: int, db: Session = Depends(get_db)):
     vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    db.query(Candidatura).filter(Candidatura.vaga_id == vaga_id).delete()
     db.delete(vaga)
     db.commit()
     return {"mensagem": "Vaga excluída"}
@@ -975,6 +976,103 @@ def minhas_candidaturas(usuario: Usuario = Depends(auth.usuario_atual), db: Sess
         }
         for c in candidaturas
     ]
+
+
+def verificar_empresa(usuario: Usuario = Depends(auth.usuario_atual)) -> Usuario:
+    if usuario.tipo != "empresa":
+        raise HTTPException(status_code=403, detail="Recurso disponível apenas para contas de empresa")
+    return usuario
+
+
+@app.get("/api/empresa/vagas")
+def empresa_listar_vagas(usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
+    vagas = db.query(Vaga).filter(Vaga.usuario_id == usuario.id).order_by(Vaga.id.desc()).all()
+    candidaturas_por_vaga = dict(
+        db.query(Candidatura.vaga_id, func.count(Candidatura.id))
+        .filter(Candidatura.vaga_id.in_([v.id for v in vagas]))
+        .group_by(Candidatura.vaga_id)
+        .all()
+    )
+    return [
+        {**vaga_admin_para_json(v), "total_candidaturas": candidaturas_por_vaga.get(v.id, 0)}
+        for v in vagas
+    ]
+
+
+@app.post("/api/empresa/vagas", status_code=201)
+def empresa_criar_vaga(dados: VagaEntrada, usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
+    vaga = Vaga(**dados.model_dump(), fonte="empresa", usuario_id=usuario.id)
+    db.add(vaga)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Já existe uma vaga com esse cargo, empresa e cidade")
+    db.refresh(vaga)
+    return vaga_admin_para_json(vaga)
+
+
+@app.patch("/api/empresa/vagas/{vaga_id}")
+def empresa_editar_vaga(
+    vaga_id: int, dados: VagaAtualizacao, usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)
+):
+    vaga = db.query(Vaga).filter(Vaga.id == vaga_id, Vaga.usuario_id == usuario.id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+
+    for campo, valor in dados.model_dump(exclude_unset=True).items():
+        setattr(vaga, campo, valor)
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Já existe uma vaga com esse cargo, empresa e cidade")
+    db.refresh(vaga)
+    return vaga_admin_para_json(vaga)
+
+
+@app.delete("/api/empresa/vagas/{vaga_id}")
+def empresa_excluir_vaga(vaga_id: int, usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
+    vaga = db.query(Vaga).filter(Vaga.id == vaga_id, Vaga.usuario_id == usuario.id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    db.query(Candidatura).filter(Candidatura.vaga_id == vaga_id).delete()
+    db.delete(vaga)
+    db.commit()
+    return {"mensagem": "Vaga excluída"}
+
+
+@app.get("/api/empresa/candidaturas/{vaga_id}")
+def empresa_listar_candidaturas_da_vaga(
+    vaga_id: int, usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)
+):
+    vaga = db.query(Vaga).filter(Vaga.id == vaga_id, Vaga.usuario_id == usuario.id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    candidaturas = db.query(Candidatura).filter(Candidatura.vaga_id == vaga_id).order_by(Candidatura.id.desc()).all()
+    return [
+        {
+            "id": c.id,
+            "nome": c.nome,
+            "email": c.email,
+            "telefone": c.telefone,
+            "criada_em": c.criada_em.isoformat() if c.criada_em else None,
+        }
+        for c in candidaturas
+    ]
+
+
+@app.get("/api/empresa/estatisticas")
+def empresa_estatisticas(usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
+    vaga_ids = [v.id for v in db.query(Vaga.id).filter(Vaga.usuario_id == usuario.id).all()]
+    total_candidaturas = (
+        db.query(func.count(Candidatura.id)).filter(Candidatura.vaga_id.in_(vaga_ids)).scalar() if vaga_ids else 0
+    )
+    return {
+        "total_vagas": len(vaga_ids),
+        "total_candidaturas": total_candidaturas,
+    }
 
 
 @app.get("/vagas/{vaga_id}", response_class=HTMLResponse)

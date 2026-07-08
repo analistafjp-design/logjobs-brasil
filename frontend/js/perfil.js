@@ -364,5 +364,9 @@ async function carregarCandidaturasHistorico() {
   }
 }
 
+function aoAutenticar() {
+  iniciarPerfil();
+}
+
 renderAreaConta();
 iniciarPerfil();

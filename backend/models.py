@@ -52,6 +52,7 @@ class Vaga(Base):
     categoria = Column(String, nullable=False, index=True)
     link = Column(String, nullable=True)
     fonte = Column(String, default="exemplo")
+    usuario_id = Column(Integer, nullable=True, index=True)  # empresa dona da vaga, quando publicada pelo painel de empresas
     criada_em = Column(DateTime(timezone=True), server_default=func.now())
 
 
