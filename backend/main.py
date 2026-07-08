@@ -202,6 +202,34 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/ranking")
+def ranking(db: Session = Depends(get_db)):
+    por_vagas = (
+        db.query(Vaga.empresa, func.count(Vaga.id).label("total"))
+        .group_by(Vaga.empresa)
+        .order_by(func.count(Vaga.id).desc())
+        .limit(15)
+        .all()
+    )
+
+    por_salario = (
+        db.query(Vaga.empresa, func.avg(Vaga.salario).label("media"), func.count(Vaga.id).label("total"))
+        .filter(Vaga.salario.isnot(None))
+        .group_by(Vaga.empresa)
+        .having(func.count(Vaga.id) >= 2)
+        .order_by(func.avg(Vaga.salario).desc())
+        .limit(15)
+        .all()
+    )
+
+    return {
+        "por_vagas": [{"empresa": e, "total": t} for e, t in por_vagas],
+        "por_salario": [
+            {"empresa": e, "salario_medio": round(m, 2), "total": t} for e, m, t in por_salario
+        ],
+    }
+
+
 @app.get("/api/categorias")
 def categorias(db: Session = Depends(get_db)):
     linhas = db.query(Vaga.categoria, func.count(Vaga.id)).group_by(Vaga.categoria).all()

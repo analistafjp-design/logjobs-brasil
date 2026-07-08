@@ -59,6 +59,10 @@ Existe uma página de perfil (`frontend/perfil.html`, acessível pelo nome do us
 
 Candidatos com o mini-currículo preenchido recebem uma seção "Vagas recomendadas para você" no perfil, via `GET /api/recomendacoes`. O motor (`backend/recomendacao.py`) é uma correspondência de palavras-chave com pesos por campo (cargo/categoria valem mais que descrição/benefícios) — determinístico e sem depender de nenhuma API externa de IA, já que o projeto não tem chave de LLM configurada. Cada vaga recomendada mostra um percentual de compatibilidade (proporção das palavras-chave do currículo do candidato encontradas na vaga).
 
+## Ranking de empresas
+
+Disponível em `/ranking.html` (linkado na navbar e no rodapé), via `GET /api/ranking`: top 15 empresas por número de vagas ativas e top 15 por salário médio informado (exige pelo menos 2 vagas com salário cadastrado para entrar no ranking salarial, evitando que uma única vaga distorça a média). Não há ranking por "avaliação" porque o projeto não tem sistema de avaliações de empresas — não faria sentido inventar dados.
+
 ## Painel administrativo
 
 Disponível em `/admin.html` (não linkado na navegação pública — acesso direto pela URL). Protegido pelo mesmo `X-Admin-Token` / `ADMIN_TOKEN` usado em `/api/atualizar-agora` (veja abaixo); sem essa variável configurada, o painel fica sempre bloqueado. O token é guardado em `sessionStorage` (não sobrevive ao fechar a aba).
