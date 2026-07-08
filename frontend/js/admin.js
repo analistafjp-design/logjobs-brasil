@@ -292,10 +292,12 @@ async function carregarInteressados() {
   }
 }
 
-async function carregarUsuarios() {
+async function carregarUsuarios(busca = '') {
   const tbody = document.getElementById('tabelaUsuarios');
+  tbody.innerHTML = '<tr><td colspan="6">Carregando...</td></tr>';
   try {
-    const resposta = await chamarAdmin('/admin/usuarios');
+    const query = busca ? `?q=${encodeURIComponent(busca)}` : '';
+    const resposta = await chamarAdmin(`/admin/usuarios${query}`);
     const dados = await resposta.json();
     tbody.innerHTML = dados.length ? dados.map((u) => `
       <tr>
@@ -304,12 +306,33 @@ async function carregarUsuarios() {
         <td>${escapeHtml(u.tipo)}</td>
         <td>${escapeHtml(u.cidade || '—')}</td>
         <td>${formatarData(u.criado_em)}</td>
+        <td><button class="admin-acao-btn excluir" data-id="${u.id}">Excluir</button></td>
       </tr>
-    `).join('') : '<tr><td colspan="5">Nenhum usuário cadastrado ainda.</td></tr>';
+    `).join('') : '<tr><td colspan="6">Nenhum usuário cadastrado ainda.</td></tr>';
   } catch {
-    tbody.innerHTML = '<tr><td colspan="5">Não foi possível carregar.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6">Não foi possível carregar.</td></tr>';
   }
 }
+
+let buscaUsuariosTimeout;
+document.getElementById('buscaUsuarios')?.addEventListener('input', (event) => {
+  clearTimeout(buscaUsuariosTimeout);
+  buscaUsuariosTimeout = setTimeout(() => carregarUsuarios(event.target.value.trim()), 350);
+});
+
+document.getElementById('tabelaUsuarios').addEventListener('click', async (event) => {
+  const id = event.target.dataset.id;
+  if (!id || !event.target.classList.contains('excluir')) return;
+  if (!confirm('Tem certeza que deseja excluir esta conta? Se for uma empresa, as vagas publicadas por ela também serão removidas.')) return;
+  try {
+    const resposta = await chamarAdmin(`/admin/usuarios/${id}`, { method: 'DELETE' });
+    if (!resposta.ok) throw new Error();
+    mostrarToast('🗑️ Usuário excluído');
+    carregarUsuarios(document.getElementById('buscaUsuarios').value.trim());
+  } catch {
+    mostrarToast('Não foi possível excluir o usuário.');
+  }
+});
 
 /* ===== Inicialização ===== */
 

@@ -127,7 +127,8 @@ Disponível em `/admin.html` (não linkado na navegação pública — acesso di
 
 Permite:
 - Cadastrar, editar e excluir vagas manualmente (`/api/admin/vagas`).
-- Visualizar candidaturas recebidas, a lista de espera e os usuários cadastrados (somente leitura).
+- Visualizar candidaturas recebidas e a lista de espera (somente leitura).
+- Buscar e excluir contas de usuário (`GET/DELETE /api/admin/usuarios`) — útil para remover contas falsas/spam. Excluir uma empresa também remove as vagas que ela publicou e as candidaturas dessas vagas, para não deixar vagas "órfãs" na busca pública.
 
 ## Endpoint administrativo
 

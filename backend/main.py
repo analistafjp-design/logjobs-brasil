@@ -595,8 +595,13 @@ def admin_listar_interessados(limit: int = Query(default=50, le=200), db: Sessio
 
 
 @app.get("/api/admin/usuarios", dependencies=[Depends(verificar_admin)])
-def admin_listar_usuarios(limit: int = Query(default=50, le=200), db: Session = Depends(get_db)):
-    usuarios = db.query(Usuario).order_by(Usuario.id.desc()).limit(limit).all()
+def admin_listar_usuarios(
+    q: Optional[str] = None, limit: int = Query(default=50, le=200), db: Session = Depends(get_db)
+):
+    query = db.query(Usuario)
+    if q:
+        query = query.filter((Usuario.nome.ilike(f"%{q}%")) | (Usuario.email.ilike(f"%{q}%")))
+    usuarios = query.order_by(Usuario.id.desc()).limit(limit).all()
     return [
         {
             "id": u.id,
@@ -608,6 +613,28 @@ def admin_listar_usuarios(limit: int = Query(default=50, le=200), db: Session = 
         }
         for u in usuarios
     ]
+
+
+@app.delete("/api/admin/usuarios/{usuario_id}", dependencies=[Depends(verificar_admin)])
+def admin_excluir_usuario(usuario_id: int, db: Session = Depends(get_db)):
+    """Exclui a conta e os dados que dependem dela. Se for empresa, também remove as
+    vagas que ela publicou (e as candidaturas dessas vagas) — do contrário elas
+    ficariam "órfãs" na busca pública, sem ninguém para gerenciá-las."""
+    usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    db.query(Favorito).filter(Favorito.usuario_id == usuario_id).delete()
+    db.query(Alerta).filter(Alerta.usuario_id == usuario_id).delete()
+
+    vaga_ids = [v.id for v in db.query(Vaga.id).filter(Vaga.usuario_id == usuario_id).all()]
+    if vaga_ids:
+        db.query(Candidatura).filter(Candidatura.vaga_id.in_(vaga_ids)).delete(synchronize_session=False)
+        db.query(Vaga).filter(Vaga.usuario_id == usuario_id).delete(synchronize_session=False)
+
+    db.delete(usuario)
+    db.commit()
+    return {"mensagem": "Usuário excluído"}
 
 
 class CandidaturaEntrada(BaseModel):
