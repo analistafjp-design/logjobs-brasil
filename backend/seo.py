@@ -178,3 +178,32 @@ Allow: /
 
 Sitemap: {SITE_URL}/sitemap.xml
 """
+
+
+def pagina_404_html():
+    return f"""<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Página não encontrada — {SITE_NOME}</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="navbar">
+  <div class="navbar-inner">
+    <a href="/" class="logo">🚚 <span>{SITE_NOME}</span></a>
+  </div>
+</header>
+<main>
+  <section class="hero" style="padding:96px 24px">
+    <div class="hero-inner">
+      <h1 style="font-size:clamp(60px,10vw,96px);margin-bottom:8px">404</h1>
+      <p style="margin-bottom:40px">Essa página não existe ou a vaga já pode ter sido removida.</p>
+      <a href="/" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;background:#fff;color:var(--azul);border-radius:10px">← Voltar para a home</a>
+    </div>
+  </section>
+</main>
+</body>
+</html>"""

@@ -1,10 +1,11 @@
 import os
+import secrets
 from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import func
@@ -25,7 +26,7 @@ from scheduler import (
     remover_vagas_exemplo_se_ha_reais,
 )
 from seed_data import VAGAS_EXEMPLO
-from seo import ROBOTS_TXT, pagina_sitemap_xml, pagina_vaga_html
+from seo import ROBOTS_TXT, pagina_404_html, pagina_sitemap_xml, pagina_vaga_html
 
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
@@ -40,6 +41,31 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def cabecalhos_seguranca(request: Request, call_next):
+    resposta = await call_next(request)
+    resposta.headers["X-Content-Type-Options"] = "nosniff"
+    resposta.headers["X-Frame-Options"] = "DENY"
+    resposta.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    resposta.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+    resposta.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'"
+    )
+    return resposta
+
+
+@app.exception_handler(404)
+async def pagina_nao_encontrada(request: Request, exc: HTTPException):
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(status_code=404, content={"detail": exc.detail})
+    return HTMLResponse(status_code=404, content=pagina_404_html())
 
 
 def popular_banco_se_vazio():
@@ -246,8 +272,10 @@ def status_atualizacao(db: Session = Depends(get_db)):
 
 
 @app.post("/api/atualizar-agora")
-def forcar_atualizacao(x_admin_token: Optional[str] = Header(default=None)):
-    if not ADMIN_TOKEN or x_admin_token != ADMIN_TOKEN:
+def forcar_atualizacao(request: Request, x_admin_token: Optional[str] = Header(default=None)):
+    limitar_por_ip(request, "atualizar-agora", max_pedidos=10, janela_segundos=600)
+
+    if not ADMIN_TOKEN or not x_admin_token or not secrets.compare_digest(x_admin_token, ADMIN_TOKEN):
         raise HTTPException(status_code=403, detail="Acesso negado")
 
     atualizar_vagas_periodicamente()
@@ -325,6 +353,12 @@ def sitemap(db: Session = Depends(get_db)):
 @app.get("/robots.txt", response_class=PlainTextResponse)
 def robots():
     return PlainTextResponse(ROBOTS_TXT)
+
+
+@app.get("/favicon.ico")
+def favicon():
+    svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>"
+    return HTMLResponse(content=svg, media_type="image/svg+xml")
 
 
 frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
