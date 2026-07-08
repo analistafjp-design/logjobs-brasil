@@ -14,6 +14,17 @@
   --sombra:0 5px 15px rgba(15,23,42,.08);
   --sombra-hover:0 12px 28px rgba(15,23,42,.14);
   --raio:14px;
+
+  --serie-1:#2a78d6;
+  --serie-2:#1baf7a;
+  --serie-3:#eda100;
+  --serie-4:#008300;
+  --serie-5:#4a3aa7;
+  --serie-6:#e34948;
+  --serie-7:#e87ba4;
+  --serie-8:#eb6834;
+  --grafico-eixo:#c3c2b7;
+  --grafico-grade:#e1e0d9;
 }
 
 @media (prefers-color-scheme:dark){
@@ -26,6 +37,16 @@
     --tag-fundo:rgba(22,163,74,.18);
     --sombra:0 5px 15px rgba(0,0,0,.35);
     --sombra-hover:0 12px 28px rgba(0,0,0,.5);
+    --serie-1:#3987e5;
+    --serie-2:#199e70;
+    --serie-3:#c98500;
+    --serie-4:#008300;
+    --serie-5:#9085e9;
+    --serie-6:#e66767;
+    --serie-7:#d55181;
+    --serie-8:#d95926;
+    --grafico-eixo:#383835;
+    --grafico-grade:#2c2c2a;
   }
 }
 
@@ -38,6 +59,16 @@
   --tag-fundo:rgba(22,163,74,.18);
   --sombra:0 5px 15px rgba(0,0,0,.35);
   --sombra-hover:0 12px 28px rgba(0,0,0,.5);
+  --serie-1:#3987e5;
+  --serie-2:#199e70;
+  --serie-3:#c98500;
+  --serie-4:#008300;
+  --serie-5:#9085e9;
+  --serie-6:#e66767;
+  --serie-7:#d55181;
+  --serie-8:#d95926;
+  --grafico-eixo:#383835;
+  --grafico-grade:#2c2c2a;
 }
 
 :root[data-theme="light"]{
@@ -49,6 +80,16 @@
   --tag-fundo:#E8F5EC;
   --sombra:0 5px 15px rgba(15,23,42,.08);
   --sombra-hover:0 12px 28px rgba(15,23,42,.14);
+  --serie-1:#2a78d6;
+  --serie-2:#1baf7a;
+  --serie-3:#eda100;
+  --serie-4:#008300;
+  --serie-5:#4a3aa7;
+  --serie-6:#e34948;
+  --serie-7:#e87ba4;
+  --serie-8:#eb6834;
+  --grafico-eixo:#c3c2b7;
+  --grafico-grade:#e1e0d9;
 }
 
 *{
@@ -694,5 +735,183 @@ img{
 @media (max-width:480px){
   .footer-inner{
     grid-template-columns:1fr;
+  }
+}
+
+/* ===== Dashboard ===== */
+
+.dash-header{
+  max-width:1200px;
+  margin:0 auto;
+  padding:48px 24px 8px;
+}
+
+.dash-header h1{
+  font-size:clamp(26px,4vw,34px);
+  font-weight:800;
+  letter-spacing:-.02em;
+  text-wrap:balance;
+}
+
+.dash-header p{
+  color:var(--texto-suave);
+  font-size:15px;
+  margin-top:8px;
+}
+
+.dash-grid{
+  max-width:1200px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(360px,1fr));
+  gap:20px;
+  padding:24px 24px 80px;
+}
+
+.dash-card{
+  background:var(--superficie);
+  border-radius:var(--raio);
+  box-shadow:var(--sombra);
+  padding:24px;
+}
+
+.dash-card h2{
+  font-size:16px;
+  font-weight:700;
+  margin-bottom:4px;
+}
+
+.dash-card .dash-sub{
+  color:var(--texto-suave);
+  font-size:13px;
+  margin-bottom:20px;
+}
+
+.dash-card.dash-full{
+  grid-column:1 / -1;
+}
+
+.dash-carregando{
+  color:var(--texto-suave);
+  font-size:14px;
+  text-align:center;
+  padding:24px 0;
+}
+
+/* Barras horizontais */
+
+.barra-lista{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+
+.barra-item{
+  display:grid;
+  grid-template-columns:120px 1fr 64px;
+  align-items:center;
+  gap:12px;
+}
+
+.barra-rotulo{
+  font-size:13px;
+  color:var(--texto);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.barra-trilho{
+  background:var(--fundo);
+  border-radius:999px;
+  height:22px;
+  overflow:hidden;
+}
+
+.barra-preenchimento{
+  height:100%;
+  border-radius:999px;
+  min-width:4px;
+  transition:width .4s ease;
+}
+
+.barra-valor{
+  font-size:13px;
+  font-weight:700;
+  color:var(--texto);
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+
+.dash-legenda{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px 20px;
+  margin-top:18px;
+  padding-top:16px;
+  border-top:1px solid var(--borda);
+}
+
+.dash-legenda-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:12px;
+  color:var(--texto-suave);
+}
+
+.dash-legenda-ponto{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+
+/* Gráfico de linha (evolução) */
+
+.grafico-linha-wrap{
+  width:100%;
+  overflow-x:auto;
+}
+
+.grafico-linha-wrap svg{
+  display:block;
+  width:100%;
+  height:220px;
+}
+
+.grafico-linha-eixo{
+  stroke:var(--grafico-grade);
+  stroke-width:1;
+}
+
+.grafico-linha-path{
+  fill:none;
+  stroke:var(--serie-1);
+  stroke-width:2;
+  stroke-linejoin:round;
+  stroke-linecap:round;
+}
+
+.grafico-linha-area{
+  fill:var(--serie-1);
+  opacity:.1;
+  stroke:none;
+}
+
+.grafico-linha-ponto{
+  fill:var(--serie-1);
+  stroke:var(--superficie);
+  stroke-width:2;
+}
+
+.grafico-linha-rotulo{
+  font-size:11px;
+  fill:var(--texto-suave);
+}
+
+@media (max-width:640px){
+  .barra-item{
+    grid-template-columns:90px 1fr 52px;
   }
 }

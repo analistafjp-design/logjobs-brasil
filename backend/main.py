@@ -172,6 +172,63 @@ def categorias(db: Session = Depends(get_db)):
     return [{"categoria": categoria, "total": total} for categoria, total in linhas]
 
 
+@app.get("/api/dashboard")
+def dashboard(db: Session = Depends(get_db)):
+    por_categoria = (
+        db.query(Vaga.categoria, func.count(Vaga.id))
+        .group_by(Vaga.categoria)
+        .order_by(func.count(Vaga.id).desc())
+        .all()
+    )
+
+    por_estado = (
+        db.query(Vaga.estado, func.count(Vaga.id))
+        .group_by(Vaga.estado)
+        .order_by(func.count(Vaga.id).desc())
+        .all()
+    )
+
+    top_empresas = (
+        db.query(Vaga.empresa, func.count(Vaga.id))
+        .group_by(Vaga.empresa)
+        .order_by(func.count(Vaga.id).desc())
+        .limit(10)
+        .all()
+    )
+
+    salario_por_categoria = (
+        db.query(Vaga.categoria, func.avg(Vaga.salario))
+        .filter(Vaga.salario.isnot(None))
+        .group_by(Vaga.categoria)
+        .order_by(func.avg(Vaga.salario).desc())
+        .all()
+    )
+
+    evolucao = (
+        db.query(Atualizacao)
+        .order_by(Atualizacao.id.desc())
+        .limit(30)
+        .all()
+    )
+
+    return {
+        "por_categoria": [{"categoria": c, "total": t} for c, t in por_categoria],
+        "por_estado": [{"estado": e or "Não informado", "total": t} for e, t in por_estado],
+        "top_empresas": [{"empresa": e, "total": t} for e, t in top_empresas],
+        "salario_por_categoria": [
+            {"categoria": c, "salario_medio": round(s, 2)} for c, s in salario_por_categoria
+        ],
+        "evolucao": [
+            {
+                "executada_em": a.executada_em.isoformat(),
+                "vagas_novas": a.vagas_novas,
+                "vagas_totais": a.vagas_totais,
+            }
+            for a in reversed(evolucao)
+        ],
+    }
+
+
 @app.get("/api/status")
 def status_atualizacao(db: Session = Depends(get_db)):
     ultima = db.query(Atualizacao).order_by(Atualizacao.id.desc()).first()

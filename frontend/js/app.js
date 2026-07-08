@@ -436,6 +436,6 @@ document.querySelectorAll('[data-em-breve]').forEach((el) => {
   });
 });
 
-buscarVagas();
+if (vagasGrid) buscarVagas();
 carregarEstatisticas();
 carregarStatusAtualizacao();
