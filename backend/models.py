@@ -35,6 +35,8 @@ class Usuario(Base):
     cursos_json = Column(String, nullable=True)
     certificados_json = Column(String, nullable=True)
     idiomas_json = Column(String, nullable=True)
+    oauth_provider = Column(String, nullable=True)  # "google", quando a conta foi criada/vinculada via login social
+    oauth_id = Column(String, nullable=True)  # id ("sub") do usuário no provedor OAuth
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
 

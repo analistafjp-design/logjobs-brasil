@@ -1,12 +1,14 @@
 import json
 import os
 import secrets
+import time
+import urllib.parse
 from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import func
@@ -14,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import auth
+import oauth_google
 import security
 import totp
 from blog_seed import ARTIGOS_EXEMPLO
@@ -862,6 +865,64 @@ def login(dados: LoginEntrada, request: Request, db: Session = Depends(get_db)):
 @app.get("/api/auth/me")
 def me(usuario: Usuario = Depends(auth.usuario_atual)):
     return usuario_para_json(usuario)
+
+
+@app.get("/api/auth/google/configurado")
+def google_configurado():
+    return {"configurado": oauth_google.configurado()}
+
+
+@app.get("/api/auth/google/login")
+def google_login(request: Request):
+    if not oauth_google.configurado():
+        raise HTTPException(status_code=503, detail="Login com Google não está configurado neste servidor")
+    limitar_por_ip(request, "auth-google", max_pedidos=20, janela_segundos=600)
+    # "state" assinado (JWT curto) em vez de guardado em sessão/banco: sem estado no
+    # servidor entre o redirecionamento de ida e o de volta, mesmo padrão usado no
+    # token de acesso (security.encode_jwt), só que de vida bem mais curta.
+    state = security.encode_jwt({"exp": time.time() + 600, "nonce": secrets.token_hex(8)}, auth.SECRET_KEY)
+    return RedirectResponse(oauth_google.url_autorizacao(state))
+
+
+@app.get("/api/auth/google/callback")
+def google_callback(request: Request, code: Optional[str] = None, state: Optional[str] = None, error: Optional[str] = None, db: Session = Depends(get_db)):
+    def falha(motivo: str):
+        return RedirectResponse(f"/oauth-callback.html?erro={urllib.parse.quote(motivo)}")
+
+    if error:
+        return falha("Login com Google cancelado ou negado")
+    if not code or not state or not security.decode_jwt(state, auth.SECRET_KEY):
+        return falha("Requisição inválida ou expirada")
+
+    try:
+        perfil = oauth_google.trocar_codigo_por_perfil(code)
+    except oauth_google.ErroTrocaGoogle:
+        return falha("Não foi possível confirmar sua conta Google")
+
+    email = perfil.get("email")
+    if not email:
+        return falha("O Google não retornou um e-mail para esta conta")
+
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    if not usuario:
+        usuario = Usuario(
+            nome=perfil.get("name") or email.split("@")[0],
+            email=email,
+            senha_hash=security.hash_password(secrets.token_hex(32)),  # senha aleatória: login só por Google até o candidato definir uma
+            tipo="candidato",
+            oauth_provider="google",
+            oauth_id=perfil.get("sub"),
+        )
+        db.add(usuario)
+        db.commit()
+        db.refresh(usuario)
+    elif not usuario.oauth_provider:
+        usuario.oauth_provider = "google"
+        usuario.oauth_id = perfil.get("sub")
+        db.commit()
+
+    token = auth.criar_token(usuario.id)
+    return RedirectResponse(f"/oauth-callback.html#token={token}")
 
 
 @app.post("/api/auth/2fa/iniciar")

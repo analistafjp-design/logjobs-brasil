@@ -941,6 +941,47 @@ img{
   background:var(--azul-escuro);
 }
 
+.auth-divisor{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:18px 0 12px;
+  color:var(--texto-suave);
+  font-size:13px;
+}
+
+.auth-divisor[hidden]{display:none;}
+
+.auth-divisor::before,
+.auth-divisor::after{
+  content:"";
+  flex:1;
+  height:1px;
+  background:var(--borda);
+}
+
+.btn-google{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid var(--borda);
+  background:var(--superficie);
+  color:var(--texto);
+  font-weight:600;
+  font-size:14px;
+  transition:background .15s ease;
+}
+
+.btn-google[hidden]{display:none;}
+
+.btn-google:hover{
+  background:var(--tag-fundo);
+}
+
 .modal .modal-sucesso{
   text-align:center;
   padding:12px 0;

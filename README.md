@@ -53,6 +53,16 @@ Senhas são armazenadas com hash PBKDF2-HMAC-SHA256 (salt por usuário) e o toke
 
 Usuários logados podem salvar vagas (favoritos): botão de estrela em cada card, endpoints `GET/POST/DELETE /api/favoritos`.
 
+### Login com Google
+
+Implementado em `backend/oauth_google.py` como um fluxo OAuth 2.0 Authorization Code manual, usando só `urllib` da biblioteca padrão (sem `authlib`/`google-auth`) — mesma filosofia do resto da autenticação do projeto. Fica **desativado automaticamente** se as variáveis de ambiente não estiverem configuradas: `GET /api/auth/google/configurado` retorna `{"configurado": false}` e o botão "Continuar com Google" nem aparece no modal de login/cadastro.
+
+Para ativar, configure no servidor:
+- `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` — gerados em [console.cloud.google.com](https://console.cloud.google.com), em "APIs e Serviços → Credenciais → Criar credenciais → ID do cliente OAuth" (tipo "Aplicativo da Web").
+- `GOOGLE_REDIRECT_URI` — a URL completa de `GET /api/auth/google/callback` no seu domínio (ex.: `https://logjobs-brasil.onrender.com/api/auth/google/callback`), que também precisa estar cadastrada como "URI de redirecionamento autorizado" no Google Cloud Console.
+
+Fluxo: `GET /api/auth/google/login` redireciona para a tela de consulta do Google com um `state` assinado (JWT curto, `security.encode_jwt`) para proteção contra CSRF — sem precisar guardar nada em sessão/banco entre os dois redirecionamentos. O Google chama de volta `GET /api/auth/google/callback`, que valida o `state`, troca o `code` por um perfil (via `GET https://www.googleapis.com/oauth2/v3/userinfo`), cria a conta se o e-mail ainda não existir (como `tipo: "candidato"`, com uma senha aleatória — a conta só entra por Google até o candidato decidir definir uma senha própria) ou faz login na conta existente com o mesmo e-mail, e redireciona para `frontend/oauth-callback.html#token=...`, que salva a sessão e manda para o perfil.
+
 ### Perfil estruturado do candidato
 
 Além do mini-currículo em texto livre, candidatos podem cadastrar: experiências profissionais, formação acadêmica, cursos, certificados, idiomas, CNH, veículo próprio, LinkedIn/GitHub/portfólio. As cinco listas (experiências, formações, cursos, certificados, idiomas) são guardadas como JSON serializado em colunas de texto no `Usuario` (`backend/models.py`) — evita criar cinco tabelas quase idênticas só para listas curtas que ninguém precisa consultar via SQL, e a API continua ergonômica porque o backend faz o `json.dumps`/`json.loads`; quem chama `PATCH /api/auth/me` manda e recebe listas de verdade, não texto.
