@@ -63,6 +63,12 @@ Candidatos com o mini-currículo preenchido recebem uma seção "Vagas recomenda
 
 Disponível em `/calculadora.html` (link "Salários" na navbar), via `GET /api/salarios`: mínimo, média e máximo por categoria, calculados a partir das vagas com salário informado. Permite comparar até duas categorias lado a lado, além de uma tabela completa ordenada pela maior média.
 
+## PWA (instalável)
+
+O site tem `manifest.json` e um service worker (`frontend/sw.js`) registrado em todas as páginas via `js/app.js`. Ele faz cache do "app shell" (HTML/CSS/JS estáticos e o ícone) com estratégia stale-while-revalidate, permitindo abrir o site rapidamente e até offline — mas **nunca** cacheia `/api/*`, `/vagas/{id}` (gerado dinamicamente) nem `sitemap.xml`/`robots.txt`, para não servir vagas desatualizadas.
+
+O ícone (`frontend/icon.svg`) é SVG em vez de PNG, porque o ambiente de desenvolvimento usado não tinha uma ferramenta de conversão de imagem disponível. Funciona bem para instalação em Chrome/Edge/Android; no iOS Safari a experiência pode ser mais limitada — gerar PNGs reais (192x192, 512x512) a partir do `icon.svg` é uma melhoria futura de baixo esforço.
+
 ## Ranking de empresas
 
 Disponível em `/ranking.html` (linkado na navbar e no rodapé), via `GET /api/ranking`: top 15 empresas por número de vagas ativas e top 15 por salário médio informado (exige pelo menos 2 vagas com salário cadastrado para entrar no ranking salarial, evitando que uma única vaga distorça a média). Não há ranking por "avaliação" porque o projeto não tem sistema de avaliações de empresas — não faria sentido inventar dados.

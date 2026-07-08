@@ -1,5 +1,13 @@
 const API_BASE = '/api';
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((erro) => {
+      console.warn('Não foi possível registrar o service worker:', erro);
+    });
+  });
+}
+
 function escapeHtml(valor) {
   const texto = valor === null || valor === undefined ? '' : String(valor);
   return texto.replace(/[&<>"']/g, (c) => ({
