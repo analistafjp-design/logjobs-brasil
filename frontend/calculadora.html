@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Ranking das empresas que mais contratam e que pagam os melhores salários no LogJobs Brasil.">
-<title>Ranking de Empresas — LogJobs Brasil</title>
-<link rel="canonical" href="https://logjobs-brasil.onrender.com/ranking.html">
+<meta name="description" content="Compare salários por cargo na área de logística e descubra a faixa salarial (mínimo, médio e máximo) de cada categoria.">
+<title>Comparador de Salários — LogJobs Brasil</title>
+<link rel="canonical" href="https://logjobs-brasil.onrender.com/calculadora.html">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
 <script>
   (function () {
     var tema = localStorage.getItem('logjobs-tema');
@@ -26,7 +27,6 @@
       <a href="index.html#vagas">Vagas</a>
       <a href="ranking.html">Ranking</a>
       <a href="calculadora.html">Salários</a>
-      <a href="#" data-lista-espera="empresa">Empresas</a>
       <a href="dashboard.html">Dashboard</a>
       <button class="btn-tema" id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
       <span id="areaConta"></span>
@@ -39,24 +39,35 @@
 
 <main>
   <div class="dash-header">
-    <h1>🏆 Ranking de empresas</h1>
-    <p>As empresas que mais contratam e que oferecem os melhores salários no setor de logística, com base nas vagas ativas na plataforma.</p>
+    <h1>💰 Comparador de salários por cargo</h1>
+    <p>Faixa salarial (mínimo, médio e máximo) por categoria, calculada a partir das vagas ativas na plataforma.</p>
   </div>
 
   <div class="dash-grid">
     <div class="dash-card dash-full">
-      <h2>Empresas que mais contratam</h2>
-      <p class="dash-sub">Top 15 por número de vagas ativas</p>
-      <div class="barra-lista" id="rankingVagas">
-        <p class="dash-carregando">Carregando...</p>
+      <h2>Comparar duas categorias</h2>
+      <p class="dash-sub">Escolha até duas categorias para comparar a faixa salarial lado a lado</p>
+      <div class="admin-form-grid" style="margin-bottom: 20px;">
+        <label>Categoria A
+          <select id="seletorA"><option value="">Selecione...</option></select>
+        </label>
+        <label>Categoria B (opcional)
+          <select id="seletorB"><option value="">Selecione...</option></select>
+        </label>
       </div>
+      <div class="comparador-cards" id="comparadorResultado"></div>
     </div>
 
     <div class="dash-card dash-full">
-      <h2>Salários mais altos</h2>
-      <p class="dash-sub">Top 15 por salário médio informado (empresas com pelo menos 2 vagas com salário)</p>
-      <div class="barra-lista" id="rankingSalario">
-        <p class="dash-carregando">Carregando...</p>
+      <h2>Todas as categorias</h2>
+      <p class="dash-sub">Ordenadas da maior para a menor média salarial</p>
+      <div class="admin-tabela-wrap">
+        <table class="admin-tabela" id="tabelaSalarios">
+          <thead>
+            <tr><th>Categoria</th><th>Mínimo</th><th>Média</th><th>Máximo</th><th>Vagas com salário</th></tr>
+          </thead>
+          <tbody><tr><td colspan="5">Carregando...</td></tr></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -71,7 +82,7 @@
     <div class="footer-col">
       <h4>Candidatos</h4>
       <a href="index.html#vagas">Buscar vagas</a>
-      <a href="#" data-em-breve="Criar currículo online">Criar currículo</a>
+      <a href="calculadora.html">Comparar salários</a>
       <a href="#" data-lista-espera="candidato">Alertas de vagas</a>
     </div>
     <div class="footer-col">
@@ -99,6 +110,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <script src="js/app.js"></script>
-<script src="js/ranking.js"></script>
+<script src="js/calculadora.js"></script>
 </body>
 </html>

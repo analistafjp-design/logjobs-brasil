@@ -202,6 +202,34 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/api/salarios")
+def salarios(db: Session = Depends(get_db)):
+    linhas = (
+        db.query(
+            Vaga.categoria,
+            func.min(Vaga.salario).label("minimo"),
+            func.avg(Vaga.salario).label("media"),
+            func.max(Vaga.salario).label("maximo"),
+            func.count(Vaga.id).label("total"),
+        )
+        .filter(Vaga.salario.isnot(None))
+        .group_by(Vaga.categoria)
+        .order_by(func.avg(Vaga.salario).desc())
+        .all()
+    )
+
+    return [
+        {
+            "categoria": categoria,
+            "minimo": minimo,
+            "media": round(media, 2),
+            "maximo": maximo,
+            "total": total,
+        }
+        for categoria, minimo, media, maximo, total in linhas
+    ]
+
+
 @app.get("/api/ranking")
 def ranking(db: Session = Depends(get_db)):
     por_vagas = (

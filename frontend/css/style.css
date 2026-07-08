@@ -1115,3 +1115,39 @@ img{
 #perfilBloqueado .btn-candidatar{
   margin-top:12px;
 }
+
+/* ===== Comparador de salários ===== */
+
+.comparador-cards{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(240px, 100%),1fr));
+  gap:16px;
+}
+
+.comparador-card{
+  background:var(--fundo);
+  border:1px solid var(--borda);
+  border-radius:var(--raio);
+  padding:20px;
+}
+
+.comparador-card h3{
+  font-size:15px;
+  margin-bottom:14px;
+}
+
+.comparador-linha{
+  display:flex;
+  justify-content:space-between;
+  padding:8px 0;
+  border-bottom:1px solid var(--borda);
+  font-size:14px;
+}
+
+.comparador-linha:last-child{
+  border-bottom:none;
+}
+
+.comparador-linha strong{
+  color:var(--verde);
+}
