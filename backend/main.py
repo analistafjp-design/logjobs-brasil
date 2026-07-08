@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 import auth
 import security
 from database import Base, SessionLocal, engine, get_db
+from recomendacao import recomendar_vagas
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_categorias
 from migrations import adicionar_colunas_faltantes
 from models import Atualizacao, Candidatura, Favorito, Interessado, Usuario, Vaga
@@ -652,6 +653,32 @@ def remover_favorito(vaga_id: int, usuario: Usuario = Depends(auth.usuario_atual
         db.delete(favorito)
         db.commit()
     return {"mensagem": "Vaga removida dos salvos"}
+
+
+@app.get("/api/recomendacoes")
+def recomendacoes(usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    if not usuario.resumo or not usuario.resumo.strip():
+        return {"vagas": [], "motivo": "perfil_incompleto"}
+
+    vagas = db.query(Vaga).order_by(Vaga.id.desc()).limit(500).all()
+    recomendadas = recomendar_vagas(usuario.resumo, vagas, limite=6)
+
+    return {
+        "vagas": [
+            {
+                "id": item["vaga"].id,
+                "cargo": item["vaga"].cargo,
+                "empresa": item["vaga"].empresa,
+                "cidade": item["vaga"].cidade,
+                "estado": item["vaga"].estado,
+                "salario": item["vaga"].salario,
+                "categoria": item["vaga"].categoria,
+                "link": item["vaga"].link,
+                "compatibilidade": item["compatibilidade"],
+            }
+            for item in recomendadas
+        ]
+    }
 
 
 @app.get("/vagas/{vaga_id}", response_class=HTMLResponse)

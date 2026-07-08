@@ -487,6 +487,11 @@ img{
   border-radius:999px;
 }
 
+.tag.compatibilidade{
+  background:var(--azul);
+  color:var(--branco);
+}
+
 .vaga-info{
   color:var(--texto-suave);
   font-size:14px;

@@ -2,6 +2,8 @@ const perfilBloqueado = document.getElementById('perfilBloqueado');
 const perfilConteudo = document.getElementById('perfilConteudo');
 const formPerfil = document.getElementById('formPerfil');
 const perfilFavoritosEl = document.getElementById('perfilFavoritos');
+const secaoRecomendadas = document.getElementById('secaoRecomendadas');
+const perfilRecomendadasEl = document.getElementById('perfilRecomendadas');
 
 document.getElementById('btnEntrarPerfil')?.addEventListener('click', () => abrirModalAuth('login'));
 
@@ -48,8 +50,58 @@ async function iniciarPerfil() {
   formPerfil.cidade.value = usuario.cidade || '';
   formPerfil.resumo.value = usuario.resumo || '';
 
+  if (usuario.tipo === 'candidato') {
+    secaoRecomendadas.hidden = false;
+    carregarRecomendacoes();
+  } else {
+    secaoRecomendadas.hidden = true;
+  }
+
   carregarFavoritosPerfil();
 }
+
+async function carregarRecomendacoes() {
+  try {
+    const resposta = await fetch(`${API_BASE}/recomendacoes`, {
+      headers: { Authorization: `Bearer ${obterToken()}` },
+    });
+    const dados = await resposta.json();
+
+    if (dados.motivo === 'perfil_incompleto') {
+      perfilRecomendadasEl.innerHTML = '<p class="vagas-carregando">Preencha seu mini-currículo acima e clique em "Salvar alterações" para receber recomendações personalizadas.</p>';
+      return;
+    }
+
+    const vagas = dados.vagas || [];
+    if (vagas.length === 0) {
+      perfilRecomendadasEl.innerHTML = '<p class="vagas-carregando">Ainda não encontramos vagas compatíveis com seu perfil. Tente detalhar mais suas experiências.</p>';
+      return;
+    }
+
+    perfilRecomendadasEl.innerHTML = `<div class="vagas-grid">${vagas.map((vaga) => `
+      <article class="vaga">
+        <div class="vaga-topo">
+          <h3><a href="/vagas/${escapeHtml(vaga.id)}">${escapeHtml(vaga.empresa)}</a></h3>
+          <span class="tag compatibilidade">${vaga.compatibilidade}% compatível</span>
+        </div>
+        <p class="vaga-info"><a href="/vagas/${escapeHtml(vaga.id)}">${escapeHtml(vaga.cargo)}</a> • ${escapeHtml(vaga.cidade)}${vaga.estado ? ', ' + escapeHtml(vaga.estado) : ''}</p>
+        <div class="vaga-rodape">
+          <span class="salario">${escapeHtml(formatarSalario(vaga.salario))}</span>
+          <div class="vaga-acoes">
+            ${botaoSalvar(vaga)}
+          </div>
+        </div>
+      </article>
+    `).join('')}</div>`;
+  } catch {
+    perfilRecomendadasEl.innerHTML = '<p class="vagas-carregando">Não foi possível carregar recomendações.</p>';
+  }
+}
+
+perfilRecomendadasEl?.addEventListener('click', (event) => {
+  const botao = event.target.closest('.btn-salvar');
+  if (botao) alternarFavorito(botao.dataset.vagaId, botao).then(() => carregarFavoritosPerfil());
+});
 
 formPerfil?.addEventListener('submit', async (event) => {
   event.preventDefault();
@@ -77,6 +129,7 @@ formPerfil?.addEventListener('submit', async (event) => {
 
     localStorage.setItem('logjobs-usuario', JSON.stringify(usuarioAtualizado));
     renderAreaConta();
+    if (usuarioAtualizado.tipo === 'candidato') carregarRecomendacoes();
     sucessoEl.hidden = false;
     setTimeout(() => { sucessoEl.hidden = true; }, 3000);
   } catch (erro) {
