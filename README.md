@@ -59,6 +59,10 @@ Existe uma página de perfil (`frontend/perfil.html`, acessível pelo nome do us
 
 Candidatos com o mini-currículo preenchido recebem uma seção "Vagas recomendadas para você" no perfil, via `GET /api/recomendacoes`. O motor (`backend/recomendacao.py`) é uma correspondência de palavras-chave com pesos por campo (cargo/categoria valem mais que descrição/benefícios) — determinístico e sem depender de nenhuma API externa de IA, já que o projeto não tem chave de LLM configurada. Cada vaga recomendada mostra um percentual de compatibilidade (proporção das palavras-chave do currículo do candidato encontradas na vaga).
 
+## Mapa de vagas
+
+Disponível em `/mapa.html`: mapa de bolhas do Brasil (uma bolha por estado, tamanho proporcional ao número de vagas), usando coordenadas aproximadas das 27 capitais como ponto representativo — o banco não guarda geolocalização por vaga/cidade, então um mapa de fronteiras reais por estado ficaria fora de escopo. Reaproveita os dados de `/api/dashboard` (por_estado). Passar o mouse mostra o total; clicar filtra as vagas daquele estado na home (`index.html?estado=UF`).
+
 ## Blog
 
 Disponível em `/blog.html` (lista com filtro por categoria) e `/artigo.html?slug=...` (página individual, com dados estruturados `Article` do schema.org). Conteúdo real (`backend/blog_seed.py`, 4 artigos: documentos para entregador, currículo para logística, perguntas de entrevista, tendências do mercado), semeado automaticamente na primeira execução, via `GET /api/blog` e `GET /api/blog/{slug}`. Artigos entram automaticamente no `sitemap.xml`.

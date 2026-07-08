@@ -645,6 +645,9 @@ carregarFavoritos().then(() => {
   if (vagasCarregadas.length) renderizarVagas(vagasCarregadas);
 });
 
-if (vagasGrid) buscarVagas();
+if (vagasGrid) {
+  const estadoNaUrl = new URLSearchParams(window.location.search).get('estado');
+  buscarVagas(estadoNaUrl ? { estado: estadoNaUrl } : {});
+}
 carregarEstatisticas();
 carregarStatusAtualizacao();

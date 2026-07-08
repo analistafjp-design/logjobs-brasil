@@ -1,4 +1,4 @@
-const CACHE_NOME = "logjobs-shell-v2";
+const CACHE_NOME = "logjobs-shell-v3";
 
 const ARQUIVOS_APP_SHELL = [
   "/",
@@ -9,6 +9,7 @@ const ARQUIVOS_APP_SHELL = [
   "/perfil.html",
   "/blog.html",
   "/artigo.html",
+  "/mapa.html",
   "/css/style.css",
   "/css/admin.css",
   "/js/app.js",
@@ -18,6 +19,7 @@ const ARQUIVOS_APP_SHELL = [
   "/js/perfil.js",
   "/js/blog.js",
   "/js/artigo.js",
+  "/js/mapa.js",
   "/icon.svg",
   "/manifest.json",
 ];

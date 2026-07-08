@@ -1314,3 +1314,55 @@ img{
   font-weight:600;
   color:var(--azul);
 }
+
+/* ===== Mapa ===== */
+
+.mapa-wrap{
+  position:relative;
+  max-width:640px;
+  margin:0 auto;
+}
+
+.mapa-svg{
+  width:100%;
+  height:auto;
+}
+
+.mapa-ponto circle{
+  fill:var(--azul);
+  fill-opacity:.75;
+  stroke:var(--superficie);
+  stroke-width:2;
+  cursor:pointer;
+  transition:fill-opacity .15s ease;
+}
+
+.mapa-ponto:hover circle,
+.mapa-ponto:focus circle{
+  fill-opacity:1;
+}
+
+.mapa-ponto text{
+  font-size:10px;
+  font-weight:700;
+  fill:var(--branco);
+  pointer-events:none;
+  user-select:none;
+}
+
+.mapa-ponto{
+  outline:none;
+}
+
+.mapa-tooltip{
+  position:absolute;
+  background:var(--toast-fundo);
+  color:var(--toast-texto);
+  padding:6px 12px;
+  border-radius:8px;
+  font-size:13px;
+  font-weight:600;
+  pointer-events:none;
+  z-index:10;
+  white-space:nowrap;
+}
