@@ -223,12 +223,72 @@ if (searchForm) {
   searchForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const [cargoInput, cidadeInput] = searchForm.querySelectorAll('input');
-    buscarVagas({
+    const params = {
       cargo: cargoInput.value.trim(),
       cidade: cidadeInput.value.trim(),
+    };
+    buscarVagas(params);
+    salvarBuscaRecente(params);
+  });
+}
+
+/* ===== Histórico de buscas (local ao navegador) ===== */
+
+const CHAVE_BUSCAS_RECENTES = 'logjobs-buscas-recentes';
+
+function obterBuscasRecentes() {
+  try {
+    return JSON.parse(localStorage.getItem(CHAVE_BUSCAS_RECENTES) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function salvarBuscaRecente(params) {
+  if (!params.cargo && !params.cidade) return;
+  const atuais = obterBuscasRecentes().filter(
+    (b) => !(b.cargo === params.cargo && b.cidade === params.cidade)
+  );
+  atuais.unshift(params);
+  localStorage.setItem(CHAVE_BUSCAS_RECENTES, JSON.stringify(atuais.slice(0, 5)));
+  renderizarBuscasRecentes();
+}
+
+function rotuloBusca(b) {
+  return [b.cargo, b.cidade].filter(Boolean).join(' em ') || 'Todas as vagas';
+}
+
+function renderizarBuscasRecentes() {
+  const container = document.getElementById('buscasRecentes');
+  const chipsEl = document.getElementById('buscasRecentesChips');
+  if (!container || !chipsEl) return;
+
+  const buscas = obterBuscasRecentes();
+  if (!buscas.length) {
+    container.hidden = true;
+    return;
+  }
+
+  container.hidden = false;
+  chipsEl.innerHTML = buscas.map((b, indice) => `
+    <button type="button" class="busca-recente-chip" data-indice="${indice}">${escapeHtml(rotuloBusca(b))}</button>
+  `).join('');
+
+  chipsEl.querySelectorAll('.busca-recente-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      const busca = buscas[Number(chip.dataset.indice)];
+      if (searchForm) {
+        const [cargoInput, cidadeInput] = searchForm.querySelectorAll('input');
+        cargoInput.value = busca.cargo || '';
+        cidadeInput.value = busca.cidade || '';
+      }
+      buscarVagas(busca);
+      document.getElementById('vagas')?.scrollIntoView({ behavior: 'smooth' });
     });
   });
 }
+
+renderizarBuscasRecentes();
 
 document.querySelectorAll('.categoria').forEach((botao) => {
   botao.addEventListener('click', () => {
@@ -309,19 +369,21 @@ const CAMPO_HONEYPOT = `<input type="text" name="empresa_no_meio" tabindex="-1" 
 /* ===== Candidatura ===== */
 
 function abrirModalCandidatura(vaga) {
+  const usuarioLogado = typeof obterUsuario === 'function' ? obterUsuario() : null;
+
   abrirModal(`
     <h2>Candidatar-se: ${escapeHtml(vaga.cargo)}</h2>
     <p class="modal-subtitulo">${escapeHtml(vaga.empresa)} • ${escapeHtml(vaga.cidade)}${vaga.estado ? ', ' + escapeHtml(vaga.estado) : ''}</p>
     <form id="formCandidatura">
       ${CAMPO_HONEYPOT}
       <label>Nome completo
-        <input type="text" name="nome" required autocomplete="name">
+        <input type="text" name="nome" required autocomplete="name" value="${usuarioLogado ? escapeHtml(usuarioLogado.nome) : ''}">
       </label>
       <label>E-mail
-        <input type="email" name="email" required autocomplete="email">
+        <input type="email" name="email" required autocomplete="email" value="${usuarioLogado ? escapeHtml(usuarioLogado.email) : ''}">
       </label>
       <label>Telefone
-        <input type="tel" name="telefone" autocomplete="tel">
+        <input type="tel" name="telefone" autocomplete="tel" value="${usuarioLogado ? escapeHtml(usuarioLogado.telefone || '') : ''}">
       </label>
       <p class="modal-erro" id="candidaturaErro" hidden></p>
       <button type="submit" class="modal-enviar">Enviar candidatura</button>

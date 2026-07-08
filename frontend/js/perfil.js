@@ -6,6 +6,8 @@ const secaoRecomendadas = document.getElementById('secaoRecomendadas');
 const perfilRecomendadasEl = document.getElementById('perfilRecomendadas');
 const secaoConquistas = document.getElementById('secaoConquistas');
 const perfilConquistasEl = document.getElementById('perfilConquistas');
+const perfilAlertasEl = document.getElementById('perfilAlertas');
+const perfilCandidaturasEl = document.getElementById('perfilCandidaturas');
 
 document.getElementById('btnEntrarPerfil')?.addEventListener('click', () => abrirModalAuth('login'));
 
@@ -52,14 +54,23 @@ async function iniciarPerfil() {
   formPerfil.cidade.value = usuario.cidade || '';
   formPerfil.resumo.value = usuario.resumo || '';
 
+  const secaoAlertas = document.getElementById('secaoAlertas');
+  const secaoCandidaturasHistorico = document.getElementById('secaoCandidaturasHistorico');
+
   if (usuario.tipo === 'candidato') {
     secaoRecomendadas.hidden = false;
     secaoConquistas.hidden = false;
+    secaoAlertas.hidden = false;
+    secaoCandidaturasHistorico.hidden = false;
     carregarRecomendacoes();
     carregarConquistas();
+    carregarAlertas();
+    carregarCandidaturasHistorico();
   } else {
     secaoRecomendadas.hidden = true;
     secaoConquistas.hidden = true;
+    secaoAlertas.hidden = true;
+    secaoCandidaturasHistorico.hidden = true;
   }
 
   carregarFavoritosPerfil();
@@ -225,6 +236,133 @@ perfilFavoritosEl?.addEventListener('click', (event) => {
     if (obterUsuario()?.tipo === 'candidato') carregarConquistas();
   });
 });
+
+/* ===== Alertas de vagas ===== */
+
+function criterioAlertaTexto(alerta) {
+  const partes = [];
+  if (alerta.cargo) partes.push(`cargo: "${alerta.cargo}"`);
+  if (alerta.categoria) partes.push(`categoria: "${alerta.categoria}"`);
+  if (alerta.cidade) partes.push(`cidade: "${alerta.cidade}"`);
+  if (alerta.estado) partes.push(`estado: ${alerta.estado}`);
+  return partes.join(' · ') || 'Todas as vagas';
+}
+
+function linkAlerta(alerta) {
+  const params = new URLSearchParams();
+  if (alerta.cargo) params.set('cargo', alerta.cargo);
+  if (alerta.cidade) params.set('cidade', alerta.cidade);
+  if (alerta.estado) params.set('estado', alerta.estado);
+  if (alerta.categoria) params.set('categoria', alerta.categoria);
+  return `index.html?${params.toString()}#vagas`;
+}
+
+async function carregarAlertas() {
+  try {
+    const resposta = await fetch(`${API_BASE}/alertas`, {
+      headers: { Authorization: `Bearer ${obterToken()}` },
+    });
+    const alertas = await resposta.json();
+
+    if (!alertas.length) {
+      perfilAlertasEl.innerHTML = '<p class="vagas-carregando">Você ainda não salvou nenhum alerta.</p>';
+      return;
+    }
+
+    perfilAlertasEl.innerHTML = alertas.map((a) => `
+      <div class="comparador-card" style="margin-bottom: 12px;">
+        <div class="comparador-linha">
+          <span>${escapeHtml(criterioAlertaTexto(a))}</span>
+          <strong>${a.total_vagas} vaga${a.total_vagas === 1 ? '' : 's'}</strong>
+        </div>
+        <div class="vaga-acoes" style="margin-top: 10px;">
+          <a class="btn-candidatar" href="${linkAlerta(a)}">Ver vagas</a>
+          <button class="admin-acao-btn excluir" data-alerta-id="${a.id}">Excluir</button>
+        </div>
+      </div>
+    `).join('');
+  } catch {
+    perfilAlertasEl.innerHTML = '<p class="vagas-carregando">Não foi possível carregar seus alertas.</p>';
+  }
+}
+
+document.getElementById('formAlerta')?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const form = event.target;
+  const erroEl = document.getElementById('alertaErro');
+  erroEl.hidden = true;
+
+  try {
+    const resposta = await fetch(`${API_BASE}/alertas`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${obterToken()}`,
+      },
+      body: JSON.stringify({
+        cargo: form.cargo.value.trim() || null,
+        categoria: form.categoria.value.trim() || null,
+        cidade: form.cidade.value.trim() || null,
+        estado: form.estado.value.trim().toUpperCase() || null,
+      }),
+    });
+    const dados = await resposta.json();
+    if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível salvar o alerta');
+
+    form.reset();
+    mostrarToast('🔔 Alerta salvo!');
+    carregarAlertas();
+  } catch (erro) {
+    erroEl.textContent = erro.message;
+    erroEl.hidden = false;
+  }
+});
+
+perfilAlertasEl?.addEventListener('click', async (event) => {
+  const botao = event.target.closest('[data-alerta-id]');
+  if (!botao) return;
+  await fetch(`${API_BASE}/alertas/${botao.dataset.alertaId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${obterToken()}` },
+  });
+  mostrarToast('Alerta removido');
+  carregarAlertas();
+});
+
+/* ===== Histórico de candidaturas ===== */
+
+async function carregarCandidaturasHistorico() {
+  try {
+    const resposta = await fetch(`${API_BASE}/minhas-candidaturas`, {
+      headers: { Authorization: `Bearer ${obterToken()}` },
+    });
+    const candidaturas = await resposta.json();
+
+    if (!candidaturas.length) {
+      perfilCandidaturasEl.innerHTML = '<p class="vagas-carregando">Você ainda não se candidatou a nenhuma vaga por aqui.</p>';
+      return;
+    }
+
+    perfilCandidaturasEl.innerHTML = `
+      <div class="admin-tabela-wrap">
+        <table class="admin-tabela">
+          <thead><tr><th>Vaga</th><th>Empresa</th><th>Data</th></tr></thead>
+          <tbody>
+            ${candidaturas.map((c) => `
+              <tr>
+                <td>${c.vaga_id ? `<a href="/vagas/${escapeHtml(c.vaga_id)}">${escapeHtml(c.cargo || 'Vaga removida')}</a>` : escapeHtml(c.cargo || 'Vaga removida')}</td>
+                <td>${escapeHtml(c.empresa || '—')}</td>
+                <td>${new Date(c.criada_em).toLocaleDateString('pt-BR')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch {
+    perfilCandidaturasEl.innerHTML = '<p class="vagas-carregando">Não foi possível carregar seu histórico.</p>';
+  }
+}
 
 renderAreaConta();
 iniciarPerfil();

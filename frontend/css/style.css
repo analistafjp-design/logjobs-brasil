@@ -331,6 +331,36 @@ img{
   background:#128A3E;
 }
 
+.buscas-recentes{
+  margin-top:16px;
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+  font-size:13px;
+  color:rgba(255,255,255,.85);
+}
+
+.buscas-recentes-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.busca-recente-chip{
+  background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.35);
+  color:var(--branco);
+  padding:6px 14px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:600;
+}
+
+.busca-recente-chip:hover{
+  background:rgba(255,255,255,.28);
+}
+
 /* ===== Categorias ===== */
 
 .categorias{

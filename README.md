@@ -63,6 +63,14 @@ Candidatos com o mini-currículo preenchido recebem uma seção "Vagas recomenda
 
 Disponível em `/mapa.html`: mapa de bolhas do Brasil (uma bolha por estado, tamanho proporcional ao número de vagas), usando coordenadas aproximadas das 27 capitais como ponto representativo — o banco não guarda geolocalização por vaga/cidade, então um mapa de fronteiras reais por estado ficaria fora de escopo. Reaproveita os dados de `/api/dashboard` (por_estado). Passar o mouse mostra o total; clicar filtra as vagas daquele estado na home (`index.html?estado=UF`).
 
+## Alertas de vagas e histórico
+
+**Alertas** (`/api/alertas`, seção "🔔 Alertas de vagas" no perfil): candidatos salvam critérios de busca (cargo/categoria/cidade/estado) e veem, ao vivo, quantas vagas correspondem — sem envio por e-mail/WhatsApp/Telegram, porque o projeto não tem credenciais de nenhum desses serviços configuradas (seria necessário inventar uma integração falsa, o que evitamos). É funcionalmente uma busca salva com contador dinâmico.
+
+**Histórico de candidaturas** (`/api/minhas-candidaturas`): lista as candidaturas do usuário logado, casadas pelo e-mail com a tabela `candidaturas` (que não exige login para se candidatar). O formulário de candidatura agora pré-preenche nome/e-mail/telefone quando o candidato está logado, para que o histórico funcione de forma consistente.
+
+**Histórico de buscas**: as últimas 5 buscas ficam salvas no navegador (`localStorage`, sem backend) e aparecem como chips clicáveis abaixo da busca na home.
+
 ## Blog
 
 Disponível em `/blog.html` (lista com filtro por categoria) e `/artigo.html?slug=...` (página individual, com dados estruturados `Article` do schema.org). Conteúdo real (`backend/blog_seed.py`, 4 artigos: documentos para entregador, currículo para logística, perguntas de entrevista, tendências do mercado), semeado automaticamente na primeira execução, via `GET /api/blog` e `GET /api/blog/{slug}`. Artigos entram automaticamente no `sitemap.xml`.

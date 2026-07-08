@@ -104,3 +104,18 @@ class Artigo(Base):
     categoria = Column(String, nullable=False)
     autor = Column(String, default="Equipe LogJobs Brasil")
     publicado_em = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Alerta(Base):
+    """Busca salva de um candidato. Sem envio por e-mail/WhatsApp/Telegram
+    (o projeto não tem credenciais de nenhum desses serviços configuradas) —
+    o "alerta" é o contador de vagas novas compatíveis, calculado ao vivo."""
+    __tablename__ = "alertas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, nullable=False, index=True)
+    cargo = Column(String, nullable=True)
+    categoria = Column(String, nullable=True)
+    cidade = Column(String, nullable=True)
+    estado = Column(String, nullable=True)
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())

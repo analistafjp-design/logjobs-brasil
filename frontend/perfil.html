@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="icon.svg">
 <meta name="theme-color" content="#0F62FE">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
 <script>
   (function () {
     var tema = localStorage.getItem('logjobs-tema');
@@ -89,6 +90,25 @@
       <section class="perfil-card">
         <h2>Vagas salvas</h2>
         <div id="perfilFavoritos"><p class="vagas-carregando">Carregando...</p></div>
+      </section>
+
+      <section class="perfil-card" id="secaoAlertas">
+        <h2>🔔 Alertas de vagas</h2>
+        <p class="modal-subtitulo" style="margin-bottom: 16px;">Salve critérios de busca e veja quantas vagas correspondem, sem precisar repetir a pesquisa.</p>
+        <form id="formAlerta" class="admin-form-grid" style="margin-bottom: 20px;">
+          <label>Cargo <input type="text" name="cargo" placeholder="Ex: motorista"></label>
+          <label>Categoria <input type="text" name="categoria" placeholder="Ex: Entregador"></label>
+          <label>Cidade <input type="text" name="cidade"></label>
+          <label>Estado (UF) <input type="text" name="estado" maxlength="2"></label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">Salvar alerta</button>
+        </form>
+        <p class="modal-erro" id="alertaErro" hidden></p>
+        <div id="perfilAlertas"><p class="vagas-carregando">Carregando...</p></div>
+      </section>
+
+      <section class="perfil-card" id="secaoCandidaturasHistorico">
+        <h2>📨 Minhas candidaturas</h2>
+        <div id="perfilCandidaturas"><p class="vagas-carregando">Carregando...</p></div>
       </section>
     </div>
 

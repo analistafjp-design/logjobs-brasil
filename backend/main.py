@@ -19,7 +19,7 @@ from database import Base, SessionLocal, engine, get_db
 from recomendacao import recomendar_vagas
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_categorias
 from migrations import adicionar_colunas_faltantes
-from models import Artigo, Atualizacao, Candidatura, Favorito, Interessado, Usuario, Vaga
+from models import Alerta, Artigo, Atualizacao, Candidatura, Favorito, Interessado, Usuario, Vaga
 from rate_limit import limitar_por_ip
 from scheduler import (
     aplicar_correcao_geografica_uma_vez,
@@ -832,6 +832,93 @@ def conquistas(usuario: Usuario = Depends(auth.usuario_atual), db: Session = Dep
             nivel = nome_nivel
 
     return {"badges": badges, "total_conquistado": total_conquistado, "total": len(badges), "nivel": nivel}
+
+
+class AlertaEntrada(BaseModel):
+    cargo: Optional[str] = None
+    categoria: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+
+
+def contar_vagas_do_alerta(alerta: Alerta, db: Session) -> int:
+    query = db.query(Vaga)
+    if alerta.cargo:
+        query = query.filter(Vaga.cargo.ilike(f"%{alerta.cargo}%"))
+    if alerta.categoria:
+        query = query.filter(Vaga.categoria.ilike(f"%{alerta.categoria}%"))
+    if alerta.cidade:
+        query = query.filter(Vaga.cidade.ilike(f"%{alerta.cidade}%"))
+    if alerta.estado:
+        query = query.filter(Vaga.estado.ilike(alerta.estado))
+    return query.count()
+
+
+def alerta_para_json(alerta: Alerta, db: Session) -> dict:
+    return {
+        "id": alerta.id,
+        "cargo": alerta.cargo,
+        "categoria": alerta.categoria,
+        "cidade": alerta.cidade,
+        "estado": alerta.estado,
+        "criado_em": alerta.criado_em.isoformat() if alerta.criado_em else None,
+        "total_vagas": contar_vagas_do_alerta(alerta, db),
+    }
+
+
+@app.get("/api/alertas")
+def listar_alertas(usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    alertas = db.query(Alerta).filter(Alerta.usuario_id == usuario.id).order_by(Alerta.id.desc()).all()
+    return [alerta_para_json(a, db) for a in alertas]
+
+
+@app.post("/api/alertas", status_code=201)
+def criar_alerta(dados: AlertaEntrada, usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    if not any([dados.cargo, dados.categoria, dados.cidade, dados.estado]):
+        raise HTTPException(status_code=400, detail="Preencha pelo menos um critério para o alerta")
+
+    total_alertas = db.query(Alerta).filter(Alerta.usuario_id == usuario.id).count()
+    if total_alertas >= 10:
+        raise HTTPException(status_code=400, detail="Limite de 10 alertas por conta")
+
+    alerta = Alerta(usuario_id=usuario.id, **dados.model_dump())
+    db.add(alerta)
+    db.commit()
+    db.refresh(alerta)
+    return alerta_para_json(alerta, db)
+
+
+@app.delete("/api/alertas/{alerta_id}")
+def remover_alerta(alerta_id: int, usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    alerta = db.query(Alerta).filter(Alerta.id == alerta_id, Alerta.usuario_id == usuario.id).first()
+    if alerta:
+        db.delete(alerta)
+        db.commit()
+    return {"mensagem": "Alerta removido"}
+
+
+@app.get("/api/minhas-candidaturas")
+def minhas_candidaturas(usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    candidaturas = (
+        db.query(Candidatura)
+        .filter(Candidatura.email == usuario.email)
+        .order_by(Candidatura.id.desc())
+        .all()
+    )
+    vagas_por_id = {
+        v.id: v for v in db.query(Vaga).filter(Vaga.id.in_([c.vaga_id for c in candidaturas])).all()
+    }
+
+    return [
+        {
+            "id": c.id,
+            "vaga_id": c.vaga_id,
+            "cargo": vagas_por_id[c.vaga_id].cargo if c.vaga_id in vagas_por_id else None,
+            "empresa": vagas_por_id[c.vaga_id].empresa if c.vaga_id in vagas_por_id else None,
+            "criada_em": c.criada_em.isoformat() if c.criada_em else None,
+        }
+        for c in candidaturas
+    ]
 
 
 @app.get("/vagas/{vaga_id}", response_class=HTMLResponse)
