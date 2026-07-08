@@ -385,10 +385,10 @@ async function carregarAlertas() {
       <div class="comparador-card" style="margin-bottom: 12px;">
         <div class="comparador-linha">
           <span>${escapeHtml(criterioAlertaTexto(a))}</span>
-          <strong>${a.total_vagas} vaga${a.total_vagas === 1 ? '' : 's'}</strong>
+          <strong>${a.total_vagas} vaga${a.total_vagas === 1 ? '' : 's'} ${a.vagas_novas > 0 ? `<span class="tag compatibilidade">+${a.vagas_novas} nova${a.vagas_novas === 1 ? '' : 's'}</span>` : ''}</strong>
         </div>
         <div class="vaga-acoes" style="margin-top: 10px;">
-          <a class="btn-candidatar" href="${linkAlerta(a)}">Ver vagas</a>
+          <a class="btn-candidatar" href="${linkAlerta(a)}" data-alerta-visto="${a.id}">Ver vagas</a>
           <button class="admin-acao-btn excluir" data-alerta-id="${a.id}">Excluir</button>
         </div>
       </div>
@@ -431,14 +431,24 @@ document.getElementById('formAlerta')?.addEventListener('submit', async (event) 
 });
 
 perfilAlertasEl?.addEventListener('click', async (event) => {
-  const botao = event.target.closest('[data-alerta-id]');
-  if (!botao) return;
-  await fetch(`${API_BASE}/alertas/${botao.dataset.alertaId}`, {
-    method: 'DELETE',
-    headers: { Authorization: `Bearer ${obterToken()}` },
-  });
-  mostrarToast('Alerta removido');
-  carregarAlertas();
+  const botaoExcluir = event.target.closest('[data-alerta-id]');
+  if (botaoExcluir) {
+    await fetch(`${API_BASE}/alertas/${botaoExcluir.dataset.alertaId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${obterToken()}` },
+    });
+    mostrarToast('Alerta removido');
+    carregarAlertas();
+    return;
+  }
+
+  const linkVer = event.target.closest('[data-alerta-visto]');
+  if (linkVer) {
+    fetch(`${API_BASE}/alertas/${linkVer.dataset.alertaVisto}/marcar-visto`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${obterToken()}` },
+    });
+  }
 });
 
 /* ===== Histórico de candidaturas ===== */

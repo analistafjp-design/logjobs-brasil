@@ -128,4 +128,5 @@ class Alerta(Base):
     categoria = Column(String, nullable=True)
     cidade = Column(String, nullable=True)
     estado = Column(String, nullable=True)
+    vistas_em = Column(DateTime(timezone=True), nullable=True)  # última vez que o candidato abriu a lista de vagas deste alerta
     criado_em = Column(DateTime(timezone=True), server_default=func.now())

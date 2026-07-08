@@ -88,6 +88,8 @@ Disponível em `/mapa.html`: mapa de bolhas do Brasil (uma bolha por estado, tam
 
 **Alertas** (`/api/alertas`, seção "🔔 Alertas de vagas" no perfil): candidatos salvam critérios de busca (cargo/categoria/cidade/estado) e veem, ao vivo, quantas vagas correspondem — sem envio por e-mail/WhatsApp/Telegram, porque o projeto não tem credenciais de nenhum desses serviços configuradas (seria necessário inventar uma integração falsa, o que evitamos). É funcionalmente uma busca salva com contador dinâmico.
 
+Cada alerta também mostra um badge "+N novas" com as vagas que passaram a corresponder ao critério desde a última vez que o candidato clicou em "Ver vagas" (`POST /api/alertas/{id}/marcar-visto`) — mesma abordagem usada na notificação de candidaturas do painel de empresas, calculada ao vivo a partir do timestamp da vaga, sem nenhum serviço externo de notificação.
+
 **Histórico de candidaturas** (`/api/minhas-candidaturas`): lista as candidaturas do usuário logado, casadas pelo e-mail com a tabela `candidaturas` (que não exige login para se candidatar). O formulário de candidatura agora pré-preenche nome/e-mail/telefone quando o candidato está logado, para que o histórico funcione de forma consistente.
 
 **Histórico de buscas**: as últimas 5 buscas ficam salvas no navegador (`localStorage`, sem backend) e aparecem como chips clicáveis abaixo da busca na home.

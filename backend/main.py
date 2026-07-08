@@ -1007,6 +1007,21 @@ def contar_vagas_do_alerta(alerta: Alerta, db: Session) -> int:
     return query.count()
 
 
+def contar_vagas_novas_do_alerta(alerta: Alerta, db: Session) -> int:
+    query = db.query(Vaga)
+    if alerta.cargo:
+        query = query.filter(Vaga.cargo.ilike(f"%{alerta.cargo}%"))
+    if alerta.categoria:
+        query = query.filter(Vaga.categoria.ilike(f"%{alerta.categoria}%"))
+    if alerta.cidade:
+        query = query.filter(Vaga.cidade.ilike(f"%{alerta.cidade}%"))
+    if alerta.estado:
+        query = query.filter(Vaga.estado.ilike(alerta.estado))
+    if alerta.vistas_em:
+        query = query.filter(Vaga.criada_em > alerta.vistas_em)
+    return query.count()
+
+
 def alerta_para_json(alerta: Alerta, db: Session) -> dict:
     return {
         "id": alerta.id,
@@ -1016,6 +1031,7 @@ def alerta_para_json(alerta: Alerta, db: Session) -> dict:
         "estado": alerta.estado,
         "criado_em": alerta.criado_em.isoformat() if alerta.criado_em else None,
         "total_vagas": contar_vagas_do_alerta(alerta, db),
+        "vagas_novas": contar_vagas_novas_do_alerta(alerta, db),
     }
 
 
@@ -1048,6 +1064,16 @@ def remover_alerta(alerta_id: int, usuario: Usuario = Depends(auth.usuario_atual
         db.delete(alerta)
         db.commit()
     return {"mensagem": "Alerta removido"}
+
+
+@app.post("/api/alertas/{alerta_id}/marcar-visto")
+def marcar_alerta_visto(alerta_id: int, usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    alerta = db.query(Alerta).filter(Alerta.id == alerta_id, Alerta.usuario_id == usuario.id).first()
+    if not alerta:
+        raise HTTPException(status_code=404, detail="Alerta não encontrado")
+    alerta.vistas_em = func.now()
+    db.commit()
+    return {"mensagem": "Alerta marcado como visto"}
 
 
 @app.get("/api/minhas-candidaturas")
