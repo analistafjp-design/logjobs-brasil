@@ -49,11 +49,17 @@ def classificar_categoria(cargo: str) -> str:
     return "Logística"
 
 
+# (cidade, sigla do estado). A sigla NÃO é enviada para o Jooble como parte da
+# busca — várias siglas de estado brasileiro colidem com códigos postais dos
+# EUA (MT=Montana, PA=Pennsylvania, MS=Mississippi, SC=South Carolina,
+# AL=Alabama), o que fazia o Jooble devolver vagas americanas (ex.: vagas de
+# "Maquinista" na Montana, EUA) em vez de brasileiras. Por isso a busca usa
+# sempre "Cidade, Brasil", e a sigla do estado é só para exibição no site.
 REGIOES = [
-    "São Paulo, SP", "Rio de Janeiro, RJ", "Belo Horizonte, MG", "Curitiba, PR",
-    "Porto Alegre, RS", "Salvador, BA", "Recife, PE", "Fortaleza, CE",
-    "Brasília, DF", "Manaus, AM", "Goiânia, GO", "Florianópolis, SC",
-    "Vitória, ES", "Belém, PA", "Campo Grande, MS", "Cuiabá, MT",
+    ("São Paulo", "SP"), ("Rio de Janeiro", "RJ"), ("Belo Horizonte", "MG"), ("Curitiba", "PR"),
+    ("Porto Alegre", "RS"), ("Salvador", "BA"), ("Recife", "PE"), ("Fortaleza", "CE"),
+    ("Brasília", "DF"), ("Manaus", "AM"), ("Goiânia", "GO"), ("Florianópolis", "SC"),
+    ("Vitória", "ES"), ("Belém", "PA"), ("Campo Grande", "MS"), ("Cuiabá", "MT"),
 ]
 
 # Buscar com uma palavra-chave combinada ("logistica entregador motorista...")
@@ -73,7 +79,16 @@ TERMOS_CATEGORIA = [
 ]
 
 
-def _buscar_uma_regiao(keywords: str, location: str):
+# Nomes de estados americanos cujas siglas colidem com as brasileiras — se
+# aparecerem no local retornado pelo Jooble, é sinal de que a vaga é dos EUA,
+# não do Brasil, e deve ser descartada.
+_ESTADOS_EUA_COLIDENTES = re.compile(
+    r"\b(Montana|Pennsylvania|Mississippi|South Carolina|Alabama)\b", re.I
+)
+
+
+def _buscar_uma_regiao(keywords: str, cidade_busca: str, estado: str):
+    location = f"{cidade_busca}, Brasil"
     response = requests.post(
         JOOBLE_URL.format(key=JOOBLE_API_KEY),
         json={"keywords": keywords, "location": location},
@@ -84,13 +99,17 @@ def _buscar_uma_regiao(keywords: str, location: str):
 
     vagas = []
     for item in dados.get("jobs", []):
-        cidade = item.get("location", "").split(",")[0].strip() or "Não informado"
+        local_bruto = item.get("location", "")
+        if _ESTADOS_EUA_COLIDENTES.search(local_bruto):
+            continue
+
+        cidade = local_bruto.split(",")[0].strip() or cidade_busca
         cargo = item.get("title", "")[:255]
         vagas.append({
             "cargo": cargo,
             "empresa": item.get("company") or "Não informado",
             "cidade": cidade,
-            "estado": location.split(",")[-1].strip() if "," in location else "",
+            "estado": estado,
             "salario": None,
             "modalidade": None,
             "veiculo": None,
@@ -118,9 +137,9 @@ def buscar_vagas_por_termo(termo: str, categoria: str):
         return []
 
     vagas = []
-    for regiao in REGIOES:
+    for cidade, estado in REGIOES:
         try:
-            encontradas = _buscar_uma_regiao(termo, regiao)
+            encontradas = _buscar_uma_regiao(termo, cidade, estado)
         except requests.RequestException:
             continue
         for vaga in encontradas:

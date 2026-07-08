@@ -17,6 +17,7 @@ from migrations import adicionar_colunas_faltantes
 from models import Atualizacao, Candidatura, Interessado, Vaga
 from rate_limit import limitar_por_ip
 from scheduler import (
+    aplicar_correcao_geografica_uma_vez,
     atualizar_vagas_periodicamente,
     iniciar_agendador,
     parar_agendador,
@@ -63,6 +64,7 @@ def popular_banco_se_vazio():
 
 @app.on_event("startup")
 def on_startup():
+    aplicar_correcao_geografica_uma_vez()
     popular_banco_se_vazio()
     remover_vagas_exemplo_se_ha_reais()
     reclassificar_vagas_sem_categoria()

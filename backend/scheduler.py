@@ -6,12 +6,33 @@ from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_proxima_categoria, classificar_categoria
-from models import Atualizacao, Vaga
+from models import Atualizacao, Marcador, Vaga
 
 logger = logging.getLogger("logjobs.scheduler")
 
 INTERVALO_MINUTOS = 20
 DIAS_EXPIRACAO_VAGA = 60
+CHAVE_CORRECAO_GEOGRAFICA = "correcao_geografica_pais_v1"
+
+
+def aplicar_correcao_geografica_uma_vez():
+    """Correção pontual: antes da busca especificar 'Brasil' explicitamente,
+    siglas de estado brasileiro (MT, PA, MS, SC, AL) colidiam com códigos
+    postais dos EUA, e o Jooble devolveu vagas americanas (ex.: "Maquinista"
+    na Montana, EUA) marcadas como se fossem brasileiras. Isso remove, uma
+    única vez, todas as vagas do Jooble buscadas antes dessa correção, para
+    que a próxima coleta (já corrigida) repovoe o banco do zero."""
+    db = SessionLocal()
+    try:
+        if db.query(Marcador).filter(Marcador.chave == CHAVE_CORRECAO_GEOGRAFICA).first():
+            return
+        removidas = db.query(Vaga).filter(Vaga.fonte == "jooble").delete()
+        db.add(Marcador(chave=CHAVE_CORRECAO_GEOGRAFICA))
+        db.commit()
+        if removidas:
+            logger.warning("Correção geográfica: removidas %s vagas buscadas antes da correção.", removidas)
+    finally:
+        db.close()
 
 
 def reclassificar_vagas_sem_categoria():
