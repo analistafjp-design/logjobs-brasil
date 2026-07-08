@@ -350,8 +350,23 @@ class LoginEntrada(BaseModel):
     senha: str
 
 
+class PerfilEntrada(BaseModel):
+    nome: Optional[str] = None
+    telefone: Optional[str] = None
+    cidade: Optional[str] = None
+    resumo: Optional[str] = None
+
+
 def usuario_para_json(usuario: Usuario) -> dict:
-    return {"id": usuario.id, "nome": usuario.nome, "email": usuario.email, "tipo": usuario.tipo}
+    return {
+        "id": usuario.id,
+        "nome": usuario.nome,
+        "email": usuario.email,
+        "tipo": usuario.tipo,
+        "telefone": usuario.telefone,
+        "cidade": usuario.cidade,
+        "resumo": usuario.resumo,
+    }
 
 
 @app.post("/api/auth/registro", status_code=201)
@@ -393,6 +408,29 @@ def login(dados: LoginEntrada, request: Request, db: Session = Depends(get_db)):
 
 @app.get("/api/auth/me")
 def me(usuario: Usuario = Depends(auth.usuario_atual)):
+    return usuario_para_json(usuario)
+
+
+@app.patch("/api/auth/me")
+def atualizar_perfil(
+    dados: PerfilEntrada,
+    usuario: Usuario = Depends(auth.usuario_atual),
+    db: Session = Depends(get_db),
+):
+    if dados.nome is not None:
+        nome = dados.nome.strip()
+        if not nome:
+            raise HTTPException(status_code=400, detail="Nome não pode ficar vazio")
+        usuario.nome = nome
+    if dados.telefone is not None:
+        usuario.telefone = dados.telefone.strip() or None
+    if dados.cidade is not None:
+        usuario.cidade = dados.cidade.strip() or None
+    if dados.resumo is not None:
+        usuario.resumo = dados.resumo.strip() or None
+
+    db.commit()
+    db.refresh(usuario)
     return usuario_para_json(usuario)
 
 

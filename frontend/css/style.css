@@ -201,6 +201,11 @@ img{
   color:var(--texto);
 }
 
+.conta-nome:hover,
+.conta-nome:focus-visible{
+  color:var(--azul);
+}
+
 .btn-sair{
   background:none;
   color:var(--texto-suave);
@@ -675,7 +680,7 @@ img{
   border-bottom-color:var(--azul);
 }
 
-.modal .modal-enviar{
+.modal-enviar{
   margin-top:8px;
   background:var(--azul);
   color:var(--branco);
@@ -687,7 +692,7 @@ img{
   transition:background .15s ease;
 }
 
-.modal .modal-enviar:hover{
+.modal-enviar:hover{
   background:var(--azul-escuro);
 }
 
@@ -701,7 +706,7 @@ img{
   margin-bottom:12px;
 }
 
-.modal .modal-erro{
+.modal-erro{
   color:#DC2626;
   font-size:13px;
 }
@@ -1014,4 +1019,94 @@ img{
   .barra-item{
     grid-template-columns:90px 1fr 52px;
   }
+}
+
+/* ===== Perfil ===== */
+
+.perfil-main{
+  padding:120px 24px 60px;
+  min-height:70vh;
+}
+
+.perfil-container{
+  max-width:720px;
+  margin:0 auto;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+
+.perfil-container h1{
+  font-size:26px;
+}
+
+.perfil-card{
+  background:var(--superficie);
+  border:1px solid var(--borda);
+  border-radius:var(--raio);
+  padding:28px;
+  box-shadow:var(--sombra);
+}
+
+.perfil-card h2{
+  font-size:17px;
+  margin-bottom:18px;
+}
+
+.perfil-card form{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.perfil-card label{
+  font-size:13px;
+  font-weight:600;
+  color:var(--texto);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.perfil-card input,
+.perfil-card textarea{
+  padding:12px 14px;
+  border:1px solid var(--borda);
+  border-radius:10px;
+  font-size:14px;
+  font-family:inherit;
+  background:var(--superficie);
+  color:var(--texto);
+  resize:vertical;
+}
+
+.perfil-card input:disabled{
+  color:var(--texto-suave);
+  background:var(--fundo);
+}
+
+.perfil-card input:focus,
+.perfil-card textarea:focus{
+  outline:none;
+  border-color:var(--azul);
+}
+
+.perfil-sucesso{
+  color:var(--verde);
+  font-size:13px;
+  font-weight:600;
+}
+
+#perfilBloqueado{
+  text-align:center;
+  max-width:420px;
+  margin:0 auto;
+}
+
+#perfilBloqueado h1{
+  margin-bottom:8px;
+}
+
+#perfilBloqueado .btn-candidatar{
+  margin-top:12px;
 }

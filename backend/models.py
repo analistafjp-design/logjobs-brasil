@@ -12,6 +12,9 @@ class Usuario(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     senha_hash = Column(String, nullable=False)
     tipo = Column(String, nullable=False, default="candidato")  # candidato | empresa
+    telefone = Column(String, nullable=True)
+    cidade = Column(String, nullable=True)
+    resumo = Column(String, nullable=True)  # candidato: mini-currículo | empresa: descrição
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
 

@@ -494,7 +494,7 @@ function renderAreaConta() {
   }
 
   areaConta.innerHTML = `
-    <span class="conta-nome">Olá, ${escapeHtml(usuario.nome.split(' ')[0])}</span>
+    <a href="perfil.html" class="conta-nome">Olá, ${escapeHtml(usuario.nome.split(' ')[0])}</a>
     <button class="btn-login btn-sair" id="btnSair">Sair</button>
   `;
   document.getElementById('btnSair')?.addEventListener('click', encerrarSessao);

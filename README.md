@@ -53,7 +53,9 @@ Senhas são armazenadas com hash PBKDF2-HMAC-SHA256 (salt por usuário) e o toke
 
 Usuários logados podem salvar vagas (favoritos): botão de estrela em cada card, endpoints `GET/POST/DELETE /api/favoritos`.
 
-**Pendente:** perfil completo do candidato/empresa, painel administrativo via UI e módulos de IA ainda não existem.
+Existe uma página de perfil (`frontend/perfil.html`, acessível pelo nome do usuário na navbar) onde candidatos e empresas editam nome/telefone/cidade/mini-currículo (`PATCH /api/auth/me`) e veem/removem suas vagas salvas.
+
+**Pendente:** painel administrativo via UI e módulos de IA ainda não existem.
 
 ## Endpoint administrativo
 
