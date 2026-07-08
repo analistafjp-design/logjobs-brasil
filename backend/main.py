@@ -1086,10 +1086,27 @@ def empresa_estatisticas(usuario: Usuario = Depends(verificar_empresa), db: Sess
     total_candidaturas = (
         db.query(func.count(Candidatura.id)).filter(Candidatura.vaga_id.in_(vaga_ids)).scalar() if vaga_ids else 0
     )
+    candidaturas_novas = 0
+    if vaga_ids:
+        query_novas = db.query(func.count(Candidatura.id)).filter(Candidatura.vaga_id.in_(vaga_ids))
+        if usuario.candidaturas_vistas_em:
+            query_novas = query_novas.filter(Candidatura.criada_em > usuario.candidaturas_vistas_em)
+        candidaturas_novas = query_novas.scalar()
     return {
         "total_vagas": len(vaga_ids),
         "total_candidaturas": total_candidaturas,
+        "candidaturas_novas": candidaturas_novas,
     }
+
+
+@app.post("/api/empresa/candidaturas/marcar-vistas")
+def empresa_marcar_candidaturas_vistas(usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
+    # Usa func.now() (o relógio do banco) em vez de datetime.now() do Python: precisa ser a
+    # mesma fonte/precisão usada no server_default de Candidatura.criada_em, senão uma
+    # candidatura criada no mesmo segundo pode ficar com timestamp "anterior" ao marcador.
+    usuario.candidaturas_vistas_em = func.now()
+    db.commit()
+    return {"mensagem": "Candidaturas marcadas como vistas"}
 
 
 @app.get("/vagas/{vaga_id}", response_class=HTMLResponse)

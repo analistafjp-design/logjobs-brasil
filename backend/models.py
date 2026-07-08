@@ -19,6 +19,7 @@ class Usuario(Base):
     pretensao_salarial = Column(Float, nullable=True)  # candidato
     disponibilidade = Column(String, nullable=True)  # candidato: Imediata | 15 dias | 30 dias | A combinar
     possui_cnh = Column(String, nullable=True)  # candidato: categoria da CNH (A, B, C, D, E) ou vazio se não possui
+    candidaturas_vistas_em = Column(DateTime(timezone=True), nullable=True)  # empresa: última vez que abriu a lista de candidaturas recebidas
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
 

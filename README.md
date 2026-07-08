@@ -117,6 +117,8 @@ Uma conta de empresa logada pode, via `/api/empresa/*` (protegido por JWT + chec
 - Ver quantas candidaturas cada vaga recebeu e os dados de cada candidato (`GET /api/empresa/candidaturas/{vaga_id}`).
 - Ver um resumo (`GET /api/empresa/estatisticas`): total de vagas publicadas e total de candidaturas recebidas.
 
+A empresa recebe uma notificação em painel (badge "+N novas" ao lado de "Candidaturas recebidas") quando há candidaturas mais recentes que a última vez que ela abriu a lista de candidatos de alguma vaga. Não há e-mail/push — é a mesma abordagem honesta usada nos alertas de vaga do candidato: um contador calculado ao vivo, sem depender de nenhum serviço externo de notificação. O timestamp "visto em" (`POST /api/empresa/candidaturas/marcar-vistas`) usa o relógio do próprio banco (`func.now()`), não o do servidor Python, para não ficar "à frente" do timestamp de uma candidatura criada no mesmo instante.
+
 Uma empresa só enxerga e só pode editar/excluir vagas que ela mesma publicou (filtro por `usuario_id` no banco) — vagas importadas do Jooble ou cadastradas pelo admin não aparecem nesse painel. Excluir uma vaga também remove as candidaturas associadas a ela, evitando que uma vaga nova acabe "herdando" candidaturas antigas por reaproveitamento de ID no banco.
 
 ## Painel administrativo

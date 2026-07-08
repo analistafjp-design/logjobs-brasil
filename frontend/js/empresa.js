@@ -58,6 +58,13 @@ async function carregarEstatisticasEmpresa() {
     const dados = await resposta.json();
     document.getElementById('empresaStatVagas').textContent = dados.total_vagas ?? '—';
     document.getElementById('empresaStatCandidaturas').textContent = dados.total_candidaturas ?? '—';
+    const badgeNovas = document.getElementById('empresaBadgeNovas');
+    if (dados.candidaturas_novas > 0) {
+      badgeNovas.textContent = `+${dados.candidaturas_novas} nova${dados.candidaturas_novas === 1 ? '' : 's'}`;
+      badgeNovas.hidden = false;
+    } else {
+      badgeNovas.hidden = true;
+    }
   } catch {
     // estatísticas são um extra visual — falha silenciosa não impede o resto do painel
   }
@@ -201,6 +208,12 @@ async function abrirCandidaturasVaga(vaga) {
         <td>${c.criada_em ? new Date(c.criada_em).toLocaleString('pt-BR') : '—'}</td>
       </tr>
     `).join('') : '<tr><td colspan="4">Nenhuma candidatura recebida ainda.</td></tr>';
+
+    await fetch(`${API_BASE}/empresa/candidaturas/marcar-vistas`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${obterToken()}` },
+    });
+    carregarEstatisticasEmpresa();
   } catch {
     tbody.innerHTML = '<tr><td colspan="4">Não foi possível carregar as candidaturas.</td></tr>';
   }
