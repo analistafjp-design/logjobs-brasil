@@ -146,13 +146,18 @@ scheduler = BackgroundScheduler()
 
 def iniciar_agendador():
     if not scheduler.running:
+        # IMPORTANTE: não passar next_run_time=None aqui. O APScheduler trata isso
+        # como "cria o job já pausado" — ele nunca dispara sozinho, mesmo com o
+        # scheduler rodando. Foi assim desde a criação do agendador (commit
+        # b138702) e nunca disparou em produção: as vagas nunca eram atualizadas
+        # nem expiradas automaticamente. Sem passar o parâmetro, o job roda
+        # normalmente a cada INTERVALO_MINUTOS, como o resto do código já assume.
         scheduler.add_job(
             atualizar_vagas_periodicamente,
             trigger="interval",
             minutes=INTERVALO_MINUTOS,
             id="atualizar_vagas",
             replace_existing=True,
-            next_run_time=None,
         )
         scheduler.start()
 
