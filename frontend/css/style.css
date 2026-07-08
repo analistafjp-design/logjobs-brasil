@@ -1151,3 +1151,52 @@ img{
 .comparador-linha strong{
   color:var(--verde);
 }
+
+/* ===== Conquistas ===== */
+
+#secaoConquistas h2{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:20px;
+}
+
+.conquistas-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(220px, 100%),1fr));
+  gap:14px;
+}
+
+.badge-conquista{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:16px;
+  border-radius:var(--raio);
+  border:1px solid var(--borda);
+  background:var(--fundo);
+  opacity:.55;
+  filter:grayscale(1);
+}
+
+.badge-conquista.conquistado{
+  opacity:1;
+  filter:none;
+  background:var(--tag-fundo);
+  border-color:var(--verde);
+}
+
+.badge-conquista .badge-icone{
+  font-size:26px;
+  line-height:1;
+}
+
+.badge-conquista h3{
+  font-size:14px;
+  margin-bottom:2px;
+}
+
+.badge-conquista p{
+  font-size:12px;
+  color:var(--texto-suave);
+}

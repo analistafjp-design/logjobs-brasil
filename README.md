@@ -59,6 +59,10 @@ Existe uma página de perfil (`frontend/perfil.html`, acessível pelo nome do us
 
 Candidatos com o mini-currículo preenchido recebem uma seção "Vagas recomendadas para você" no perfil, via `GET /api/recomendacoes`. O motor (`backend/recomendacao.py`) é uma correspondência de palavras-chave com pesos por campo (cargo/categoria valem mais que descrição/benefícios) — determinístico e sem depender de nenhuma API externa de IA, já que o projeto não tem chave de LLM configurada. Cada vaga recomendada mostra um percentual de compatibilidade (proporção das palavras-chave do currículo do candidato encontradas na vaga).
 
+## Gamificação
+
+Candidatos veem uma seção "🏅 Suas conquistas" no perfil (`GET /api/conquistas`), com 4 selos calculados a partir de dados reais já existentes — sem tabela nova: perfil completo, primeira vaga salva, 5+ vagas salvas ("colecionador") e primeira candidatura enviada (correspondência por e-mail com `Candidatura`, já que candidaturas não exigem login). Um "nível" (Iniciante / Em busca ativa / Candidato de destaque) é derivado da quantidade de selos conquistados. As conquistas são recalculadas em tempo real após qualquer ação relevante (salvar perfil, salvar/remover vaga).
+
 ## Comparador de salários
 
 Disponível em `/calculadora.html` (link "Salários" na navbar), via `GET /api/salarios`: mínimo, média e máximo por categoria, calculados a partir das vagas com salário informado. Permite comparar até duas categorias lado a lado, além de uma tabela completa ordenada pela maior média.

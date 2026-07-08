@@ -737,6 +737,59 @@ def recomendacoes(usuario: Usuario = Depends(auth.usuario_atual), db: Session = 
     }
 
 
+NIVEIS_CONQUISTA = [
+    (0, "Iniciante"),
+    (2, "Em busca ativa"),
+    (4, "Candidato de destaque"),
+]
+
+
+@app.get("/api/conquistas")
+def conquistas(usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    perfil_completo = bool(usuario.telefone and usuario.cidade and usuario.resumo)
+    total_favoritos = db.query(Favorito).filter(Favorito.usuario_id == usuario.id).count()
+    total_candidaturas = db.query(Candidatura).filter(Candidatura.email == usuario.email).count()
+
+    badges = [
+        {
+            "chave": "perfil_completo",
+            "titulo": "Perfil completo",
+            "descricao": "Preencheu nome, telefone, cidade e mini-currículo",
+            "icone": "🧑‍💼",
+            "conquistado": perfil_completo,
+        },
+        {
+            "chave": "primeira_vaga_salva",
+            "titulo": "Primeira vaga salva",
+            "descricao": "Salvou pelo menos uma vaga nos favoritos",
+            "icone": "⭐",
+            "conquistado": total_favoritos >= 1,
+        },
+        {
+            "chave": "colecionador",
+            "titulo": "Colecionador de oportunidades",
+            "descricao": "Salvou 5 ou mais vagas",
+            "icone": "📌",
+            "conquistado": total_favoritos >= 5,
+        },
+        {
+            "chave": "primeira_candidatura",
+            "titulo": "Primeira candidatura",
+            "descricao": "Enviou sua primeira candidatura pela plataforma",
+            "icone": "📨",
+            "conquistado": total_candidaturas >= 1,
+        },
+    ]
+
+    total_conquistado = sum(1 for b in badges if b["conquistado"])
+    nivel = NIVEIS_CONQUISTA[0][1]
+    for minimo, nome_nivel in NIVEIS_CONQUISTA:
+        if total_conquistado >= minimo:
+            nivel = nome_nivel
+
+    return {"badges": badges, "total_conquistado": total_conquistado, "total": len(badges), "nivel": nivel}
+
+
 @app.get("/vagas/{vaga_id}", response_class=HTMLResponse)
 def pagina_vaga(vaga_id: int, db: Session = Depends(get_db)):
     vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()

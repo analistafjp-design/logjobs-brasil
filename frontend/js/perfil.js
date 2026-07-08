@@ -4,6 +4,8 @@ const formPerfil = document.getElementById('formPerfil');
 const perfilFavoritosEl = document.getElementById('perfilFavoritos');
 const secaoRecomendadas = document.getElementById('secaoRecomendadas');
 const perfilRecomendadasEl = document.getElementById('perfilRecomendadas');
+const secaoConquistas = document.getElementById('secaoConquistas');
+const perfilConquistasEl = document.getElementById('perfilConquistas');
 
 document.getElementById('btnEntrarPerfil')?.addEventListener('click', () => abrirModalAuth('login'));
 
@@ -52,12 +54,38 @@ async function iniciarPerfil() {
 
   if (usuario.tipo === 'candidato') {
     secaoRecomendadas.hidden = false;
+    secaoConquistas.hidden = false;
     carregarRecomendacoes();
+    carregarConquistas();
   } else {
     secaoRecomendadas.hidden = true;
+    secaoConquistas.hidden = true;
   }
 
   carregarFavoritosPerfil();
+}
+
+async function carregarConquistas() {
+  try {
+    const resposta = await fetch(`${API_BASE}/conquistas`, {
+      headers: { Authorization: `Bearer ${obterToken()}` },
+    });
+    const dados = await resposta.json();
+
+    document.getElementById('conquistasNivel').textContent = `${dados.nivel} · ${dados.total_conquistado}/${dados.total}`;
+
+    perfilConquistasEl.innerHTML = `<div class="conquistas-grid">${dados.badges.map((b) => `
+      <div class="badge-conquista${b.conquistado ? ' conquistado' : ''}">
+        <span class="badge-icone">${b.icone}</span>
+        <div>
+          <h3>${escapeHtml(b.titulo)}</h3>
+          <p>${escapeHtml(b.descricao)}</p>
+        </div>
+      </div>
+    `).join('')}</div>`;
+  } catch {
+    perfilConquistasEl.innerHTML = '<p class="vagas-carregando">Não foi possível carregar suas conquistas.</p>';
+  }
 }
 
 async function carregarRecomendacoes() {
@@ -100,7 +128,10 @@ async function carregarRecomendacoes() {
 
 perfilRecomendadasEl?.addEventListener('click', (event) => {
   const botao = event.target.closest('.btn-salvar');
-  if (botao) alternarFavorito(botao.dataset.vagaId, botao).then(() => carregarFavoritosPerfil());
+  if (botao) alternarFavorito(botao.dataset.vagaId, botao).then(() => {
+    carregarFavoritosPerfil();
+    carregarConquistas();
+  });
 });
 
 formPerfil?.addEventListener('submit', async (event) => {
@@ -129,7 +160,10 @@ formPerfil?.addEventListener('submit', async (event) => {
 
     localStorage.setItem('logjobs-usuario', JSON.stringify(usuarioAtualizado));
     renderAreaConta();
-    if (usuarioAtualizado.tipo === 'candidato') carregarRecomendacoes();
+    if (usuarioAtualizado.tipo === 'candidato') {
+      carregarRecomendacoes();
+      carregarConquistas();
+    }
     sucessoEl.hidden = false;
     setTimeout(() => { sucessoEl.hidden = true; }, 3000);
   } catch (erro) {
@@ -188,6 +222,7 @@ perfilFavoritosEl?.addEventListener('click', (event) => {
         perfilFavoritosEl.innerHTML = '<p class="vagas-carregando">Você ainda não salvou nenhuma vaga.</p>';
       }
     }
+    if (obterUsuario()?.tipo === 'candidato') carregarConquistas();
   });
 });
 
