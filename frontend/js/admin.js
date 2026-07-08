@@ -169,6 +169,8 @@ function abrirFormEditarVaga(vaga) {
   formVaga.categoria.value = vaga.categoria || '';
   formVaga.salario.value = vaga.salario || '';
   formVaga.modalidade.value = vaga.modalidade || '';
+  formVaga.turno.value = vaga.turno || '';
+  formVaga.tipo_contratacao.value = vaga.tipo_contratacao || '';
   formVaga.veiculo.value = vaga.veiculo || '';
   formVaga.link.value = vaga.link || '';
   formVaga.descricao.value = vaga.descricao || '';
@@ -196,6 +198,8 @@ formVaga.addEventListener('submit', async (event) => {
     categoria: formVaga.categoria.value.trim(),
     salario: formVaga.salario.value ? Number(formVaga.salario.value) : null,
     modalidade: formVaga.modalidade.value || null,
+    turno: formVaga.turno.value || null,
+    tipo_contratacao: formVaga.tipo_contratacao.value || null,
     veiculo: formVaga.veiculo.value.trim() || null,
     link: formVaga.link.value.trim() || null,
     descricao: formVaga.descricao.value.trim() || null,

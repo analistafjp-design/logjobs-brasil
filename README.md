@@ -59,6 +59,19 @@ Existe uma página de perfil (`frontend/perfil.html`, acessível pelo nome do us
 
 Candidatos com o mini-currículo preenchido recebem uma seção "Vagas recomendadas para você" no perfil, via `GET /api/recomendacoes`. O motor (`backend/recomendacao.py`) é uma correspondência de palavras-chave com pesos por campo (cargo/categoria valem mais que descrição/benefícios) — determinístico e sem depender de nenhuma API externa de IA, já que o projeto não tem chave de LLM configurada. Cada vaga recomendada mostra um percentual de compatibilidade (proporção das palavras-chave do currículo do candidato encontradas na vaga).
 
+## Busca avançada e experiência de listagem
+
+A busca da home (`index.html`) foi expandida além do campo cargo/cidade original:
+
+- **Autocomplete**: os campos "Cargo ou palavra-chave" e "Cidade" sugerem valores reais existentes no banco via `GET /api/sugestoes`, usando `<datalist>` nativo (sem dependências extras de JS).
+- **Filtros avançados**: painel expansível (`#filtrosAvancados`) com estado (UF), modalidade, turno, tipo de contratação, faixa salarial (mín./máx.) e benefício — todos aplicados como query params em `GET /api/vagas`. Um contador (`#filtrosAtivosCount`) mostra quantos filtros estão ativos no botão de alternância.
+- **Ordenação**: mais recentes, relevância (correspondência com o termo buscado) ou maior salário, via parâmetro `ordenar`.
+- **Loading state**: skeleton cards animados (`renderizarSkeletons()`) substituem o texto "Carregando vagas..." enquanto a busca está em andamento.
+- **Empty state**: quando nenhuma vaga corresponde aos filtros, é exibido um estado vazio ilustrado com botão "Limpar filtros", em vez de uma lista em branco.
+- **Buscas recentes**: continuam salvas em `localStorage` e agora restauram também os filtros avançados usados, não só cargo/cidade.
+
+Nenhum filtro depende de geolocalização/CEP — o banco não tem latitude/longitude nem bairro por vaga, então busca por distância em km não foi implementada (ver seção "Mapa de vagas" abaixo, que usa apenas cidade/UF).
+
 ## Mapa de vagas
 
 Disponível em `/mapa.html`: mapa de bolhas do Brasil (uma bolha por estado, tamanho proporcional ao número de vagas), usando coordenadas aproximadas das 27 capitais como ponto representativo — o banco não guarda geolocalização por vaga/cidade, então um mapa de fronteiras reais por estado ficaria fora de escopo. Reaproveita os dados de `/api/dashboard` (por_estado). Passar o mouse mostra o total; clicar filtra as vagas daquele estado na home (`index.html?estado=UF`).

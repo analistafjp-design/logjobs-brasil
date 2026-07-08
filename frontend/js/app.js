@@ -92,14 +92,16 @@ function botaoSalvar(vaga) {
   return `<button class="btn-salvar${salva ? ' salvo' : ''}" data-vaga-id="${escapeHtml(vaga.id)}" aria-pressed="${salva}" aria-label="${salva ? 'Remover dos salvos' : 'Salvar vaga'}" title="${salva ? 'Remover dos salvos' : 'Salvar vaga'}">${salva ? '★' : '☆'}</button>`;
 }
 
-function vagaParaHtml(vaga) {
+function vagaParaHtml(vaga, indice = 0) {
+  const detalhes = [vaga.modalidade, vaga.turno, vaga.tipo_contratacao].filter(Boolean);
   return `
-    <article class="vaga">
+    <article class="vaga" style="animation-delay:${Math.min(indice, 8) * 40}ms">
       <div class="vaga-topo">
         <h3><a href="/vagas/${escapeHtml(vaga.id)}">${escapeHtml(vaga.empresa)}</a></h3>
         <span class="tag">${escapeHtml(vaga.categoria || '')}</span>
       </div>
       <p class="vaga-info"><a href="/vagas/${escapeHtml(vaga.id)}">${escapeHtml(vaga.cargo)}</a> • ${escapeHtml(vaga.cidade)}${vaga.estado ? ', ' + escapeHtml(vaga.estado) : ''}</p>
+      ${detalhes.length ? `<p class="vaga-detalhes">${detalhes.map(escapeHtml).join(' · ')}</p>` : ''}
       <div class="vaga-rodape">
         <span class="salario">${escapeHtml(formatarSalario(vaga.salario))}</span>
         <div class="vaga-acoes">
@@ -111,11 +113,33 @@ function vagaParaHtml(vaga) {
   `;
 }
 
+function renderizarSkeletons(quantidade = 6) {
+  if (!vagasGrid) return;
+  vagasGrid.innerHTML = Array.from({ length: quantidade }).map(() => `
+    <div class="skeleton-card" aria-hidden="true">
+      <div class="skeleton-linha curta"></div>
+      <div class="skeleton-linha media"></div>
+      <div class="skeleton-linha"></div>
+      <div class="skeleton-linha larga"></div>
+    </div>
+  `).join('');
+}
+
 function renderizarVagas(vagas) {
   if (!vagasGrid) return;
 
   if (vagas.length === 0) {
-    vagasGrid.innerHTML = '<p class="vagas-carregando">Nenhuma vaga encontrada para esse filtro.</p>';
+    vagasGrid.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icone">🔍</div>
+        <h3>Nenhuma vaga encontrada</h3>
+        <p>Tente ajustar os filtros ou buscar por outro termo.</p>
+        <button type="button" id="btnLimparBuscaVazia">Limpar filtros</button>
+      </div>
+    `;
+    document.getElementById('btnLimparBuscaVazia')?.addEventListener('click', () => {
+      limparTodosFiltros();
+    });
     return;
   }
 
@@ -127,14 +151,20 @@ function atualizarBotaoCarregarMais() {
   carregarMaisBotao.hidden = vagasCarregadas.length >= totalDisponivel;
 }
 
+function limparParams(params) {
+  const limpo = {};
+  Object.entries(params).forEach(([chave, valor]) => {
+    if (valor !== undefined && valor !== null && valor !== '') limpo[chave] = valor;
+  });
+  return limpo;
+}
+
 async function buscarVagas(params = {}) {
-  filtroAtual = params;
+  filtroAtual = limparParams(params);
 
-  if (vagasGrid) {
-    vagasGrid.innerHTML = '<p class="vagas-carregando">Carregando vagas...</p>';
-  }
+  renderizarSkeletons();
 
-  const query = new URLSearchParams({ ...params, limit: TAMANHO_PAGINA, offset: 0 }).toString();
+  const query = new URLSearchParams({ ...filtroAtual, limit: TAMANHO_PAGINA, offset: 0 }).toString();
 
   try {
     const resposta = await fetch(`${API_BASE}/vagas?${query}`);
@@ -219,16 +249,110 @@ async function carregarStatusAtualizacao() {
   }
 }
 
+/* ===== Filtros avançados ===== */
+
+const IDS_FILTROS_SELECT = ['filtroEstado', 'filtroModalidade', 'filtroTurno', 'filtroTipoContratacao'];
+const IDS_FILTROS_TEXTO = ['filtroSalarioMin', 'filtroSalarioMax', 'filtroBeneficio'];
+
+function coletarFiltrosBasicos() {
+  if (!searchForm) return {};
+  const [cargoInput, cidadeInput] = searchForm.querySelectorAll('input');
+  return {
+    cargo: cargoInput.value.trim(),
+    cidade: cidadeInput.value.trim(),
+  };
+}
+
+function coletarFiltrosAvancados() {
+  const valor = (id) => document.getElementById(id)?.value.trim() || '';
+  return {
+    estado: valor('filtroEstado'),
+    modalidade: valor('filtroModalidade'),
+    turno: valor('filtroTurno'),
+    tipo_contratacao: valor('filtroTipoContratacao'),
+    salario_min: valor('filtroSalarioMin'),
+    salario_max: valor('filtroSalarioMax'),
+    beneficio: valor('filtroBeneficio'),
+    ordenar: document.getElementById('filtroOrdenar')?.value || 'recentes',
+  };
+}
+
+function atualizarBadgeFiltros() {
+  const avancados = coletarFiltrosAvancados();
+  const total = Object.entries(avancados).filter(
+    ([chave, val]) => val && !(chave === 'ordenar' && val === 'recentes')
+  ).length;
+  const badge = document.getElementById('filtrosAtivosCount');
+  if (badge) badge.textContent = total > 0 ? `(${total})` : '';
+}
+
+function executarBuscaCompleta() {
+  const params = { ...coletarFiltrosBasicos(), ...coletarFiltrosAvancados() };
+  buscarVagas(params);
+  salvarBuscaRecente(params);
+  atualizarBadgeFiltros();
+}
+
+function limparTodosFiltros() {
+  searchForm?.reset();
+  [...IDS_FILTROS_SELECT, ...IDS_FILTROS_TEXTO].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const ordenar = document.getElementById('filtroOrdenar');
+  if (ordenar) ordenar.value = 'recentes';
+  atualizarBadgeFiltros();
+  buscarVagas({});
+}
+
+const btnFiltrosAvancados = document.getElementById('btnFiltrosAvancados');
+const painelFiltrosAvancados = document.getElementById('filtrosAvancados');
+
+if (btnFiltrosAvancados && painelFiltrosAvancados) {
+  btnFiltrosAvancados.addEventListener('click', () => {
+    const estaAberto = !painelFiltrosAvancados.hidden;
+    painelFiltrosAvancados.hidden = estaAberto;
+    btnFiltrosAvancados.setAttribute('aria-expanded', String(!estaAberto));
+  });
+}
+
+document.getElementById('btnAplicarFiltros')?.addEventListener('click', () => {
+  executarBuscaCompleta();
+  document.getElementById('vagas')?.scrollIntoView({ behavior: 'smooth' });
+});
+
+document.getElementById('btnLimparFiltrosAvancados')?.addEventListener('click', limparTodosFiltros);
+
+/* ===== Autocomplete (cargo / cidade) ===== */
+
+function configurarAutocomplete(inputEl, datalistId, tipo) {
+  if (!inputEl) return;
+  let temporizador;
+  inputEl.addEventListener('input', () => {
+    clearTimeout(temporizador);
+    const valor = inputEl.value.trim();
+    if (valor.length < 2) return;
+    temporizador = setTimeout(async () => {
+      try {
+        const resposta = await fetch(`${API_BASE}/sugestoes?tipo=${tipo}&q=${encodeURIComponent(valor)}`);
+        const sugestoes = await resposta.json();
+        const datalist = document.getElementById(datalistId);
+        if (datalist) datalist.innerHTML = sugestoes.map((s) => `<option value="${escapeHtml(s)}"></option>`).join('');
+      } catch {
+        // Autocomplete é um acessório da busca — falha silenciosa não deve travar o usuário.
+      }
+    }, 250);
+  });
+}
+
 if (searchForm) {
+  const [cargoInput, cidadeInput] = searchForm.querySelectorAll('input');
+  configurarAutocomplete(cargoInput, 'listaCargos', 'cargo');
+  configurarAutocomplete(cidadeInput, 'listaCidades', 'cidade');
+
   searchForm.addEventListener('submit', (event) => {
     event.preventDefault();
-    const [cargoInput, cidadeInput] = searchForm.querySelectorAll('input');
-    const params = {
-      cargo: cargoInput.value.trim(),
-      cidade: cidadeInput.value.trim(),
-    };
-    buscarVagas(params);
-    salvarBuscaRecente(params);
+    executarBuscaCompleta();
   });
 }
 
@@ -282,6 +406,12 @@ function renderizarBuscasRecentes() {
         cargoInput.value = busca.cargo || '';
         cidadeInput.value = busca.cidade || '';
       }
+      IDS_FILTROS_SELECT.concat(IDS_FILTROS_TEXTO).forEach((id) => {
+        const chaveApi = { filtroEstado: 'estado', filtroModalidade: 'modalidade', filtroTurno: 'turno', filtroTipoContratacao: 'tipo_contratacao', filtroSalarioMin: 'salario_min', filtroSalarioMax: 'salario_max', filtroBeneficio: 'beneficio' }[id];
+        const el = document.getElementById(id);
+        if (el) el.value = busca[chaveApi] || '';
+      });
+      atualizarBadgeFiltros();
       buscarVagas(busca);
       document.getElementById('vagas')?.scrollIntoView({ behavior: 'smooth' });
     });
@@ -300,7 +430,7 @@ document.querySelectorAll('.categoria').forEach((botao) => {
 if (limparFiltro) {
   limparFiltro.addEventListener('click', (event) => {
     event.preventDefault();
-    buscarVagas();
+    limparTodosFiltros();
   });
 }
 

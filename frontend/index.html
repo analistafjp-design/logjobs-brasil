@@ -67,11 +67,82 @@
       <h1>Encontre sua próxima vaga na logística</h1>
       <p>Milhares de vagas para entregadores, motoristas, auxiliares de logística, estoquistas e muito mais — atualizadas todos os dias.</p>
 
-      <form class="search-box" role="search" aria-label="Buscar vagas">
-        <input type="text" placeholder="Cargo ou palavra-chave" aria-label="Cargo ou palavra-chave">
-        <input type="text" placeholder="Cidade" aria-label="Cidade">
+      <form class="search-box" role="search" aria-label="Buscar vagas" id="searchForm">
+        <input type="text" placeholder="Cargo ou palavra-chave" aria-label="Cargo ou palavra-chave" list="listaCargos" autocomplete="off">
+        <input type="text" placeholder="Cidade" aria-label="Cidade" list="listaCidades" autocomplete="off">
         <button type="submit">🔍 Buscar vagas</button>
       </form>
+      <datalist id="listaCargos"></datalist>
+      <datalist id="listaCidades"></datalist>
+
+      <button type="button" class="btn-filtros-toggle" id="btnFiltrosAvancados" aria-expanded="false" aria-controls="filtrosAvancados">
+        ⚙️ Filtros avançados <span id="filtrosAtivosCount"></span>
+      </button>
+
+      <div class="filtros-avancados" id="filtrosAvancados" hidden>
+        <div class="filtros-avancados-grid">
+          <label>Estado
+            <select id="filtroEstado">
+              <option value="">Todos</option>
+              <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+              <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+              <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+              <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+              <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+              <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+              <option>SP</option><option>SE</option><option>TO</option>
+            </select>
+          </label>
+          <label>Modalidade
+            <select id="filtroModalidade">
+              <option value="">Todas</option>
+              <option>Presencial</option>
+              <option>Híbrido</option>
+              <option>Remoto</option>
+            </select>
+          </label>
+          <label>Turno
+            <select id="filtroTurno">
+              <option value="">Todos</option>
+              <option>Manhã</option>
+              <option>Tarde</option>
+              <option>Noite</option>
+              <option>Comercial</option>
+              <option>Escala 12x36</option>
+            </select>
+          </label>
+          <label>Tipo de contratação
+            <select id="filtroTipoContratacao">
+              <option value="">Todos</option>
+              <option>CLT</option>
+              <option>PJ</option>
+              <option>Temporário</option>
+              <option>Estágio</option>
+              <option>Autônomo</option>
+            </select>
+          </label>
+          <label>Salário mínimo
+            <input type="number" id="filtroSalarioMin" placeholder="Ex: 2000" min="0" step="100">
+          </label>
+          <label>Salário máximo
+            <input type="number" id="filtroSalarioMax" placeholder="Ex: 5000" min="0" step="100">
+          </label>
+          <label>Benefício
+            <input type="text" id="filtroBeneficio" placeholder="Ex: vale refeição">
+          </label>
+          <label>Ordenar por
+            <select id="filtroOrdenar">
+              <option value="recentes">Mais recentes</option>
+              <option value="relevancia">Relevância</option>
+              <option value="salario">Maior salário</option>
+            </select>
+          </label>
+        </div>
+        <div class="filtros-avancados-acoes">
+          <button type="button" class="btn-aplicar-filtros" id="btnAplicarFiltros">Aplicar filtros</button>
+          <button type="button" class="btn-limpar-filtros" id="btnLimparFiltrosAvancados">Limpar</button>
+        </div>
+      </div>
 
       <div class="buscas-recentes" id="buscasRecentes" hidden>
         <span>Buscas recentes:</span>

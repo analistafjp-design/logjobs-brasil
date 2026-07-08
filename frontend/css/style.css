@@ -331,6 +331,10 @@ img{
   background:#128A3E;
 }
 
+.buscas-recentes[hidden]{
+  display:none;
+}
+
 .buscas-recentes{
   margin-top:16px;
   display:flex;
@@ -359,6 +363,212 @@ img{
 
 .busca-recente-chip:hover{
   background:rgba(255,255,255,.28);
+}
+
+/* ===== Filtros avançados ===== */
+
+.btn-filtros-toggle{
+  margin-top:18px;
+  background:rgba(255,255,255,.15);
+  border:1px solid rgba(255,255,255,.35);
+  color:var(--branco);
+  padding:9px 18px;
+  border-radius:999px;
+  font-size:13px;
+  font-weight:600;
+  transition:background .15s ease;
+}
+
+.btn-filtros-toggle:hover{
+  background:rgba(255,255,255,.28);
+}
+
+.btn-filtros-toggle[aria-expanded="true"]{
+  background:rgba(255,255,255,.28);
+}
+
+#filtrosAtivosCount:empty{
+  display:none;
+}
+
+#filtrosAtivosCount{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:var(--verde);
+  color:var(--branco);
+  font-size:11px;
+  font-weight:700;
+  margin-left:2px;
+}
+
+.filtros-avancados{
+  max-width:760px;
+  margin:16px auto 0;
+  background:var(--superficie);
+  color:var(--texto);
+  border-radius:var(--raio);
+  box-shadow:var(--sombra-hover);
+  padding:24px;
+  text-align:left;
+  animation:filtros-abrir .2s ease;
+}
+
+@keyframes filtros-abrir{
+  from{ opacity:0; transform:translateY(-8px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+
+.filtros-avancados[hidden]{
+  display:none;
+}
+
+.filtros-avancados-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(min(180px, 100%),1fr));
+  gap:14px;
+}
+
+.filtros-avancados label{
+  font-size:13px;
+  font-weight:600;
+  color:var(--texto);
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.filtros-avancados input,
+.filtros-avancados select{
+  padding:10px 12px;
+  border:1px solid var(--borda);
+  border-radius:9px;
+  font-size:14px;
+  font-family:inherit;
+  background:var(--fundo);
+  color:var(--texto);
+}
+
+.filtros-avancados-acoes{
+  display:flex;
+  gap:10px;
+  margin-top:20px;
+}
+
+.btn-aplicar-filtros{
+  background:var(--azul);
+  color:var(--branco);
+  border:none;
+  padding:11px 22px;
+  border-radius:10px;
+  font-weight:600;
+  font-size:14px;
+}
+
+.btn-aplicar-filtros:hover{
+  background:var(--azul-escuro);
+}
+
+.btn-limpar-filtros{
+  background:none;
+  border:1px solid var(--borda);
+  color:var(--texto-suave);
+  padding:11px 22px;
+  border-radius:10px;
+  font-weight:600;
+  font-size:14px;
+}
+
+.btn-limpar-filtros:hover{
+  background:var(--fundo);
+  color:var(--texto);
+}
+
+/* ===== Skeleton loading ===== */
+
+.skeleton-card{
+  background:var(--superficie);
+  border-radius:var(--raio);
+  box-shadow:var(--sombra);
+  padding:24px;
+  overflow:hidden;
+}
+
+.skeleton-linha{
+  height:14px;
+  border-radius:6px;
+  margin-bottom:12px;
+  background:linear-gradient(90deg, var(--fundo) 25%, var(--borda) 50%, var(--fundo) 75%);
+  background-size:200% 100%;
+  animation:skeleton-brilho 1.4s ease-in-out infinite;
+}
+
+.skeleton-linha.curta{ width:40%; }
+.skeleton-linha.media{ width:70%; }
+.skeleton-linha.larga{ width:90%; height:32px; margin-top:20px; }
+
+@keyframes skeleton-brilho{
+  0%{ background-position:200% 0; }
+  100%{ background-position:-200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .skeleton-linha{ animation:none; }
+  .filtros-avancados{ animation:none; }
+}
+
+/* ===== Empty state ===== */
+
+.empty-state{
+  grid-column:1 / -1;
+  text-align:center;
+  padding:60px 24px;
+  color:var(--texto-suave);
+}
+
+.empty-state .empty-icone{
+  font-size:48px;
+  margin-bottom:16px;
+}
+
+.empty-state h3{
+  color:var(--texto);
+  font-size:18px;
+  margin-bottom:8px;
+}
+
+.empty-state button{
+  margin-top:16px;
+  background:var(--azul);
+  color:var(--branco);
+  border:none;
+  padding:11px 22px;
+  border-radius:10px;
+  font-weight:600;
+  font-size:14px;
+}
+
+.empty-state button:hover{
+  background:var(--azul-escuro);
+}
+
+/* ===== Animação de entrada dos cards ===== */
+
+.vaga{
+  animation:card-entrada .35s ease backwards;
+}
+
+@keyframes card-entrada{
+  from{ opacity:0; transform:translateY(10px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .vaga{ animation:none; }
 }
 
 /* ===== Categorias ===== */

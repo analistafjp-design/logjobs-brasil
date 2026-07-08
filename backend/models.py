@@ -43,6 +43,8 @@ class Vaga(Base):
     estado = Column(String, nullable=False, index=True)
     salario = Column(Float, nullable=True)
     modalidade = Column(String, nullable=True)
+    turno = Column(String, nullable=True)
+    tipo_contratacao = Column(String, nullable=True)
     veiculo = Column(String, nullable=True)
     descricao = Column(String, nullable=True)
     beneficios = Column(String, nullable=True)

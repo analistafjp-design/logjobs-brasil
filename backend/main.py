@@ -131,10 +131,17 @@ def on_shutdown():
 @app.get("/api/vagas")
 def listar_vagas(
     cargo: Optional[str] = None,
+    empresa: Optional[str] = None,
     cidade: Optional[str] = None,
     estado: Optional[str] = None,
     categoria: Optional[str] = None,
+    modalidade: Optional[str] = None,
+    turno: Optional[str] = None,
+    tipo_contratacao: Optional[str] = None,
+    beneficio: Optional[str] = None,
     salario_min: Optional[float] = None,
+    salario_max: Optional[float] = None,
+    ordenar: str = "recentes",
     limit: int = Query(default=20, le=100),
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -143,17 +150,41 @@ def listar_vagas(
 
     if cargo:
         query = query.filter(Vaga.cargo.ilike(f"%{cargo}%"))
+    if empresa:
+        query = query.filter(Vaga.empresa.ilike(f"%{empresa}%"))
     if cidade:
         query = query.filter(Vaga.cidade.ilike(f"%{cidade}%"))
     if estado:
         query = query.filter(Vaga.estado.ilike(f"%{estado}%"))
     if categoria:
         query = query.filter(Vaga.categoria.ilike(f"%{categoria}%"))
+    if modalidade:
+        query = query.filter(Vaga.modalidade.ilike(modalidade))
+    if turno:
+        query = query.filter(Vaga.turno.ilike(turno))
+    if tipo_contratacao:
+        query = query.filter(Vaga.tipo_contratacao.ilike(tipo_contratacao))
+    if beneficio:
+        query = query.filter(Vaga.beneficios.ilike(f"%{beneficio}%"))
     if salario_min:
         query = query.filter(Vaga.salario >= salario_min)
+    if salario_max:
+        query = query.filter(Vaga.salario <= salario_max)
 
     total = query.count()
-    vagas = query.order_by(Vaga.id.desc()).offset(offset).limit(limit).all()
+
+    if ordenar == "relevancia" and cargo:
+        # Sem motor de busca full-text: aproxima "relevância" priorizando cargo
+        # que começa com o termo buscado, depois os que só contêm o termo,
+        # com a data de publicação como critério de desempate.
+        comeca_com = Vaga.cargo.ilike(f"{cargo}%")
+        query = query.order_by(comeca_com.desc(), Vaga.id.desc())
+    elif ordenar == "salario":
+        query = query.order_by(Vaga.salario.is_(None), Vaga.salario.desc())
+    else:
+        query = query.order_by(Vaga.id.desc())
+
+    vagas = query.offset(offset).limit(limit).all()
 
     return {
         "total": total,
@@ -166,14 +197,31 @@ def listar_vagas(
                 "estado": v.estado,
                 "salario": v.salario,
                 "modalidade": v.modalidade,
+                "turno": v.turno,
+                "tipo_contratacao": v.tipo_contratacao,
                 "veiculo": v.veiculo,
                 "categoria": v.categoria,
+                "beneficios": v.beneficios,
                 "link": v.link,
                 "fonte": v.fonte,
+                "criada_em": v.criada_em.isoformat() if v.criada_em else None,
             }
             for v in vagas
         ],
     }
+
+
+@app.get("/api/sugestoes")
+def sugestoes(tipo: str, q: str = "", db: Session = Depends(get_db)):
+    if tipo not in ("cargo", "cidade", "empresa"):
+        raise HTTPException(status_code=400, detail="Tipo de sugestão inválido")
+
+    coluna = {"cargo": Vaga.cargo, "cidade": Vaga.cidade, "empresa": Vaga.empresa}[tipo]
+    query = db.query(coluna).distinct()
+    if q:
+        query = query.filter(coluna.ilike(f"%{q}%"))
+    valores = [v[0] for v in query.order_by(coluna).limit(8).all()]
+    return valores
 
 
 @app.get("/api/vagas/{vaga_id}")
@@ -190,6 +238,8 @@ def obter_vaga(vaga_id: int, db: Session = Depends(get_db)):
         "estado": vaga.estado,
         "salario": vaga.salario,
         "modalidade": vaga.modalidade,
+        "turno": vaga.turno,
+        "tipo_contratacao": vaga.tipo_contratacao,
         "veiculo": vaga.veiculo,
         "categoria": vaga.categoria,
         "descricao": vaga.descricao,
@@ -400,6 +450,8 @@ class VagaEntrada(BaseModel):
     categoria: str
     salario: Optional[float] = None
     modalidade: Optional[str] = None
+    turno: Optional[str] = None
+    tipo_contratacao: Optional[str] = None
     veiculo: Optional[str] = None
     descricao: Optional[str] = None
     beneficios: Optional[str] = None
@@ -415,6 +467,8 @@ class VagaAtualizacao(BaseModel):
     categoria: Optional[str] = None
     salario: Optional[float] = None
     modalidade: Optional[str] = None
+    turno: Optional[str] = None
+    tipo_contratacao: Optional[str] = None
     veiculo: Optional[str] = None
     descricao: Optional[str] = None
     beneficios: Optional[str] = None
@@ -431,6 +485,8 @@ def vaga_admin_para_json(v: Vaga) -> dict:
         "estado": v.estado,
         "salario": v.salario,
         "modalidade": v.modalidade,
+        "turno": v.turno,
+        "tipo_contratacao": v.tipo_contratacao,
         "veiculo": v.veiculo,
         "categoria": v.categoria,
         "descricao": v.descricao,
