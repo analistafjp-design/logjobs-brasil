@@ -12,10 +12,12 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+import auth
+import security
 from database import Base, SessionLocal, engine, get_db
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_categorias
 from migrations import adicionar_colunas_faltantes
-from models import Atualizacao, Candidatura, Interessado, Vaga
+from models import Atualizacao, Candidatura, Favorito, Interessado, Usuario, Vaga
 from rate_limit import limitar_por_ip
 from scheduler import (
     aplicar_correcao_geografica_uma_vez,
@@ -334,6 +336,116 @@ def criar_interessado(dados: InteressadoEntrada, request: Request, db: Session =
     db.refresh(interessado)
 
     return {"id": interessado.id, "mensagem": "Cadastro recebido! Avisaremos você em breve."}
+
+
+class RegistroEntrada(BaseModel):
+    nome: str
+    email: EmailStr
+    senha: str
+    tipo: str = "candidato"
+
+
+class LoginEntrada(BaseModel):
+    email: EmailStr
+    senha: str
+
+
+def usuario_para_json(usuario: Usuario) -> dict:
+    return {"id": usuario.id, "nome": usuario.nome, "email": usuario.email, "tipo": usuario.tipo}
+
+
+@app.post("/api/auth/registro", status_code=201)
+def registrar(dados: RegistroEntrada, request: Request, db: Session = Depends(get_db)):
+    limitar_por_ip(request, "auth-registro", max_pedidos=10, janela_segundos=600)
+
+    if len(dados.senha) < 6:
+        raise HTTPException(status_code=400, detail="A senha precisa ter pelo menos 6 caracteres")
+    if dados.tipo not in ("candidato", "empresa"):
+        raise HTTPException(status_code=400, detail="Tipo de conta inválido")
+    if db.query(Usuario).filter(Usuario.email == dados.email).first():
+        raise HTTPException(status_code=400, detail="Este e-mail já está cadastrado")
+
+    usuario = Usuario(
+        nome=dados.nome,
+        email=dados.email,
+        senha_hash=security.hash_password(dados.senha),
+        tipo=dados.tipo,
+    )
+    db.add(usuario)
+    db.commit()
+    db.refresh(usuario)
+
+    token = auth.criar_token(usuario.id)
+    return {"access_token": token, "usuario": usuario_para_json(usuario)}
+
+
+@app.post("/api/auth/login")
+def login(dados: LoginEntrada, request: Request, db: Session = Depends(get_db)):
+    limitar_por_ip(request, "auth-login", max_pedidos=10, janela_segundos=600)
+
+    usuario = db.query(Usuario).filter(Usuario.email == dados.email).first()
+    if not usuario or not security.verify_password(dados.senha, usuario.senha_hash):
+        raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
+
+    token = auth.criar_token(usuario.id)
+    return {"access_token": token, "usuario": usuario_para_json(usuario)}
+
+
+@app.get("/api/auth/me")
+def me(usuario: Usuario = Depends(auth.usuario_atual)):
+    return usuario_para_json(usuario)
+
+
+@app.get("/api/favoritos")
+def listar_favoritos(usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    ids_favoritos = [f.vaga_id for f in db.query(Favorito).filter(Favorito.usuario_id == usuario.id).all()]
+    if not ids_favoritos:
+        return {"vagas": []}
+
+    vagas = db.query(Vaga).filter(Vaga.id.in_(ids_favoritos)).all()
+    return {
+        "vagas": [
+            {
+                "id": v.id,
+                "cargo": v.cargo,
+                "empresa": v.empresa,
+                "cidade": v.cidade,
+                "estado": v.estado,
+                "salario": v.salario,
+                "modalidade": v.modalidade,
+                "categoria": v.categoria,
+                "link": v.link,
+            }
+            for v in vagas
+        ]
+    }
+
+
+@app.post("/api/favoritos/{vaga_id}", status_code=201)
+def adicionar_favorito(vaga_id: int, usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    if not db.query(Vaga).filter(Vaga.id == vaga_id).first():
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+
+    ja_existe = db.query(Favorito).filter(
+        Favorito.usuario_id == usuario.id, Favorito.vaga_id == vaga_id
+    ).first()
+    if ja_existe:
+        return {"mensagem": "Vaga já estava salva"}
+
+    db.add(Favorito(usuario_id=usuario.id, vaga_id=vaga_id))
+    db.commit()
+    return {"mensagem": "Vaga salva"}
+
+
+@app.delete("/api/favoritos/{vaga_id}")
+def remover_favorito(vaga_id: int, usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    favorito = db.query(Favorito).filter(
+        Favorito.usuario_id == usuario.id, Favorito.vaga_id == vaga_id
+    ).first()
+    if favorito:
+        db.delete(favorito)
+        db.commit()
+    return {"mensagem": "Vaga removida dos salvos"}
 
 
 @app.get("/vagas/{vaga_id}", response_class=HTMLResponse)

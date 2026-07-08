@@ -79,6 +79,11 @@ function botaoCandidatura(vaga) {
   return `<button class="btn-candidatar" data-vaga-id="${escapeHtml(vaga.id)}">Candidatar-se</button>`;
 }
 
+function botaoSalvar(vaga) {
+  const salva = favoritosIds.has(Number(vaga.id));
+  return `<button class="btn-salvar${salva ? ' salvo' : ''}" data-vaga-id="${escapeHtml(vaga.id)}" aria-pressed="${salva}" aria-label="${salva ? 'Remover dos salvos' : 'Salvar vaga'}" title="${salva ? 'Remover dos salvos' : 'Salvar vaga'}">${salva ? '★' : '☆'}</button>`;
+}
+
 function vagaParaHtml(vaga) {
   return `
     <article class="vaga">
@@ -89,7 +94,10 @@ function vagaParaHtml(vaga) {
       <p class="vaga-info"><a href="/vagas/${escapeHtml(vaga.id)}">${escapeHtml(vaga.cargo)}</a> • ${escapeHtml(vaga.cidade)}${vaga.estado ? ', ' + escapeHtml(vaga.estado) : ''}</p>
       <div class="vaga-rodape">
         <span class="salario">${escapeHtml(formatarSalario(vaga.salario))}</span>
-        ${botaoCandidatura(vaga)}
+        <div class="vaga-acoes">
+          ${botaoSalvar(vaga)}
+          ${botaoCandidatura(vaga)}
+        </div>
       </div>
     </article>
   `;
@@ -353,10 +361,17 @@ function abrirModalCandidatura(vaga) {
 
 if (vagasGrid) {
   vagasGrid.addEventListener('click', (event) => {
-    const botao = event.target.closest('.btn-candidatar');
-    if (!botao || botao.tagName === 'A') return;
-    const vaga = vagasCarregadas.find((v) => String(v.id) === botao.dataset.vagaId);
-    if (vaga) abrirModalCandidatura(vaga);
+    const botaoCandidatar = event.target.closest('.btn-candidatar');
+    if (botaoCandidatar && botaoCandidatar.tagName !== 'A') {
+      const vaga = vagasCarregadas.find((v) => String(v.id) === botaoCandidatar.dataset.vagaId);
+      if (vaga) abrirModalCandidatura(vaga);
+      return;
+    }
+
+    const botaoSalvarEl = event.target.closest('.btn-salvar');
+    if (botaoSalvarEl) {
+      alternarFavorito(botaoSalvarEl.dataset.vagaId, botaoSalvarEl);
+    }
   });
 }
 
@@ -434,6 +449,192 @@ document.querySelectorAll('[data-em-breve]').forEach((el) => {
     event.preventDefault();
     mostrarToast(`🚧 ${el.dataset.emBreve} — em breve!`);
   });
+});
+
+/* ===== Autenticação (candidato / empresa) ===== */
+
+const CHAVE_TOKEN = 'logjobs-token';
+const CHAVE_USUARIO = 'logjobs-usuario';
+const areaConta = document.getElementById('areaConta');
+let favoritosIds = new Set();
+
+function obterToken() {
+  return localStorage.getItem(CHAVE_TOKEN);
+}
+
+function obterUsuario() {
+  try {
+    return JSON.parse(localStorage.getItem(CHAVE_USUARIO) || 'null');
+  } catch {
+    return null;
+  }
+}
+
+function salvarSessao(token, usuario) {
+  localStorage.setItem(CHAVE_TOKEN, token);
+  localStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario));
+}
+
+function encerrarSessao() {
+  localStorage.removeItem(CHAVE_TOKEN);
+  localStorage.removeItem(CHAVE_USUARIO);
+  favoritosIds = new Set();
+  renderAreaConta();
+  renderizarVagas(vagasCarregadas);
+}
+
+function renderAreaConta() {
+  if (!areaConta) return;
+  const usuario = obterUsuario();
+
+  if (!usuario || !obterToken()) {
+    areaConta.innerHTML = `<button class="btn-login" id="btnEntrar">Entrar</button>`;
+    document.getElementById('btnEntrar')?.addEventListener('click', () => abrirModalAuth('login'));
+    return;
+  }
+
+  areaConta.innerHTML = `
+    <span class="conta-nome">Olá, ${escapeHtml(usuario.nome.split(' ')[0])}</span>
+    <button class="btn-login btn-sair" id="btnSair">Sair</button>
+  `;
+  document.getElementById('btnSair')?.addEventListener('click', encerrarSessao);
+}
+
+function abrirModalAuth(modoInicial) {
+  const renderizar = (modo) => {
+    const ehLogin = modo === 'login';
+    abrirModal(`
+      <div class="auth-tabs" role="tablist">
+        <button type="button" class="auth-tab${ehLogin ? ' ativa' : ''}" data-modo="login" role="tab" aria-selected="${ehLogin}">Entrar</button>
+        <button type="button" class="auth-tab${ehLogin ? '' : ' ativa'}" data-modo="cadastro" role="tab" aria-selected="${!ehLogin}">Cadastrar</button>
+      </div>
+      <h2>${ehLogin ? 'Entrar na sua conta' : 'Criar conta gratuita'}</h2>
+      <form id="formAuth">
+        ${ehLogin ? '' : `
+        <label>Nome
+          <input type="text" name="nome" required autocomplete="name">
+        </label>
+        <label>Você é
+          <select name="tipo">
+            <option value="candidato">Candidato</option>
+            <option value="empresa">Empresa</option>
+          </select>
+        </label>`}
+        <label>E-mail
+          <input type="email" name="email" required autocomplete="email">
+        </label>
+        <label>Senha
+          <input type="password" name="senha" required minlength="6" autocomplete="${ehLogin ? 'current-password' : 'new-password'}">
+        </label>
+        <p class="modal-erro" id="authErro" hidden></p>
+        <button type="submit" class="modal-enviar">${ehLogin ? 'Entrar' : 'Criar conta'}</button>
+      </form>
+    `);
+
+    document.querySelectorAll('.auth-tab').forEach((tab) => {
+      tab.addEventListener('click', () => renderizar(tab.dataset.modo));
+    });
+
+    document.getElementById('formAuth').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.target;
+      const erroEl = document.getElementById('authErro');
+      erroEl.hidden = true;
+
+      const rota = ehLogin ? 'login' : 'registro';
+      const corpo = ehLogin
+        ? { email: form.email.value.trim(), senha: form.senha.value }
+        : {
+            nome: form.nome.value.trim(),
+            email: form.email.value.trim(),
+            senha: form.senha.value,
+            tipo: form.tipo.value,
+          };
+
+      try {
+        const resposta = await fetch(`${API_BASE}/auth/${rota}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(corpo),
+        });
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+          if (resposta.status === 429) throw new Error('Muitas tentativas. Aguarde alguns minutos.');
+          throw new Error(dados.detail || 'Não foi possível concluir. Tente novamente.');
+        }
+
+        salvarSessao(dados.access_token, dados.usuario);
+        renderAreaConta();
+        await carregarFavoritos();
+        if (vagasCarregadas.length) renderizarVagas(vagasCarregadas);
+        fecharModal();
+        mostrarToast(`👋 Bem-vindo(a), ${dados.usuario.nome.split(' ')[0]}!`);
+      } catch (erro) {
+        erroEl.textContent = erro.message;
+        erroEl.hidden = false;
+      }
+    });
+  };
+
+  renderizar(modoInicial);
+}
+
+async function carregarFavoritos() {
+  const token = obterToken();
+  if (!token) {
+    favoritosIds = new Set();
+    return;
+  }
+  try {
+    const resposta = await fetch(`${API_BASE}/favoritos`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!resposta.ok) throw new Error();
+    const dados = await resposta.json();
+    favoritosIds = new Set((dados.vagas || []).map((v) => Number(v.id)));
+  } catch {
+    favoritosIds = new Set();
+  }
+}
+
+async function alternarFavorito(vagaId, botaoEl) {
+  if (!obterToken()) {
+    abrirModalAuth('login');
+    return;
+  }
+
+  const id = Number(vagaId);
+  const salva = favoritosIds.has(id);
+  const metodo = salva ? 'DELETE' : 'POST';
+
+  try {
+    const resposta = await fetch(`${API_BASE}/favoritos/${id}`, {
+      method: metodo,
+      headers: { Authorization: `Bearer ${obterToken()}` },
+    });
+    if (!resposta.ok) throw new Error();
+
+    if (salva) {
+      favoritosIds.delete(id);
+    } else {
+      favoritosIds.add(id);
+    }
+
+    if (botaoEl) {
+      botaoEl.classList.toggle('salvo', !salva);
+      botaoEl.setAttribute('aria-pressed', String(!salva));
+      botaoEl.textContent = !salva ? '★' : '☆';
+    }
+    mostrarToast(salva ? 'Vaga removida dos salvos' : '⭐ Vaga salva!');
+  } catch {
+    mostrarToast('Não foi possível atualizar. Tente novamente.');
+  }
+}
+
+renderAreaConta();
+carregarFavoritos().then(() => {
+  if (vagasCarregadas.length) renderizarVagas(vagasCarregadas);
 });
 
 if (vagasGrid) buscarVagas();

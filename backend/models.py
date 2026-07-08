@@ -4,6 +4,29 @@ from sqlalchemy.sql import func
 from database import Base
 
 
+class Usuario(Base):
+    __tablename__ = "usuarios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nome = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    senha_hash = Column(String, nullable=False)
+    tipo = Column(String, nullable=False, default="candidato")  # candidato | empresa
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Favorito(Base):
+    __tablename__ = "favoritos"
+    __table_args__ = (
+        UniqueConstraint("usuario_id", "vaga_id", name="uq_favorito_usuario_vaga"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, nullable=False, index=True)
+    vaga_id = Column(Integer, nullable=False, index=True)
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class Vaga(Base):
     __tablename__ = "vagas"
     __table_args__ = (

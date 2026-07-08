@@ -45,6 +45,16 @@ Em produção (Render), o SQLite **não deve ser usado**: o disco do plano free 
 
 ⚠️ O plano free de Postgres do Render expira em 90 dias (a Render exclui o banco depois disso). Para manter os dados permanentemente, faça upgrade do banco para um plano pago no painel do Render antes do prazo, ou migre para outro provedor com free tier sem expiração (ex: [Neon](https://neon.tech) ou [Supabase](https://supabase.com)) — basta apontar a variável `DATABASE_URL` para o novo banco.
 
+## Contas de usuário (candidato / empresa)
+
+Login e cadastro reais estão disponíveis: botão "Entrar" na navbar abre um modal com abas de Entrar/Cadastrar. O cadastro aceita tipo "candidato" ou "empresa" (`POST /api/auth/registro`), login em `POST /api/auth/login`, e `GET /api/auth/me` retorna o usuário autenticado a partir do token.
+
+Senhas são armazenadas com hash PBKDF2-HMAC-SHA256 (salt por usuário) e o token de sessão é um JWT HS256 — ambos implementados só com a biblioteca padrão do Python (`backend/security.py`), sem depender de `passlib[bcrypt]`/`cryptography`, que têm extensões nativas propensas a quebrar entre plataformas diferentes de desenvolvimento/deploy. Configure `LOGJOBS_SECRET_KEY` em produção (sem isso, usa uma chave de desenvolvimento fixa).
+
+Usuários logados podem salvar vagas (favoritos): botão de estrela em cada card, endpoints `GET/POST/DELETE /api/favoritos`.
+
+**Pendente:** perfil completo do candidato/empresa, painel administrativo via UI e módulos de IA ainda não existem.
+
 ## Endpoint administrativo
 
 O endpoint `POST /api/atualizar-agora` (força uma busca de vagas fora do agendamento normal) exige um cabeçalho `X-Admin-Token` com o valor da variável de ambiente `ADMIN_TOKEN`. Sem essa variável configurada, o endpoint fica sempre bloqueado (403). Configure `ADMIN_TOKEN` com um valor secreto próprio caso queira usá-lo.
