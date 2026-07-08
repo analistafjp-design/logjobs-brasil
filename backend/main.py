@@ -32,6 +32,13 @@ from seo import ROBOTS_TXT, pagina_404_html, pagina_sitemap_xml, pagina_vaga_htm
 
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
+
+def verificar_admin(request: Request, x_admin_token: Optional[str] = Header(default=None)):
+    limitar_por_ip(request, "admin", max_pedidos=30, janela_segundos=600)
+    if not ADMIN_TOKEN or not x_admin_token or not secrets.compare_digest(x_admin_token, ADMIN_TOKEN):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+
 Base.metadata.create_all(bind=engine)
 adicionar_colunas_faltantes(engine, Base)
 
@@ -273,15 +280,176 @@ def status_atualizacao(db: Session = Depends(get_db)):
     }
 
 
-@app.post("/api/atualizar-agora")
-def forcar_atualizacao(request: Request, x_admin_token: Optional[str] = Header(default=None)):
-    limitar_por_ip(request, "atualizar-agora", max_pedidos=10, janela_segundos=600)
-
-    if not ADMIN_TOKEN or not x_admin_token or not secrets.compare_digest(x_admin_token, ADMIN_TOKEN):
-        raise HTTPException(status_code=403, detail="Acesso negado")
-
+@app.post("/api/atualizar-agora", dependencies=[Depends(verificar_admin)])
+def forcar_atualizacao():
     atualizar_vagas_periodicamente()
     return {"mensagem": "Atualização executada."}
+
+
+@app.get("/api/admin/verificar", dependencies=[Depends(verificar_admin)])
+def admin_verificar():
+    return {"ok": True}
+
+
+class VagaEntrada(BaseModel):
+    cargo: str
+    empresa: str
+    cidade: str
+    estado: str
+    categoria: str
+    salario: Optional[float] = None
+    modalidade: Optional[str] = None
+    veiculo: Optional[str] = None
+    descricao: Optional[str] = None
+    beneficios: Optional[str] = None
+    requisitos: Optional[str] = None
+    link: Optional[str] = None
+
+
+class VagaAtualizacao(BaseModel):
+    cargo: Optional[str] = None
+    empresa: Optional[str] = None
+    cidade: Optional[str] = None
+    estado: Optional[str] = None
+    categoria: Optional[str] = None
+    salario: Optional[float] = None
+    modalidade: Optional[str] = None
+    veiculo: Optional[str] = None
+    descricao: Optional[str] = None
+    beneficios: Optional[str] = None
+    requisitos: Optional[str] = None
+    link: Optional[str] = None
+
+
+def vaga_admin_para_json(v: Vaga) -> dict:
+    return {
+        "id": v.id,
+        "cargo": v.cargo,
+        "empresa": v.empresa,
+        "cidade": v.cidade,
+        "estado": v.estado,
+        "salario": v.salario,
+        "modalidade": v.modalidade,
+        "veiculo": v.veiculo,
+        "categoria": v.categoria,
+        "descricao": v.descricao,
+        "beneficios": v.beneficios,
+        "requisitos": v.requisitos,
+        "link": v.link,
+        "fonte": v.fonte,
+        "criada_em": v.criada_em.isoformat() if v.criada_em else None,
+    }
+
+
+@app.get("/api/admin/vagas", dependencies=[Depends(verificar_admin)])
+def admin_listar_vagas(
+    q: Optional[str] = None,
+    limit: int = Query(default=50, le=200),
+    offset: int = 0,
+    db: Session = Depends(get_db),
+):
+    query = db.query(Vaga)
+    if q:
+        query = query.filter(
+            (Vaga.cargo.ilike(f"%{q}%")) | (Vaga.empresa.ilike(f"%{q}%")) | (Vaga.cidade.ilike(f"%{q}%"))
+        )
+    total = query.count()
+    vagas = query.order_by(Vaga.id.desc()).offset(offset).limit(limit).all()
+    return {"total": total, "vagas": [vaga_admin_para_json(v) for v in vagas]}
+
+
+@app.post("/api/admin/vagas", status_code=201, dependencies=[Depends(verificar_admin)])
+def admin_criar_vaga(dados: VagaEntrada, db: Session = Depends(get_db)):
+    vaga = Vaga(**dados.model_dump(), fonte="manual")
+    db.add(vaga)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Já existe uma vaga com esse cargo, empresa e cidade")
+    db.refresh(vaga)
+    return vaga_admin_para_json(vaga)
+
+
+@app.patch("/api/admin/vagas/{vaga_id}", dependencies=[Depends(verificar_admin)])
+def admin_editar_vaga(vaga_id: int, dados: VagaAtualizacao, db: Session = Depends(get_db)):
+    vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+
+    for campo, valor in dados.model_dump(exclude_unset=True).items():
+        setattr(vaga, campo, valor)
+
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Já existe uma vaga com esse cargo, empresa e cidade")
+    db.refresh(vaga)
+    return vaga_admin_para_json(vaga)
+
+
+@app.delete("/api/admin/vagas/{vaga_id}", dependencies=[Depends(verificar_admin)])
+def admin_excluir_vaga(vaga_id: int, db: Session = Depends(get_db)):
+    vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    db.delete(vaga)
+    db.commit()
+    return {"mensagem": "Vaga excluída"}
+
+
+@app.get("/api/admin/candidaturas", dependencies=[Depends(verificar_admin)])
+def admin_listar_candidaturas(limit: int = Query(default=50, le=200), db: Session = Depends(get_db)):
+    candidaturas = db.query(Candidatura).order_by(Candidatura.id.desc()).limit(limit).all()
+    vagas_por_id = {v.id: v for v in db.query(Vaga).filter(
+        Vaga.id.in_([c.vaga_id for c in candidaturas])
+    ).all()}
+
+    return [
+        {
+            "id": c.id,
+            "nome": c.nome,
+            "email": c.email,
+            "telefone": c.telefone,
+            "vaga_id": c.vaga_id,
+            "vaga_cargo": vagas_por_id[c.vaga_id].cargo if c.vaga_id in vagas_por_id else None,
+            "vaga_empresa": vagas_por_id[c.vaga_id].empresa if c.vaga_id in vagas_por_id else None,
+            "criada_em": c.criada_em.isoformat() if c.criada_em else None,
+        }
+        for c in candidaturas
+    ]
+
+
+@app.get("/api/admin/interessados", dependencies=[Depends(verificar_admin)])
+def admin_listar_interessados(limit: int = Query(default=50, le=200), db: Session = Depends(get_db)):
+    interessados = db.query(Interessado).order_by(Interessado.id.desc()).limit(limit).all()
+    return [
+        {
+            "id": i.id,
+            "nome": i.nome,
+            "email": i.email,
+            "tipo": i.tipo,
+            "criado_em": i.criado_em.isoformat() if i.criado_em else None,
+        }
+        for i in interessados
+    ]
+
+
+@app.get("/api/admin/usuarios", dependencies=[Depends(verificar_admin)])
+def admin_listar_usuarios(limit: int = Query(default=50, le=200), db: Session = Depends(get_db)):
+    usuarios = db.query(Usuario).order_by(Usuario.id.desc()).limit(limit).all()
+    return [
+        {
+            "id": u.id,
+            "nome": u.nome,
+            "email": u.email,
+            "tipo": u.tipo,
+            "cidade": u.cidade,
+            "criado_em": u.criado_em.isoformat() if u.criado_em else None,
+        }
+        for u in usuarios
+    ]
 
 
 class CandidaturaEntrada(BaseModel):

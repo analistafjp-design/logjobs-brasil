@@ -55,11 +55,19 @@ Usuários logados podem salvar vagas (favoritos): botão de estrela em cada card
 
 Existe uma página de perfil (`frontend/perfil.html`, acessível pelo nome do usuário na navbar) onde candidatos e empresas editam nome/telefone/cidade/mini-currículo (`PATCH /api/auth/me`) e veem/removem suas vagas salvas.
 
-**Pendente:** painel administrativo via UI e módulos de IA ainda não existem.
+**Pendente:** módulos de IA ainda não existem.
+
+## Painel administrativo
+
+Disponível em `/admin.html` (não linkado na navegação pública — acesso direto pela URL). Protegido pelo mesmo `X-Admin-Token` / `ADMIN_TOKEN` usado em `/api/atualizar-agora` (veja abaixo); sem essa variável configurada, o painel fica sempre bloqueado. O token é guardado em `sessionStorage` (não sobrevive ao fechar a aba).
+
+Permite:
+- Cadastrar, editar e excluir vagas manualmente (`/api/admin/vagas`).
+- Visualizar candidaturas recebidas, a lista de espera e os usuários cadastrados (somente leitura).
 
 ## Endpoint administrativo
 
-O endpoint `POST /api/atualizar-agora` (força uma busca de vagas fora do agendamento normal) exige um cabeçalho `X-Admin-Token` com o valor da variável de ambiente `ADMIN_TOKEN`. Sem essa variável configurada, o endpoint fica sempre bloqueado (403). Configure `ADMIN_TOKEN` com um valor secreto próprio caso queira usá-lo.
+O endpoint `POST /api/atualizar-agora` (força uma busca de vagas fora do agendamento normal) exige um cabeçalho `X-Admin-Token` com o valor da variável de ambiente `ADMIN_TOKEN`. Sem essa variável configurada, o endpoint fica sempre bloqueado (403). Configure `ADMIN_TOKEN` com um valor secreto próprio caso queira usá-lo — esse mesmo token dá acesso ao painel administrativo (`/admin.html`).
 
 ## Mudanças de schema (migrações)
 
