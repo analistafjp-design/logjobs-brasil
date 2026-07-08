@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 import auth
 import security
+import totp
 from blog_seed import ARTIGOS_EXEMPLO
 from database import Base, SessionLocal, engine, get_db
 from recomendacao import recomendar_vagas
@@ -701,6 +702,7 @@ class RegistroEntrada(BaseModel):
 class LoginEntrada(BaseModel):
     email: EmailStr
     senha: str
+    codigo_totp: Optional[str] = None
 
 
 class PerfilEntrada(BaseModel):
@@ -727,6 +729,7 @@ def usuario_para_json(usuario: Usuario) -> dict:
         "pretensao_salarial": usuario.pretensao_salarial,
         "disponibilidade": usuario.disponibilidade,
         "possui_cnh": usuario.possui_cnh,
+        "totp_ativado": bool(usuario.totp_ativado),
     }
 
 
@@ -763,6 +766,12 @@ def login(dados: LoginEntrada, request: Request, db: Session = Depends(get_db)):
     if not usuario or not security.verify_password(dados.senha, usuario.senha_hash):
         raise HTTPException(status_code=401, detail="E-mail ou senha inválidos")
 
+    if usuario.totp_ativado:
+        if not dados.codigo_totp:
+            return {"requer_totp": True}
+        if not totp.verificar_totp(usuario.totp_secret, dados.codigo_totp):
+            raise HTTPException(status_code=401, detail="Código de verificação inválido")
+
     token = auth.criar_token(usuario.id)
     return {"access_token": token, "usuario": usuario_para_json(usuario)}
 
@@ -770,6 +779,49 @@ def login(dados: LoginEntrada, request: Request, db: Session = Depends(get_db)):
 @app.get("/api/auth/me")
 def me(usuario: Usuario = Depends(auth.usuario_atual)):
     return usuario_para_json(usuario)
+
+
+@app.post("/api/auth/2fa/iniciar")
+def iniciar_2fa(usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    if usuario.totp_ativado:
+        raise HTTPException(status_code=400, detail="Verificação em duas etapas já está ativada")
+    segredo = totp.gerar_segredo()
+    usuario.totp_secret = segredo
+    db.commit()
+    return {"segredo": segredo, "otpauth_uri": totp.uri_otpauth(usuario.email, segredo)}
+
+
+class Confirmar2FAEntrada(BaseModel):
+    codigo: str
+
+
+@app.post("/api/auth/2fa/confirmar")
+def confirmar_2fa(
+    dados: Confirmar2FAEntrada, usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)
+):
+    if not usuario.totp_secret:
+        raise HTTPException(status_code=400, detail="Nenhuma ativação de verificação em duas etapas pendente")
+    if not totp.verificar_totp(usuario.totp_secret, dados.codigo):
+        raise HTTPException(status_code=400, detail="Código inválido")
+    usuario.totp_ativado = 1
+    db.commit()
+    return {"mensagem": "Verificação em duas etapas ativada"}
+
+
+class Desativar2FAEntrada(BaseModel):
+    senha: str
+
+
+@app.post("/api/auth/2fa/desativar")
+def desativar_2fa(
+    dados: Desativar2FAEntrada, usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)
+):
+    if not security.verify_password(dados.senha, usuario.senha_hash):
+        raise HTTPException(status_code=401, detail="Senha incorreta")
+    usuario.totp_ativado = 0
+    usuario.totp_secret = None
+    db.commit()
+    return {"mensagem": "Verificação em duas etapas desativada"}
 
 
 @app.patch("/api/auth/me")

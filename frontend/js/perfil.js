@@ -81,6 +81,107 @@ async function iniciarPerfil() {
   }
 
   carregarFavoritosPerfil();
+  renderizarTotpStatus(usuario);
+}
+
+/* ===== Verificação em duas etapas (2FA) ===== */
+
+const totpStatusEl = document.getElementById('totpStatus');
+
+function renderizarTotpStatus(usuario) {
+  if (usuario.totp_ativado) {
+    totpStatusEl.innerHTML = `
+      <p>✅ Verificação em duas etapas está <strong>ativada</strong> nesta conta.</p>
+      <form id="formDesativarTotp">
+        <label>Confirme sua senha para desativar
+          <input type="password" name="senha" required autocomplete="current-password">
+        </label>
+        <p class="modal-erro" id="totpDesativarErro" hidden></p>
+        <button type="submit" class="admin-acao-btn excluir">Desativar 2FA</button>
+      </form>
+    `;
+    document.getElementById('formDesativarTotp').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const erroEl = document.getElementById('totpDesativarErro');
+      erroEl.hidden = true;
+      try {
+        const resposta = await fetch(`${API_BASE}/auth/2fa/desativar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obterToken()}` },
+          body: JSON.stringify({ senha: event.target.senha.value }),
+        });
+        const dados = await resposta.json();
+        if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível desativar');
+        mostrarToast('2FA desativada');
+        const usuarioAtual = { ...obterUsuario(), totp_ativado: false };
+        localStorage.setItem('logjobs-usuario', JSON.stringify(usuarioAtual));
+        renderizarTotpStatus(usuarioAtual);
+      } catch (erro) {
+        erroEl.textContent = erro.message;
+        erroEl.hidden = false;
+      }
+    });
+    return;
+  }
+
+  totpStatusEl.innerHTML = `
+    <p>Verificação em duas etapas está <strong>desativada</strong>.</p>
+    <button type="button" class="btn-candidatar" id="btnAtivarTotp">Ativar verificação em duas etapas</button>
+  `;
+  document.getElementById('btnAtivarTotp').addEventListener('click', iniciarAtivacaoTotp);
+}
+
+async function iniciarAtivacaoTotp() {
+  try {
+    const resposta = await fetch(`${API_BASE}/auth/2fa/iniciar`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${obterToken()}` },
+    });
+    const dados = await resposta.json();
+    if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível iniciar a ativação');
+
+    totpStatusEl.innerHTML = `
+      <p>1. Adicione esta chave no seu app autenticador (Google Authenticator, Authy...):</p>
+      <p><code>${escapeHtml(dados.segredo)}</code></p>
+      <p class="modal-subtitulo">Ou cole este link, se seu app aceitar importar por URL:<br><code style="word-break: break-all;">${escapeHtml(dados.otpauth_uri)}</code></p>
+      <p>2. Digite o código de 6 dígitos gerado pelo app para confirmar:</p>
+      <form id="formConfirmarTotp">
+        <label>Código
+          <input type="text" name="codigo" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
+        </label>
+        <p class="modal-erro" id="totpConfirmarErro" hidden></p>
+        <button type="submit" class="modal-enviar">Confirmar e ativar</button>
+        <button type="button" class="btn-sair" id="btnCancelarTotp">Cancelar</button>
+      </form>
+    `;
+
+    document.getElementById('btnCancelarTotp').addEventListener('click', () => renderizarTotpStatus(obterUsuario()));
+
+    document.getElementById('formConfirmarTotp').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const erroEl = document.getElementById('totpConfirmarErro');
+      erroEl.hidden = true;
+      try {
+        const resp = await fetch(`${API_BASE}/auth/2fa/confirmar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obterToken()}` },
+          body: JSON.stringify({ codigo: event.target.codigo.value.trim() }),
+        });
+        const corpo = await resp.json();
+        if (!resp.ok) throw new Error(corpo.detail || 'Código inválido');
+
+        mostrarToast('✅ 2FA ativada');
+        const usuarioAtual = { ...obterUsuario(), totp_ativado: true };
+        localStorage.setItem('logjobs-usuario', JSON.stringify(usuarioAtual));
+        renderizarTotpStatus(usuarioAtual);
+      } catch (erro) {
+        erroEl.textContent = erro.message;
+        erroEl.hidden = false;
+      }
+    });
+  } catch (erro) {
+    mostrarToast(erro.message || 'Não foi possível iniciar a ativação');
+  }
 }
 
 async function carregarConquistas() {

@@ -53,6 +53,12 @@ Senhas são armazenadas com hash PBKDF2-HMAC-SHA256 (salt por usuário) e o toke
 
 Usuários logados podem salvar vagas (favoritos): botão de estrela em cada card, endpoints `GET/POST/DELETE /api/favoritos`.
 
+### Verificação em duas etapas (2FA)
+
+Qualquer conta pode ativar 2FA por TOTP (o mesmo padrão do Google Authenticator, Authy etc.) na seção "Segurança" do perfil. Implementado só com a biblioteca padrão do Python (`backend/totp.py`, mesma filosofia de `security.py`) — sem SMS/e-mail e sem depender de nenhum serviço externo, então funciona mesmo sem credenciais de terceiros configuradas. A implementação foi validada contra os vetores de teste oficiais do RFC 4226.
+
+Fluxo: `POST /api/auth/2fa/iniciar` gera um segredo e devolve a chave (texto) e a URI `otpauth://` para importar no app autenticador; `POST /api/auth/2fa/confirmar` com o primeiro código de 6 dígitos ativa; a partir daí, `POST /api/auth/login` sem `codigo_totp` responde `{"requer_totp": true}` em vez de emitir o token, e o modal de login pede o código antes de tentar de novo. `POST /api/auth/2fa/desativar` exige a senha atual.
+
 Existe uma página de perfil (`frontend/perfil.html`, acessível pelo nome do usuário na navbar) onde candidatos e empresas editam nome/telefone/cidade/mini-currículo (`PATCH /api/auth/me`) e veem/removem suas vagas salvas.
 
 Candidatos têm campos extras de perfil, só exibidos para `tipo: "candidato"`: habilidades (lista livre separada por vírgula), pretensão salarial, disponibilidade (Imediata/15 dias/30 dias/A combinar) e categoria de CNH — relevantes para a maioria das vagas de logística. As habilidades entram automaticamente no motor de recomendação (próxima seção), somadas ao texto do mini-currículo.

@@ -701,6 +701,48 @@ function renderAreaConta() {
 }
 
 function abrirModalAuth(modoInicial) {
+  const renderizarCodigoTotp = (email, senha) => {
+    abrirModal(`
+      <h2>Verificação em duas etapas</h2>
+      <p class="modal-subtitulo">Digite o código de 6 dígitos do seu app autenticador.</p>
+      <form id="formTotp">
+        <label>Código
+          <input type="text" name="codigo" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autocomplete="one-time-code" autofocus>
+        </label>
+        <p class="modal-erro" id="totpErro" hidden></p>
+        <button type="submit" class="modal-enviar">Confirmar</button>
+      </form>
+    `);
+
+    document.getElementById('formTotp').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const erroEl = document.getElementById('totpErro');
+      erroEl.hidden = true;
+      const codigo = event.target.codigo.value.trim();
+
+      try {
+        const resposta = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, senha, codigo_totp: codigo }),
+        });
+        const dados = await resposta.json();
+        if (!resposta.ok) throw new Error(dados.detail || 'Código inválido');
+
+        salvarSessao(dados.access_token, dados.usuario);
+        renderAreaConta();
+        await carregarFavoritos();
+        if (vagasCarregadas.length) renderizarVagas(vagasCarregadas);
+        if (typeof aoAutenticar === 'function') aoAutenticar();
+        fecharModal();
+        mostrarToast(`👋 Bem-vindo(a), ${dados.usuario.nome.split(' ')[0]}!`);
+      } catch (erro) {
+        erroEl.textContent = erro.message;
+        erroEl.hidden = false;
+      }
+    });
+  };
+
   const renderizar = (modo) => {
     const ehLogin = modo === 'login';
     abrirModal(`
@@ -762,6 +804,11 @@ function abrirModalAuth(modoInicial) {
         if (!resposta.ok) {
           if (resposta.status === 429) throw new Error('Muitas tentativas. Aguarde alguns minutos.');
           throw new Error(dados.detail || 'Não foi possível concluir. Tente novamente.');
+        }
+
+        if (dados.requer_totp) {
+          renderizarCodigoTotp(corpo.email, corpo.senha);
+          return;
         }
 
         salvarSessao(dados.access_token, dados.usuario);

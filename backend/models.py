@@ -20,6 +20,8 @@ class Usuario(Base):
     disponibilidade = Column(String, nullable=True)  # candidato: Imediata | 15 dias | 30 dias | A combinar
     possui_cnh = Column(String, nullable=True)  # candidato: categoria da CNH (A, B, C, D, E) ou vazio se não possui
     candidaturas_vistas_em = Column(DateTime(timezone=True), nullable=True)  # empresa: última vez que abriu a lista de candidaturas recebidas
+    totp_secret = Column(String, nullable=True)  # segredo da verificação em duas etapas (gerado ao ativar, mantido ao desativar não)
+    totp_ativado = Column(Integer, nullable=True, default=0)  # 1 = login exige código TOTP além da senha (colunas adicionadas depois via migrations.py não recebem DEFAULT no banco, então trate None como 0/desativado)
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
 
