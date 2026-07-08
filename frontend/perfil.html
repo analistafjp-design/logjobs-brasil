@@ -54,6 +54,12 @@
     <div id="perfilConteudo" hidden>
       <h1 id="perfilTitulo">Meu perfil</h1>
 
+      <section class="perfil-card" id="secaoCompletude">
+        <h2>Completude do perfil</h2>
+        <div class="completude-barra"><div class="completude-preenchida" id="completudeBarra"></div></div>
+        <p class="modal-subtitulo" id="completudeTexto"></p>
+      </section>
+
       <section class="perfil-card">
         <h2>Dados da conta</h2>
         <form id="formPerfil">
@@ -95,10 +101,104 @@
                 <option>E</option>
               </select>
             </label>
+            <label>Veículo próprio
+              <select name="veiculo_proprio">
+                <option value="">—</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+              </select>
+            </label>
+            <label>LinkedIn <input type="url" name="linkedin_url" placeholder="https://linkedin.com/in/..."></label>
+            <label>GitHub <input type="url" name="github_url" placeholder="https://github.com/..."></label>
+            <label>Portfólio <input type="url" name="portfolio_url" placeholder="https://..."></label>
           </div>
           <p class="modal-erro" id="perfilErro" hidden></p>
           <p class="perfil-sucesso" id="perfilSucesso" hidden>✅ Perfil atualizado!</p>
           <button type="submit" class="modal-enviar">Salvar alterações</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoListasCandidato">
+        <h2>💼 Experiência profissional</h2>
+        <div id="listaExperiencias"></div>
+        <form id="formExperiencia" class="admin-form-grid">
+          <label>Cargo <input type="text" name="cargo" required></label>
+          <label>Empresa <input type="text" name="empresa" required></label>
+          <label>Início <input type="text" name="inicio" placeholder="MM/AAAA"></label>
+          <label>Fim <input type="text" name="fim" placeholder="MM/AAAA (vazio = atual)"></label>
+          <label style="grid-column: 1 / -1;">Descrição <input type="text" name="descricao"></label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">+ Adicionar experiência</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoFormacoes">
+        <h2>🎓 Formação</h2>
+        <div id="listaFormacoes"></div>
+        <form id="formFormacao" class="admin-form-grid">
+          <label>Curso <input type="text" name="curso" required></label>
+          <label>Instituição <input type="text" name="instituicao" required></label>
+          <label>Nível
+            <select name="nivel">
+              <option value="">—</option>
+              <option>Ensino Médio</option>
+              <option>Técnico</option>
+              <option>Graduação</option>
+              <option>Pós-graduação</option>
+              <option>Mestrado</option>
+              <option>Doutorado</option>
+            </select>
+          </label>
+          <label>Status
+            <select name="status">
+              <option value="">—</option>
+              <option>Concluído</option>
+              <option>Cursando</option>
+              <option>Trancado</option>
+            </select>
+          </label>
+          <label>Ano <input type="text" name="ano" placeholder="AAAA"></label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">+ Adicionar formação</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoCursos">
+        <h2>📚 Cursos</h2>
+        <div id="listaCursos"></div>
+        <form id="formCurso" class="admin-form-grid">
+          <label>Nome <input type="text" name="nome" required></label>
+          <label>Instituição <input type="text" name="instituicao"></label>
+          <label>Ano <input type="text" name="ano" placeholder="AAAA"></label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">+ Adicionar curso</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoCertificados">
+        <h2>📜 Certificados</h2>
+        <div id="listaCertificados"></div>
+        <form id="formCertificado" class="admin-form-grid">
+          <label>Nome <input type="text" name="nome" required></label>
+          <label>Instituição <input type="text" name="instituicao"></label>
+          <label>Ano <input type="text" name="ano" placeholder="AAAA"></label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">+ Adicionar certificado</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoIdiomas">
+        <h2>🌐 Idiomas</h2>
+        <div id="listaIdiomas"></div>
+        <form id="formIdioma" class="admin-form-grid">
+          <label>Idioma <input type="text" name="idioma" required></label>
+          <label>Nível
+            <select name="nivel">
+              <option value="">—</option>
+              <option>Básico</option>
+              <option>Intermediário</option>
+              <option>Avançado</option>
+              <option>Fluente</option>
+              <option>Nativo</option>
+            </select>
+          </label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">+ Adicionar idioma</button>
         </form>
       </section>
 

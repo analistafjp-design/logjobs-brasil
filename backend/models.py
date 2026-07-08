@@ -22,6 +22,19 @@ class Usuario(Base):
     candidaturas_vistas_em = Column(DateTime(timezone=True), nullable=True)  # empresa: última vez que abriu a lista de candidaturas recebidas
     totp_secret = Column(String, nullable=True)  # segredo da verificação em duas etapas (gerado ao ativar, mantido ao desativar não)
     totp_ativado = Column(Integer, nullable=True, default=0)  # 1 = login exige código TOTP além da senha (colunas adicionadas depois via migrations.py não recebem DEFAULT no banco, então trate None como 0/desativado)
+    veiculo_proprio = Column(String, nullable=True)  # candidato: "sim" | "nao"
+    portfolio_url = Column(String, nullable=True)
+    linkedin_url = Column(String, nullable=True)
+    github_url = Column(String, nullable=True)
+    # Listas estruturadas (experiências, formação, cursos, certificados, idiomas) guardadas como
+    # JSON serializado em texto — evita criar 5 tabelas quase idênticas só para listas curtas que
+    # ninguém precisa consultar/filtrar via SQL, e mantém a API ergonômica (o backend faz o
+    # json.dumps/loads; quem chama a API manda e recebe listas de verdade).
+    experiencias_json = Column(String, nullable=True)
+    formacoes_json = Column(String, nullable=True)
+    cursos_json = Column(String, nullable=True)
+    certificados_json = Column(String, nullable=True)
+    idiomas_json = Column(String, nullable=True)
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
 

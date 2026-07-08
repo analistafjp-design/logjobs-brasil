@@ -57,10 +57,20 @@ async function iniciarPerfil() {
   formPerfil.pretensao_salarial.value = usuario.pretensao_salarial || '';
   formPerfil.disponibilidade.value = usuario.disponibilidade || '';
   formPerfil.possui_cnh.value = usuario.possui_cnh || '';
+  formPerfil.veiculo_proprio.value = usuario.veiculo_proprio || '';
+  formPerfil.linkedin_url.value = usuario.linkedin_url || '';
+  formPerfil.github_url.value = usuario.github_url || '';
+  formPerfil.portfolio_url.value = usuario.portfolio_url || '';
 
   const secaoAlertas = document.getElementById('secaoAlertas');
   const secaoCandidaturasHistorico = document.getElementById('secaoCandidaturasHistorico');
   const camposCandidato = document.getElementById('camposCandidato');
+  const secaoListasCandidato = document.getElementById('secaoListasCandidato');
+  const secaoFormacoes = document.getElementById('secaoFormacoes');
+  const secaoCursos = document.getElementById('secaoCursos');
+  const secaoCertificados = document.getElementById('secaoCertificados');
+  const secaoIdiomas = document.getElementById('secaoIdiomas');
+  const secaoCompletude = document.getElementById('secaoCompletude');
 
   if (usuario.tipo === 'candidato') {
     secaoRecomendadas.hidden = false;
@@ -68,21 +78,153 @@ async function iniciarPerfil() {
     secaoAlertas.hidden = false;
     secaoCandidaturasHistorico.hidden = false;
     camposCandidato.hidden = false;
+    secaoListasCandidato.hidden = false;
+    secaoFormacoes.hidden = false;
+    secaoCursos.hidden = false;
+    secaoCertificados.hidden = false;
+    secaoIdiomas.hidden = false;
+    secaoCompletude.hidden = false;
     carregarRecomendacoes();
     carregarConquistas();
     carregarAlertas();
     carregarCandidaturasHistorico();
+    renderizarCompletude(usuario.perfil_completude);
+    inicializarListasCandidato(usuario);
   } else {
     secaoRecomendadas.hidden = true;
     secaoConquistas.hidden = true;
     secaoAlertas.hidden = true;
     secaoCandidaturasHistorico.hidden = true;
     camposCandidato.hidden = true;
+    secaoListasCandidato.hidden = true;
+    secaoFormacoes.hidden = true;
+    secaoCursos.hidden = true;
+    secaoCertificados.hidden = true;
+    secaoIdiomas.hidden = true;
+    secaoCompletude.hidden = true;
   }
 
   carregarFavoritosPerfil();
   renderizarTotpStatus(usuario);
 }
+
+function renderizarCompletude(percentual) {
+  document.getElementById('completudeBarra').style.width = `${percentual}%`;
+  document.getElementById('completudeTexto').textContent =
+    percentual >= 100 ? 'Perfil completo! 🎉' : `${percentual}% do perfil preenchido — quanto mais completo, melhores as recomendações de vaga.`;
+}
+
+/* ===== Listas do candidato: experiência, formação, cursos, certificados, idiomas =====
+   Um único padrão genérico para as 5 seções, em vez de repetir a mesma lógica 5 vezes. */
+
+const CONFIG_LISTAS_CANDIDATO = [
+  {
+    chave: 'experiencias',
+    listaElId: 'listaExperiencias',
+    formId: 'formExperiencia',
+    formatar: (item) => `
+      <strong>${escapeHtml(item.cargo)}</strong> — ${escapeHtml(item.empresa)}${item.cidade ? ' · ' + escapeHtml(item.cidade) : ''}<br>
+      <span class="modal-subtitulo">${escapeHtml(item.inicio || '?')} – ${escapeHtml(item.fim || 'Atual')}</span>
+      ${item.descricao ? `<p>${escapeHtml(item.descricao)}</p>` : ''}
+    `,
+  },
+  {
+    chave: 'formacoes',
+    listaElId: 'listaFormacoes',
+    formId: 'formFormacao',
+    formatar: (item) => `
+      <strong>${escapeHtml(item.curso)}</strong> — ${escapeHtml(item.instituicao)}<br>
+      <span class="modal-subtitulo">${[item.nivel, item.status, item.ano].filter(Boolean).map(escapeHtml).join(' · ')}</span>
+    `,
+  },
+  {
+    chave: 'cursos',
+    listaElId: 'listaCursos',
+    formId: 'formCurso',
+    formatar: (item) => `
+      <strong>${escapeHtml(item.nome)}</strong>${item.instituicao ? ' — ' + escapeHtml(item.instituicao) : ''}${item.ano ? ` <span class="modal-subtitulo">(${escapeHtml(item.ano)})</span>` : ''}
+    `,
+  },
+  {
+    chave: 'certificados',
+    listaElId: 'listaCertificados',
+    formId: 'formCertificado',
+    formatar: (item) => `
+      <strong>${escapeHtml(item.nome)}</strong>${item.instituicao ? ' — ' + escapeHtml(item.instituicao) : ''}${item.ano ? ` <span class="modal-subtitulo">(${escapeHtml(item.ano)})</span>` : ''}
+    `,
+  },
+  {
+    chave: 'idiomas',
+    listaElId: 'listaIdiomas',
+    formId: 'formIdioma',
+    formatar: (item) => `<strong>${escapeHtml(item.idioma)}</strong>${item.nivel ? ' — ' + escapeHtml(item.nivel) : ''}`,
+  },
+];
+
+let estadoListasCandidato = {};
+
+function renderizarListaCandidato(cfg) {
+  const itens = estadoListasCandidato[cfg.chave] || [];
+  const el = document.getElementById(cfg.listaElId);
+  if (!itens.length) {
+    el.innerHTML = '<p class="vagas-carregando">Nenhum item adicionado ainda.</p>';
+    return;
+  }
+  el.innerHTML = itens.map((item, indice) => `
+    <div class="comparador-card" style="margin-bottom: 10px;">
+      <div class="comparador-linha" style="align-items:flex-start;">
+        <div>${cfg.formatar(item)}</div>
+        <button type="button" class="admin-acao-btn excluir" data-chave="${cfg.chave}" data-indice="${indice}">Remover</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function salvarListaCandidato(cfg) {
+  try {
+    const resposta = await fetch(`${API_BASE}/auth/me`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${obterToken()}` },
+      body: JSON.stringify({ [cfg.chave]: estadoListasCandidato[cfg.chave] }),
+    });
+    const usuarioAtualizado = await resposta.json();
+    if (!resposta.ok) throw new Error(usuarioAtualizado.detail || 'Não foi possível salvar');
+    localStorage.setItem('logjobs-usuario', JSON.stringify(usuarioAtualizado));
+    renderizarListaCandidato(cfg);
+    renderizarCompletude(usuarioAtualizado.perfil_completude);
+    mostrarToast('✅ Salvo');
+  } catch (erro) {
+    mostrarToast(erro.message || 'Não foi possível salvar');
+  }
+}
+
+function inicializarListasCandidato(usuario) {
+  CONFIG_LISTAS_CANDIDATO.forEach((cfg) => {
+    estadoListasCandidato[cfg.chave] = usuario[cfg.chave] || [];
+    renderizarListaCandidato(cfg);
+
+    const form = document.getElementById(cfg.formId);
+    if (form.dataset.configurado) return;
+    form.dataset.configurado = '1';
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const item = {};
+      new FormData(form).forEach((valor, chave) => { item[chave] = valor.trim() || null; });
+      estadoListasCandidato[cfg.chave] = [...estadoListasCandidato[cfg.chave], item];
+      await salvarListaCandidato(cfg);
+      form.reset();
+    });
+  });
+}
+
+document.addEventListener('click', async (event) => {
+  const botao = event.target.closest('[data-chave][data-indice]');
+  if (!botao) return;
+  const cfg = CONFIG_LISTAS_CANDIDATO.find((c) => c.chave === botao.dataset.chave);
+  if (!cfg) return;
+  estadoListasCandidato[cfg.chave].splice(Number(botao.dataset.indice), 1);
+  await salvarListaCandidato(cfg);
+});
 
 /* ===== Verificação em duas etapas (2FA) ===== */
 
@@ -276,6 +418,10 @@ formPerfil?.addEventListener('submit', async (event) => {
         pretensao_salarial: formPerfil.pretensao_salarial.value ? Number(formPerfil.pretensao_salarial.value) : null,
         disponibilidade: formPerfil.disponibilidade.value,
         possui_cnh: formPerfil.possui_cnh.value,
+        veiculo_proprio: formPerfil.veiculo_proprio.value,
+        linkedin_url: formPerfil.linkedin_url.value.trim(),
+        github_url: formPerfil.github_url.value.trim(),
+        portfolio_url: formPerfil.portfolio_url.value.trim(),
       }),
     });
     const usuarioAtualizado = await resposta.json();
@@ -286,6 +432,7 @@ formPerfil?.addEventListener('submit', async (event) => {
     if (usuarioAtualizado.tipo === 'candidato') {
       carregarRecomendacoes();
       carregarConquistas();
+      renderizarCompletude(usuarioAtualizado.perfil_completude);
     }
     sucessoEl.hidden = false;
     setTimeout(() => { sucessoEl.hidden = true; }, 3000);

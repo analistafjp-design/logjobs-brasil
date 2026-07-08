@@ -53,6 +53,14 @@ Senhas são armazenadas com hash PBKDF2-HMAC-SHA256 (salt por usuário) e o toke
 
 Usuários logados podem salvar vagas (favoritos): botão de estrela em cada card, endpoints `GET/POST/DELETE /api/favoritos`.
 
+### Perfil estruturado do candidato
+
+Além do mini-currículo em texto livre, candidatos podem cadastrar: experiências profissionais, formação acadêmica, cursos, certificados, idiomas, CNH, veículo próprio, LinkedIn/GitHub/portfólio. As cinco listas (experiências, formações, cursos, certificados, idiomas) são guardadas como JSON serializado em colunas de texto no `Usuario` (`backend/models.py`) — evita criar cinco tabelas quase idênticas só para listas curtas que ninguém precisa consultar via SQL, e a API continua ergonômica porque o backend faz o `json.dumps`/`json.loads`; quem chama `PATCH /api/auth/me` manda e recebe listas de verdade, não texto.
+
+O frontend (`frontend/js/perfil.js`) usa um único padrão genérico (`CONFIG_LISTAS_CANDIDATO`) para renderizar, adicionar e remover itens das cinco seções, em vez de repetir a mesma lógica cinco vezes — cada remoção/adição reenvia a lista inteira via `PATCH /api/auth/me`.
+
+Um indicador de **completude do perfil** (`GET /api/auth/me` retorna `perfil_completude`, 0–100%) é calculado a partir de quantos desses campos estão preenchidos, e alimenta uma barra de progresso na página de perfil. O texto de experiências e formações também passou a entrar no motor de recomendação de vagas.
+
 ### Verificação em duas etapas (2FA)
 
 Qualquer conta pode ativar 2FA por TOTP (o mesmo padrão do Google Authenticator, Authy etc.) na seção "Segurança" do perfil. Implementado só com a biblioteca padrão do Python (`backend/totp.py`, mesma filosofia de `security.py`) — sem SMS/e-mail e sem depender de nenhum serviço externo, então funciona mesmo sem credenciais de terceiros configuradas. A implementação foi validada contra os vetores de teste oficiais do RFC 4226.

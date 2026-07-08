@@ -1298,6 +1298,22 @@ img{
   margin-bottom:18px;
 }
 
+.completude-barra{
+  width:100%;
+  height:10px;
+  border-radius:999px;
+  background:var(--tag-fundo);
+  overflow:hidden;
+  margin-bottom:12px;
+}
+
+.completude-preenchida{
+  height:100%;
+  border-radius:999px;
+  background:var(--azul);
+  transition:width .4s ease;
+}
+
 .perfil-card form{
   display:flex;
   flex-direction:column;

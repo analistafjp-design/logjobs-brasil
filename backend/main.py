@@ -1,3 +1,4 @@
+import json
 import os
 import secrets
 from pathlib import Path
@@ -705,6 +706,40 @@ class LoginEntrada(BaseModel):
     codigo_totp: Optional[str] = None
 
 
+class ExperienciaItem(BaseModel):
+    cargo: str
+    empresa: str
+    cidade: Optional[str] = None
+    inicio: Optional[str] = None  # "MM/AAAA"
+    fim: Optional[str] = None  # vazio/None = emprego atual
+    descricao: Optional[str] = None
+
+
+class FormacaoItem(BaseModel):
+    curso: str
+    instituicao: str
+    nivel: Optional[str] = None  # Ensino Médio | Técnico | Graduação | Pós-graduação | Mestrado | Doutorado
+    status: Optional[str] = None  # Concluído | Cursando | Trancado
+    ano: Optional[str] = None
+
+
+class CursoItem(BaseModel):
+    nome: str
+    instituicao: Optional[str] = None
+    ano: Optional[str] = None
+
+
+class CertificadoItem(BaseModel):
+    nome: str
+    instituicao: Optional[str] = None
+    ano: Optional[str] = None
+
+
+class IdiomaItem(BaseModel):
+    idioma: str
+    nivel: Optional[str] = None  # Básico | Intermediário | Avançado | Fluente | Nativo
+
+
 class PerfilEntrada(BaseModel):
     nome: Optional[str] = None
     telefone: Optional[str] = None
@@ -714,6 +749,42 @@ class PerfilEntrada(BaseModel):
     pretensao_salarial: Optional[float] = None
     disponibilidade: Optional[str] = None
     possui_cnh: Optional[str] = None
+    veiculo_proprio: Optional[str] = None
+    portfolio_url: Optional[str] = None
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    experiencias: Optional[list[ExperienciaItem]] = None
+    formacoes: Optional[list[FormacaoItem]] = None
+    cursos: Optional[list[CursoItem]] = None
+    certificados: Optional[list[CertificadoItem]] = None
+    idiomas: Optional[list[IdiomaItem]] = None
+
+
+def _lista_json(texto: Optional[str]) -> list:
+    if not texto:
+        return []
+    try:
+        return json.loads(texto)
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+
+def calcular_completude_perfil(usuario: Usuario) -> int:
+    if usuario.tipo != "candidato":
+        return 100
+    campos = [
+        bool(usuario.telefone),
+        bool(usuario.cidade),
+        bool(usuario.resumo),
+        bool(usuario.habilidades),
+        bool(usuario.pretensao_salarial),
+        bool(usuario.disponibilidade),
+        bool(_lista_json(usuario.experiencias_json)),
+        bool(_lista_json(usuario.formacoes_json)),
+        bool(usuario.idiomas_json and _lista_json(usuario.idiomas_json)),
+        bool(usuario.linkedin_url or usuario.portfolio_url or usuario.github_url),
+    ]
+    return round(100 * sum(campos) / len(campos))
 
 
 def usuario_para_json(usuario: Usuario) -> dict:
@@ -729,7 +800,17 @@ def usuario_para_json(usuario: Usuario) -> dict:
         "pretensao_salarial": usuario.pretensao_salarial,
         "disponibilidade": usuario.disponibilidade,
         "possui_cnh": usuario.possui_cnh,
+        "veiculo_proprio": usuario.veiculo_proprio,
+        "portfolio_url": usuario.portfolio_url,
+        "linkedin_url": usuario.linkedin_url,
+        "github_url": usuario.github_url,
+        "experiencias": _lista_json(usuario.experiencias_json),
+        "formacoes": _lista_json(usuario.formacoes_json),
+        "cursos": _lista_json(usuario.cursos_json),
+        "certificados": _lista_json(usuario.certificados_json),
+        "idiomas": _lista_json(usuario.idiomas_json),
         "totp_ativado": bool(usuario.totp_ativado),
+        "perfil_completude": calcular_completude_perfil(usuario),
     }
 
 
@@ -849,6 +930,24 @@ def atualizar_perfil(
         usuario.disponibilidade = dados.disponibilidade.strip() or None
     if dados.possui_cnh is not None:
         usuario.possui_cnh = dados.possui_cnh.strip() or None
+    if dados.veiculo_proprio is not None:
+        usuario.veiculo_proprio = dados.veiculo_proprio.strip() or None
+    if dados.portfolio_url is not None:
+        usuario.portfolio_url = dados.portfolio_url.strip() or None
+    if dados.linkedin_url is not None:
+        usuario.linkedin_url = dados.linkedin_url.strip() or None
+    if dados.github_url is not None:
+        usuario.github_url = dados.github_url.strip() or None
+    if dados.experiencias is not None:
+        usuario.experiencias_json = json.dumps([e.model_dump() for e in dados.experiencias])
+    if dados.formacoes is not None:
+        usuario.formacoes_json = json.dumps([f.model_dump() for f in dados.formacoes])
+    if dados.cursos is not None:
+        usuario.cursos_json = json.dumps([c.model_dump() for c in dados.cursos])
+    if dados.certificados is not None:
+        usuario.certificados_json = json.dumps([c.model_dump() for c in dados.certificados])
+    if dados.idiomas is not None:
+        usuario.idiomas_json = json.dumps([i.model_dump() for i in dados.idiomas])
 
     db.commit()
     db.refresh(usuario)
@@ -912,7 +1011,11 @@ def recomendacoes(usuario: Usuario = Depends(auth.usuario_atual), db: Session = 
     if not usuario.resumo or not usuario.resumo.strip():
         return {"vagas": [], "motivo": "perfil_incompleto"}
 
-    texto_perfil = " ".join(filter(None, [usuario.resumo, usuario.habilidades]))
+    texto_experiencias = " ".join(
+        f"{e.get('cargo', '')} {e.get('descricao', '')}" for e in _lista_json(usuario.experiencias_json)
+    )
+    texto_formacoes = " ".join(f.get("curso", "") for f in _lista_json(usuario.formacoes_json))
+    texto_perfil = " ".join(filter(None, [usuario.resumo, usuario.habilidades, texto_experiencias, texto_formacoes]))
     vagas = db.query(Vaga).order_by(Vaga.id.desc()).limit(500).all()
     recomendadas = recomendar_vagas(texto_perfil, vagas, limite=6)
 
