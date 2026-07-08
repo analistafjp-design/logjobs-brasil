@@ -55,6 +55,8 @@ Usuários logados podem salvar vagas (favoritos): botão de estrela em cada card
 
 Existe uma página de perfil (`frontend/perfil.html`, acessível pelo nome do usuário na navbar) onde candidatos e empresas editam nome/telefone/cidade/mini-currículo (`PATCH /api/auth/me`) e veem/removem suas vagas salvas.
 
+Candidatos têm campos extras de perfil, só exibidos para `tipo: "candidato"`: habilidades (lista livre separada por vírgula), pretensão salarial, disponibilidade (Imediata/15 dias/30 dias/A combinar) e categoria de CNH — relevantes para a maioria das vagas de logística. As habilidades entram automaticamente no motor de recomendação (próxima seção), somadas ao texto do mini-currículo.
+
 ## Recomendação de vagas (IA)
 
 Candidatos com o mini-currículo preenchido recebem uma seção "Vagas recomendadas para você" no perfil, via `GET /api/recomendacoes`. O motor (`backend/recomendacao.py`) é uma correspondência de palavras-chave com pesos por campo (cargo/categoria valem mais que descrição/benefícios) — determinístico e sem depender de nenhuma API externa de IA, já que o projeto não tem chave de LLM configurada. Cada vaga recomendada mostra um percentual de compatibilidade (proporção das palavras-chave do currículo do candidato encontradas na vaga).

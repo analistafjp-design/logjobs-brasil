@@ -15,6 +15,10 @@ class Usuario(Base):
     telefone = Column(String, nullable=True)
     cidade = Column(String, nullable=True)
     resumo = Column(String, nullable=True)  # candidato: mini-currículo | empresa: descrição
+    habilidades = Column(String, nullable=True)  # candidato: habilidades separadas por vírgula (ex.: "Direção defensiva, CNH E")
+    pretensao_salarial = Column(Float, nullable=True)  # candidato
+    disponibilidade = Column(String, nullable=True)  # candidato: Imediata | 15 dias | 30 dias | A combinar
+    possui_cnh = Column(String, nullable=True)  # candidato: categoria da CNH (A, B, C, D, E) ou vazio se não possui
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
 

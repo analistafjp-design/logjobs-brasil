@@ -53,15 +53,21 @@ async function iniciarPerfil() {
   formPerfil.telefone.value = usuario.telefone || '';
   formPerfil.cidade.value = usuario.cidade || '';
   formPerfil.resumo.value = usuario.resumo || '';
+  formPerfil.habilidades.value = usuario.habilidades || '';
+  formPerfil.pretensao_salarial.value = usuario.pretensao_salarial || '';
+  formPerfil.disponibilidade.value = usuario.disponibilidade || '';
+  formPerfil.possui_cnh.value = usuario.possui_cnh || '';
 
   const secaoAlertas = document.getElementById('secaoAlertas');
   const secaoCandidaturasHistorico = document.getElementById('secaoCandidaturasHistorico');
+  const camposCandidato = document.getElementById('camposCandidato');
 
   if (usuario.tipo === 'candidato') {
     secaoRecomendadas.hidden = false;
     secaoConquistas.hidden = false;
     secaoAlertas.hidden = false;
     secaoCandidaturasHistorico.hidden = false;
+    camposCandidato.hidden = false;
     carregarRecomendacoes();
     carregarConquistas();
     carregarAlertas();
@@ -71,6 +77,7 @@ async function iniciarPerfil() {
     secaoConquistas.hidden = true;
     secaoAlertas.hidden = true;
     secaoCandidaturasHistorico.hidden = true;
+    camposCandidato.hidden = true;
   }
 
   carregarFavoritosPerfil();
@@ -164,6 +171,10 @@ formPerfil?.addEventListener('submit', async (event) => {
         telefone: formPerfil.telefone.value.trim(),
         cidade: formPerfil.cidade.value.trim(),
         resumo: formPerfil.resumo.value.trim(),
+        habilidades: formPerfil.habilidades.value.trim(),
+        pretensao_salarial: formPerfil.pretensao_salarial.value ? Number(formPerfil.pretensao_salarial.value) : null,
+        disponibilidade: formPerfil.disponibilidade.value,
+        possui_cnh: formPerfil.possui_cnh.value,
       }),
     });
     const usuarioAtualizado = await resposta.json();

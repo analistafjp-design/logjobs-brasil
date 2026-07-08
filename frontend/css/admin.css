@@ -160,6 +160,7 @@
   grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
   gap:14px;
 }
+.admin-form-grid[hidden]{display:none;}
 
 .admin-form-acoes{
   display:flex;

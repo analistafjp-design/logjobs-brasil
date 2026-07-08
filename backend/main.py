@@ -681,6 +681,10 @@ class PerfilEntrada(BaseModel):
     telefone: Optional[str] = None
     cidade: Optional[str] = None
     resumo: Optional[str] = None
+    habilidades: Optional[str] = None
+    pretensao_salarial: Optional[float] = None
+    disponibilidade: Optional[str] = None
+    possui_cnh: Optional[str] = None
 
 
 def usuario_para_json(usuario: Usuario) -> dict:
@@ -692,6 +696,10 @@ def usuario_para_json(usuario: Usuario) -> dict:
         "telefone": usuario.telefone,
         "cidade": usuario.cidade,
         "resumo": usuario.resumo,
+        "habilidades": usuario.habilidades,
+        "pretensao_salarial": usuario.pretensao_salarial,
+        "disponibilidade": usuario.disponibilidade,
+        "possui_cnh": usuario.possui_cnh,
     }
 
 
@@ -754,6 +762,14 @@ def atualizar_perfil(
         usuario.cidade = dados.cidade.strip() or None
     if dados.resumo is not None:
         usuario.resumo = dados.resumo.strip() or None
+    if dados.habilidades is not None:
+        usuario.habilidades = dados.habilidades.strip() or None
+    if dados.pretensao_salarial is not None:
+        usuario.pretensao_salarial = dados.pretensao_salarial
+    if dados.disponibilidade is not None:
+        usuario.disponibilidade = dados.disponibilidade.strip() or None
+    if dados.possui_cnh is not None:
+        usuario.possui_cnh = dados.possui_cnh.strip() or None
 
     db.commit()
     db.refresh(usuario)
@@ -817,8 +833,9 @@ def recomendacoes(usuario: Usuario = Depends(auth.usuario_atual), db: Session = 
     if not usuario.resumo or not usuario.resumo.strip():
         return {"vagas": [], "motivo": "perfil_incompleto"}
 
+    texto_perfil = " ".join(filter(None, [usuario.resumo, usuario.habilidades]))
     vagas = db.query(Vaga).order_by(Vaga.id.desc()).limit(500).all()
-    recomendadas = recomendar_vagas(usuario.resumo, vagas, limite=6)
+    recomendadas = recomendar_vagas(texto_perfil, vagas, limite=6)
 
     return {
         "vagas": [
