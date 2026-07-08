@@ -76,6 +76,16 @@
           <button class="btn-candidatar" id="btnNovaVagaEmpresa">+ Publicar vaga</button>
         </div>
 
+        <div class="admin-toolbar">
+          <input type="search" id="buscaVagasEmpresa" placeholder="Buscar por cargo ou cidade...">
+          <select id="filtroStatusVagasEmpresa">
+            <option value="">Todos os status</option>
+            <option value="ativa">Ativas</option>
+            <option value="pausada">Pausadas</option>
+          </select>
+          <a class="admin-acao-btn editar" id="btnExportarCandidaturas" href="#">Exportar candidaturas (CSV)</a>
+        </div>
+
         <form id="formVagaEmpresa" class="admin-form" hidden>
           <h3 id="formVagaEmpresaTitulo">Nova vaga</h3>
           <input type="hidden" name="id">
@@ -129,9 +139,9 @@
         <div class="admin-tabela-wrap">
           <table class="admin-tabela" id="tabelaVagasEmpresa">
             <thead>
-              <tr><th>Cargo</th><th>Cidade/UF</th><th>Categoria</th><th>Salário</th><th>Candidaturas</th><th></th></tr>
+              <tr><th>Cargo</th><th>Cidade/UF</th><th>Categoria</th><th>Salário</th><th>Status</th><th>Candidaturas</th><th></th></tr>
             </thead>
-            <tbody><tr><td colspan="6">Carregando...</td></tr></tbody>
+            <tbody><tr><td colspan="7">Carregando...</td></tr></tbody>
           </table>
         </div>
       </section>

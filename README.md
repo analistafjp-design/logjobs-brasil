@@ -137,6 +137,12 @@ A empresa recebe uma notificação em painel (badge "+N novas" ao lado de "Candi
 
 Uma empresa só enxerga e só pode editar/excluir vagas que ela mesma publicou (filtro por `usuario_id` no banco) — vagas importadas do Jooble ou cadastradas pelo admin não aparecem nesse painel. Excluir uma vaga também remove as candidaturas associadas a ela, evitando que uma vaga nova acabe "herdando" candidaturas antigas por reaproveitamento de ID no banco.
 
+Além disso, o painel permite:
+- **Pausar/reativar** uma vaga (`POST /api/empresa/vagas/{id}/pausar` e `/reativar`): uma vaga pausada some da busca pública (`GET /api/vagas` filtra `pausada`) mas continua no painel da empresa, sem precisar excluir e recriar.
+- **Renovar** uma vaga (`POST /api/empresa/vagas/{id}/renovar`): reativa (se estava pausada) e atualiza a data de publicação para agora, fazendo a vaga voltar ao topo da ordenação por "mais recentes".
+- **Filtrar** a lista de vagas por texto (cargo/cidade) e por status (ativa/pausada) (`GET /api/empresa/vagas?q=...&status=...`).
+- **Exportar candidaturas em CSV** de todas as vagas da empresa (`GET /api/empresa/candidaturas-exportar`).
+
 ## Painel administrativo
 
 Disponível em `/admin.html` (não linkado na navegação pública — acesso direto pela URL). Protegido pelo mesmo `X-Admin-Token` / `ADMIN_TOKEN` usado em `/api/atualizar-agora` (veja abaixo); sem essa variável configurada, o painel fica sempre bloqueado. O token é guardado em `sessionStorage` (não sobrevive ao fechar a aba).

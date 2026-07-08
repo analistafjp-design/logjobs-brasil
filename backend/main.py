@@ -148,7 +148,7 @@ def listar_vagas(
     offset: int = 0,
     db: Session = Depends(get_db),
 ):
-    query = db.query(Vaga)
+    query = db.query(Vaga).filter((Vaga.pausada.is_(None)) | (Vaga.pausada == 0))
 
     if cargo:
         query = query.filter(Vaga.cargo.ilike(f"%{cargo}%"))
@@ -476,6 +476,7 @@ class VagaAtualizacao(BaseModel):
     beneficios: Optional[str] = None
     requisitos: Optional[str] = None
     link: Optional[str] = None
+    pausada: Optional[int] = None
 
 
 def vaga_admin_para_json(v: Vaga) -> dict:
@@ -496,6 +497,7 @@ def vaga_admin_para_json(v: Vaga) -> dict:
         "requisitos": v.requisitos,
         "link": v.link,
         "fonte": v.fonte,
+        "pausada": bool(v.pausada),
         "criada_em": v.criada_em.isoformat() if v.criada_em else None,
     }
 
@@ -1210,8 +1212,21 @@ def verificar_empresa(usuario: Usuario = Depends(auth.usuario_atual)) -> Usuario
 
 
 @app.get("/api/empresa/vagas")
-def empresa_listar_vagas(usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
-    vagas = db.query(Vaga).filter(Vaga.usuario_id == usuario.id).order_by(Vaga.id.desc()).all()
+def empresa_listar_vagas(
+    q: Optional[str] = None,
+    status: Optional[str] = None,  # "ativa" | "pausada"
+    usuario: Usuario = Depends(verificar_empresa),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Vaga).filter(Vaga.usuario_id == usuario.id)
+    if q:
+        query = query.filter((Vaga.cargo.ilike(f"%{q}%")) | (Vaga.cidade.ilike(f"%{q}%")))
+    if status == "ativa":
+        query = query.filter((Vaga.pausada.is_(None)) | (Vaga.pausada == 0))
+    elif status == "pausada":
+        query = query.filter(Vaga.pausada == 1)
+    vagas = query.order_by(Vaga.id.desc()).all()
+
     candidaturas_por_vaga = dict(
         db.query(Candidatura.vaga_id, func.count(Candidatura.id))
         .filter(Candidatura.vaga_id.in_([v.id for v in vagas]))
@@ -1266,6 +1281,75 @@ def empresa_excluir_vaga(vaga_id: int, usuario: Usuario = Depends(verificar_empr
     db.delete(vaga)
     db.commit()
     return {"mensagem": "Vaga excluída"}
+
+
+def _buscar_vaga_da_empresa(vaga_id: int, usuario: Usuario, db: Session) -> Vaga:
+    vaga = db.query(Vaga).filter(Vaga.id == vaga_id, Vaga.usuario_id == usuario.id).first()
+    if not vaga:
+        raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    return vaga
+
+
+@app.post("/api/empresa/vagas/{vaga_id}/pausar")
+def empresa_pausar_vaga(vaga_id: int, usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
+    vaga = _buscar_vaga_da_empresa(vaga_id, usuario, db)
+    vaga.pausada = 1
+    db.commit()
+    db.refresh(vaga)
+    return vaga_admin_para_json(vaga)
+
+
+@app.post("/api/empresa/vagas/{vaga_id}/reativar")
+def empresa_reativar_vaga(vaga_id: int, usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
+    vaga = _buscar_vaga_da_empresa(vaga_id, usuario, db)
+    vaga.pausada = 0
+    db.commit()
+    db.refresh(vaga)
+    return vaga_admin_para_json(vaga)
+
+
+@app.post("/api/empresa/vagas/{vaga_id}/renovar")
+def empresa_renovar_vaga(vaga_id: int, usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
+    """"Renovar" republica a vaga: reativa (se estava pausada) e atualiza a data de
+    publicação para agora, para que volte a aparecer no topo de "mais recentes"."""
+    vaga = _buscar_vaga_da_empresa(vaga_id, usuario, db)
+    vaga.pausada = 0
+    vaga.criada_em = func.now()
+    db.commit()
+    db.refresh(vaga)
+    return vaga_admin_para_json(vaga)
+
+
+@app.get("/api/empresa/candidaturas-exportar")
+def empresa_exportar_candidaturas(usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
+    vagas = db.query(Vaga).filter(Vaga.usuario_id == usuario.id).all()
+    vagas_por_id = {v.id: v for v in vagas}
+    candidaturas = (
+        db.query(Candidatura)
+        .filter(Candidatura.vaga_id.in_(vagas_por_id.keys()))
+        .order_by(Candidatura.vaga_id, Candidatura.id.desc())
+        .all()
+    ) if vagas_por_id else []
+
+    linhas = ["Vaga,Cidade/UF,Nome,E-mail,Telefone,Data da candidatura"]
+    for c in candidaturas:
+        vaga = vagas_por_id.get(c.vaga_id)
+        campos = [
+            vaga.cargo if vaga else "",
+            f"{vaga.cidade}/{vaga.estado}" if vaga else "",
+            c.nome,
+            c.email,
+            c.telefone or "",
+            c.criada_em.isoformat() if c.criada_em else "",
+        ]
+        linhas.append(",".join('"' + campo.replace('"', '""') + '"' for campo in campos))
+
+    csv_texto = "\n".join(linhas)
+    return PlainTextResponse(
+        csv_texto,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=candidaturas.csv"},
+    )
 
 
 @app.get("/api/empresa/candidaturas/{vaga_id}")

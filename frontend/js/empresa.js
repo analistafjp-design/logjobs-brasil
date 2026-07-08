@@ -77,10 +77,15 @@ function linhaVagaEmpresa(vaga) {
       <td>${escapeHtml(vaga.cidade)}/${escapeHtml(vaga.estado)}</td>
       <td>${escapeHtml(vaga.categoria)}</td>
       <td>${formatarSalarioEmpresa(vaga.salario)}</td>
+      <td>${vaga.pausada ? '<span class="tag">Pausada</span>' : '<span class="tag compatibilidade">Ativa</span>'}</td>
       <td>${vaga.total_candidaturas ?? 0}</td>
       <td>
         <button class="admin-acao-btn editar" data-acao="candidaturas" data-id="${vaga.id}">Candidaturas</button>
         <button class="admin-acao-btn editar" data-acao="editar" data-id="${vaga.id}">Editar</button>
+        ${vaga.pausada
+          ? `<button class="admin-acao-btn editar" data-acao="reativar" data-id="${vaga.id}">Reativar</button>`
+          : `<button class="admin-acao-btn editar" data-acao="pausar" data-id="${vaga.id}">Pausar</button>`}
+        <button class="admin-acao-btn editar" data-acao="renovar" data-id="${vaga.id}">Renovar</button>
         <button class="admin-acao-btn excluir" data-acao="excluir" data-id="${vaga.id}">Excluir</button>
       </td>
     </tr>
@@ -89,20 +94,50 @@ function linhaVagaEmpresa(vaga) {
 
 async function carregarVagasEmpresa() {
   const tbody = document.querySelector('#tabelaVagasEmpresa tbody');
-  tbody.innerHTML = '<tr><td colspan="6">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7">Carregando...</td></tr>';
   try {
-    const resposta = await fetch(`${API_BASE}/empresa/vagas`, {
+    const busca = document.getElementById('buscaVagasEmpresa')?.value.trim() || '';
+    const status = document.getElementById('filtroStatusVagasEmpresa')?.value || '';
+    const params = new URLSearchParams();
+    if (busca) params.set('q', busca);
+    if (status) params.set('status', status);
+
+    const resposta = await fetch(`${API_BASE}/empresa/vagas?${params.toString()}`, {
       headers: { Authorization: `Bearer ${obterToken()}` },
     });
     if (!resposta.ok) throw new Error();
     vagasEmpresa = await resposta.json();
     tbody.innerHTML = vagasEmpresa.length
       ? vagasEmpresa.map(linhaVagaEmpresa).join('')
-      : '<tr><td colspan="6">Você ainda não publicou nenhuma vaga.</td></tr>';
+      : '<tr><td colspan="7">Nenhuma vaga encontrada.</td></tr>';
   } catch {
-    tbody.innerHTML = '<tr><td colspan="6">Não foi possível carregar suas vagas.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7">Não foi possível carregar suas vagas.</td></tr>';
   }
 }
+
+let buscaVagasEmpresaTimeout;
+document.getElementById('buscaVagasEmpresa')?.addEventListener('input', () => {
+  clearTimeout(buscaVagasEmpresaTimeout);
+  buscaVagasEmpresaTimeout = setTimeout(carregarVagasEmpresa, 350);
+});
+document.getElementById('filtroStatusVagasEmpresa')?.addEventListener('change', carregarVagasEmpresa);
+
+document.getElementById('btnExportarCandidaturas')?.addEventListener('click', (event) => {
+  event.preventDefault();
+  fetch(`${API_BASE}/empresa/candidaturas-exportar`, {
+    headers: { Authorization: `Bearer ${obterToken()}` },
+  })
+    .then((resposta) => resposta.blob())
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'candidaturas.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+    })
+    .catch(() => mostrarToast('Não foi possível exportar as candidaturas.'));
+});
 
 const formVagaEmpresa = document.getElementById('formVagaEmpresa');
 const btnNovaVagaEmpresa = document.getElementById('btnNovaVagaEmpresa');
@@ -246,6 +281,19 @@ document.querySelector('#tabelaVagasEmpresa tbody').addEventListener('click', as
       carregarEstatisticasEmpresa();
     } catch {
       mostrarToast('Não foi possível excluir a vaga.');
+    }
+  } else if (['pausar', 'reativar', 'renovar'].includes(botao.dataset.acao)) {
+    const mensagens = { pausar: '⏸️ Vaga pausada', reativar: '▶️ Vaga reativada', renovar: '🔄 Vaga renovada' };
+    try {
+      const resposta = await fetch(`${API_BASE}/empresa/vagas/${vaga.id}/${botao.dataset.acao}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${obterToken()}` },
+      });
+      if (!resposta.ok) throw new Error();
+      mostrarToast(mensagens[botao.dataset.acao]);
+      carregarVagasEmpresa();
+    } catch {
+      mostrarToast('Não foi possível concluir a ação.');
     }
   }
 });

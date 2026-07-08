@@ -73,6 +73,7 @@ class Vaga(Base):
     link = Column(String, nullable=True)
     fonte = Column(String, default="exemplo")
     usuario_id = Column(Integer, nullable=True, index=True)  # empresa dona da vaga, quando publicada pelo painel de empresas
+    pausada = Column(Integer, nullable=True, default=0)  # 1 = empresa pausou a vaga (some da busca pública, mas continua no painel dela)
     criada_em = Column(DateTime(timezone=True), server_default=func.now())
 
 
