@@ -91,3 +91,16 @@ class Marcador(Base):
     id = Column(Integer, primary_key=True, index=True)
     chave = Column(String, unique=True, nullable=False)
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Artigo(Base):
+    __tablename__ = "artigos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    slug = Column(String, unique=True, index=True, nullable=False)
+    titulo = Column(String, nullable=False)
+    resumo = Column(String, nullable=False)
+    conteudo = Column(String, nullable=False)
+    categoria = Column(String, nullable=False)
+    autor = Column(String, default="Equipe LogJobs Brasil")
+    publicado_em = Column(DateTime(timezone=True), server_default=func.now())

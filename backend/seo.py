@@ -160,13 +160,22 @@ def pagina_vaga_html(vaga):
 </html>"""
 
 
-def pagina_sitemap_xml(vagas):
-    urls = [f"<url><loc>{SITE_URL}/</loc><changefreq>hourly</changefreq><priority>1.0</priority></url>"]
+def pagina_sitemap_xml(vagas, artigos=None):
+    urls = [
+        f"<url><loc>{SITE_URL}/</loc><changefreq>hourly</changefreq><priority>1.0</priority></url>",
+        f"<url><loc>{SITE_URL}/blog.html</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>",
+    ]
     for vaga in vagas:
         urls.append(
             f"<url><loc>{SITE_URL}/vagas/{vaga.id}</loc>"
             f"<lastmod>{_iso(vaga.criada_em)[:10]}</lastmod>"
             f"<changefreq>daily</changefreq><priority>0.8</priority></url>"
+        )
+    for artigo in artigos or []:
+        urls.append(
+            f"<url><loc>{SITE_URL}/artigo.html?slug={artigo.slug}</loc>"
+            f"<lastmod>{_iso(artigo.publicado_em)[:10]}</lastmod>"
+            f"<changefreq>monthly</changefreq><priority>0.5</priority></url>"
         )
 
     corpo = "".join(urls)

@@ -14,11 +14,12 @@ from sqlalchemy.orm import Session
 
 import auth
 import security
+from blog_seed import ARTIGOS_EXEMPLO
 from database import Base, SessionLocal, engine, get_db
 from recomendacao import recomendar_vagas
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_categorias
 from migrations import adicionar_colunas_faltantes
-from models import Atualizacao, Candidatura, Favorito, Interessado, Usuario, Vaga
+from models import Artigo, Atualizacao, Candidatura, Favorito, Interessado, Usuario, Vaga
 from rate_limit import limitar_por_ip
 from scheduler import (
     aplicar_correcao_geografica_uma_vez,
@@ -98,10 +99,25 @@ def popular_banco_se_vazio():
         db.close()
 
 
+def popular_blog_se_vazio():
+    db = SessionLocal()
+    try:
+        if db.query(Artigo).count() == 0:
+            for dados in ARTIGOS_EXEMPLO:
+                db.add(Artigo(**dados))
+            try:
+                db.commit()
+            except IntegrityError:
+                db.rollback()
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 def on_startup():
     aplicar_correcao_geografica_uma_vez()
     popular_banco_se_vazio()
+    popular_blog_se_vazio()
     remover_vagas_exemplo_se_ha_reais()
     reclassificar_vagas_sem_categoria()
     iniciar_agendador()
@@ -256,6 +272,34 @@ def ranking(db: Session = Depends(get_db)):
             {"empresa": e, "salario_medio": round(m, 2), "total": t} for e, m, t in por_salario
         ],
     }
+
+
+def artigo_resumo_para_json(a: Artigo) -> dict:
+    return {
+        "slug": a.slug,
+        "titulo": a.titulo,
+        "resumo": a.resumo,
+        "categoria": a.categoria,
+        "autor": a.autor,
+        "publicado_em": a.publicado_em.isoformat() if a.publicado_em else None,
+    }
+
+
+@app.get("/api/blog")
+def listar_blog(categoria: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(Artigo)
+    if categoria:
+        query = query.filter(Artigo.categoria == categoria)
+    artigos = query.order_by(Artigo.publicado_em.desc()).all()
+    return [artigo_resumo_para_json(a) for a in artigos]
+
+
+@app.get("/api/blog/{slug}")
+def obter_artigo(slug: str, db: Session = Depends(get_db)):
+    artigo = db.query(Artigo).filter(Artigo.slug == slug).first()
+    if not artigo:
+        raise HTTPException(status_code=404, detail="Artigo não encontrado")
+    return {**artigo_resumo_para_json(artigo), "conteudo": artigo.conteudo}
 
 
 @app.get("/api/categorias")
@@ -801,7 +845,8 @@ def pagina_vaga(vaga_id: int, db: Session = Depends(get_db)):
 @app.get("/sitemap.xml", response_class=PlainTextResponse)
 def sitemap(db: Session = Depends(get_db)):
     vagas = db.query(Vaga).order_by(Vaga.id.desc()).limit(1000).all()
-    return PlainTextResponse(pagina_sitemap_xml(vagas), media_type="application/xml")
+    artigos = db.query(Artigo).all()
+    return PlainTextResponse(pagina_sitemap_xml(vagas, artigos), media_type="application/xml")
 
 
 @app.get("/robots.txt", response_class=PlainTextResponse)
