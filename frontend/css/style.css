@@ -1675,6 +1675,22 @@ img{
   color:var(--texto);
 }
 
+.artigo-corpo h2{
+  font-size:20px;
+  font-weight:700;
+  margin:32px 0 12px;
+}
+
+.artigo-corpo ul{
+  margin:0 0 18px 20px;
+  line-height:1.7;
+  color:var(--texto);
+}
+
+.artigo-corpo li{
+  margin-bottom:6px;
+}
+
 .artigo-voltar{
   display:inline-block;
   margin-top:32px;
