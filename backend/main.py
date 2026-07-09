@@ -19,9 +19,12 @@ import auth
 import oauth_google
 import security
 import totp
+from analise_perfil import analisar_perfil, gerar_curriculo_texto
+from assistente import responder
 from blog_seed import ARTIGOS_EXEMPLO
 from chat_manager import gerenciador_chat
 from database import Base, SessionLocal, engine, get_db
+from entrevista import categorias_disponiveis, gerar_simulado
 from recomendacao import recomendar_vagas
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_categorias
 from migrations import adicionar_colunas_faltantes
@@ -1142,6 +1145,53 @@ def recomendacoes(usuario: Usuario = Depends(auth.usuario_atual), db: Session = 
             for item in recomendadas
         ]
     }
+
+
+# ===== IA sob demanda (determinística, sem chave de LLM externa) =====
+#
+# Mesma filosofia do motor de recomendação acima: roda só quando o candidato
+# pede (abre a tela/aperta o botão), nunca em segundo plano ou automaticamente.
+
+
+@app.get("/api/ia/analise-perfil")
+def ia_analise_perfil(usuario: Usuario = Depends(auth.usuario_atual)):
+    if usuario.tipo != "candidato":
+        raise HTTPException(status_code=403, detail="Análise de perfil disponível apenas para candidatos")
+    return analisar_perfil(usuario)
+
+
+@app.get("/api/ia/gerar-curriculo")
+def ia_gerar_curriculo(usuario: Usuario = Depends(auth.usuario_atual)):
+    if usuario.tipo != "candidato":
+        raise HTTPException(status_code=403, detail="Geração de currículo disponível apenas para candidatos")
+    return PlainTextResponse(
+        gerar_curriculo_texto(usuario),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": "attachment; filename=curriculo.txt"},
+    )
+
+
+@app.get("/api/ia/simulador-entrevista")
+def ia_simulador_entrevista(
+    categoria: Optional[str] = None, quantidade: int = Query(default=5, ge=1, le=10),
+    usuario: Usuario = Depends(auth.usuario_atual),
+):
+    return gerar_simulado(categoria, quantidade)
+
+
+@app.get("/api/ia/simulador-entrevista/categorias")
+def ia_simulador_categorias():
+    return {"categorias": categorias_disponiveis()}
+
+
+class AssistenteEntrada(BaseModel):
+    pergunta: str = Field(min_length=1, max_length=500)
+
+
+@app.post("/api/ia/assistente")
+def ia_assistente(dados: AssistenteEntrada, request: Request):
+    limitar_por_ip(request, "ia-assistente", max_pedidos=30, janela_segundos=600)
+    return responder(dados.pergunta)
 
 
 NIVEIS_CONQUISTA = [

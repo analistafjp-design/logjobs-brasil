@@ -71,6 +71,7 @@ async function iniciarPerfil() {
   const secaoCertificados = document.getElementById('secaoCertificados');
   const secaoIdiomas = document.getElementById('secaoIdiomas');
   const secaoCompletude = document.getElementById('secaoCompletude');
+  const secaoIA = document.getElementById('secaoIA');
 
   if (usuario.tipo === 'candidato') {
     secaoRecomendadas.hidden = false;
@@ -84,12 +85,15 @@ async function iniciarPerfil() {
     secaoCertificados.hidden = false;
     secaoIdiomas.hidden = false;
     secaoCompletude.hidden = false;
+    secaoIA.hidden = false;
     carregarRecomendacoes();
     carregarConquistas();
     carregarAlertas();
     carregarCandidaturasHistorico();
     renderizarCompletude(usuario.perfil_completude);
     inicializarListasCandidato(usuario);
+    carregarAnalisePerfil();
+    carregarCategoriasSimulador();
   } else {
     secaoRecomendadas.hidden = true;
     secaoConquistas.hidden = true;
@@ -102,6 +106,7 @@ async function iniciarPerfil() {
     secaoCertificados.hidden = true;
     secaoIdiomas.hidden = true;
     secaoCompletude.hidden = true;
+    secaoIA.hidden = true;
   }
 
   carregarFavoritosPerfil();
@@ -632,6 +637,87 @@ async function carregarCandidaturasHistorico() {
     perfilCandidaturasEl.innerHTML = '<p class="vagas-carregando">Não foi possível carregar seu histórico.</p>';
   }
 }
+
+/* ===== IA sob demanda: análise de perfil, gerador de currículo, simulador de entrevista ===== */
+
+async function carregarAnalisePerfil() {
+  const el = document.getElementById('iaAnalisePerfil');
+  try {
+    const resposta = await apiFetch(`${API_BASE}/ia/analise-perfil`);
+    if (!resposta.ok) throw new Error();
+    const dados = await resposta.json();
+
+    el.innerHTML = `
+      ${dados.pontos_fortes.length ? `
+        <p><strong>Pontos fortes:</strong></p>
+        <ul>${dados.pontos_fortes.map((p) => `<li>✅ ${escapeHtml(p)}</li>`).join('')}</ul>
+      ` : ''}
+      ${dados.sugestoes.length ? `
+        <p><strong>Sugestões de melhoria:</strong></p>
+        <ul>${dados.sugestoes.map((s) => `<li>💡 ${escapeHtml(s)}</li>`).join('')}</ul>
+      ` : '<p>Seu perfil está completo, mandou bem! 🎉</p>'}
+    `;
+  } catch {
+    el.innerHTML = '<p class="vagas-carregando">Não foi possível carregar a análise do perfil.</p>';
+  }
+}
+
+document.getElementById('btnGerarCurriculo')?.addEventListener('click', async () => {
+  try {
+    const resposta = await apiFetch(`${API_BASE}/ia/gerar-curriculo`);
+    if (!resposta.ok) throw new Error();
+    const texto = await resposta.text();
+    const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'curriculo.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    mostrarToast('Não foi possível gerar o currículo.');
+  }
+});
+
+async function carregarCategoriasSimulador() {
+  const select = document.getElementById('simuladorCategoria');
+  try {
+    const resposta = await fetch(`${API_BASE}/ia/simulador-entrevista/categorias`);
+    if (!resposta.ok) throw new Error();
+    const dados = await resposta.json();
+    dados.categorias.forEach((categoria) => {
+      const option = document.createElement('option');
+      option.value = categoria;
+      option.textContent = categoria;
+      select.appendChild(option);
+    });
+  } catch {
+    // sem categorias específicas, o select continua só com "Perguntas gerais"
+  }
+}
+
+document.getElementById('formSimulador')?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const categoria = event.target.categoria.value;
+  const resultadoEl = document.getElementById('iaSimuladorResultado');
+  resultadoEl.innerHTML = '<p class="vagas-carregando">Gerando perguntas...</p>';
+
+  try {
+    const query = categoria ? `?categoria=${encodeURIComponent(categoria)}` : '';
+    const resposta = await apiFetch(`${API_BASE}/ia/simulador-entrevista${query}`);
+    if (!resposta.ok) throw new Error();
+    const dados = await resposta.json();
+
+    resultadoEl.innerHTML = `
+      <ol class="ia-simulador-lista">
+        ${dados.perguntas.map((p) => `<li>${escapeHtml(p)}</li>`).join('')}
+      </ol>
+      <p class="modal-subtitulo">💡 ${escapeHtml(dados.dica)}</p>
+    `;
+  } catch {
+    resultadoEl.innerHTML = '<p class="vagas-carregando">Não foi possível gerar as perguntas.</p>';
+  }
+});
 
 function aoAutenticar() {
   iniciarPerfil();

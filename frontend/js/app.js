@@ -1018,3 +1018,68 @@ if (vagasGrid) {
 }
 carregarEstatisticas();
 carregarStatusAtualizacao();
+
+/* ===== Assistente virtual (central de ajuda por palavras-chave, sem IA generativa) =====
+   Disponível em todas as páginas (widget flutuante), não exige login. */
+
+function criarWidgetAssistente() {
+  const botao = document.createElement('button');
+  botao.type = 'button';
+  botao.className = 'assistente-botao';
+  botao.setAttribute('aria-label', 'Assistente virtual');
+  botao.textContent = '💬';
+  document.body.appendChild(botao);
+
+  const painel = document.createElement('div');
+  painel.className = 'assistente-painel';
+  painel.hidden = true;
+  painel.innerHTML = `
+    <div class="assistente-cabecalho">
+      <span>🤖 Central de ajuda</span>
+      <button type="button" class="assistente-fechar" aria-label="Fechar">&times;</button>
+    </div>
+    <div class="assistente-mensagens" id="assistenteMensagens">
+      <div class="assistente-bolha">Olá! Sou a central de ajuda do LogJobs. Pergunte sobre candidaturas, perfil, chat, 2FA e mais.</div>
+    </div>
+    <form class="assistente-form" id="assistenteForm">
+      <input type="text" name="pergunta" placeholder="Digite sua dúvida..." maxlength="500" autocomplete="off" required>
+      <button type="submit">Enviar</button>
+    </form>
+  `;
+  document.body.appendChild(painel);
+
+  botao.addEventListener('click', () => {
+    painel.hidden = !painel.hidden;
+  });
+  painel.querySelector('.assistente-fechar').addEventListener('click', () => {
+    painel.hidden = true;
+  });
+
+  const mensagensEl = painel.querySelector('#assistenteMensagens');
+  painel.querySelector('#assistenteForm').addEventListener('submit', async (evento) => {
+    evento.preventDefault();
+    const form = evento.target;
+    const pergunta = form.pergunta.value.trim();
+    if (!pergunta) return;
+    form.pergunta.value = '';
+
+    mensagensEl.insertAdjacentHTML('beforeend', `<div class="assistente-bolha assistente-bolha-usuario">${escapeHtml(pergunta)}</div>`);
+    mensagensEl.scrollTop = mensagensEl.scrollHeight;
+
+    try {
+      const resposta = await fetch(`${API_BASE}/ia/assistente`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pergunta }),
+      });
+      const dados = await resposta.json();
+      const texto = resposta.ok ? dados.resposta : 'Não foi possível responder agora. Tente novamente em instantes.';
+      mensagensEl.insertAdjacentHTML('beforeend', `<div class="assistente-bolha">${escapeHtml(texto)}</div>`);
+    } catch {
+      mensagensEl.insertAdjacentHTML('beforeend', '<div class="assistente-bolha">Não foi possível responder agora. Tente novamente em instantes.</div>');
+    }
+    mensagensEl.scrollTop = mensagensEl.scrollHeight;
+  });
+}
+
+criarWidgetAssistente();

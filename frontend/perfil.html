@@ -241,6 +241,34 @@
         <h2>📨 Minhas candidaturas</h2>
         <div id="perfilCandidaturas"><p class="vagas-carregando">Carregando...</p></div>
       </section>
+
+      <section class="perfil-card" id="secaoIA" hidden>
+        <h2>🤖 IA para você</h2>
+
+        <div class="ia-bloco">
+          <h3>Análise do seu perfil</h3>
+          <div id="iaAnalisePerfil"><p class="vagas-carregando">Carregando...</p></div>
+        </div>
+
+        <div class="ia-bloco">
+          <h3>Currículo formatado</h3>
+          <p class="modal-subtitulo">Baixe um currículo em texto, pronto para copiar ou imprimir, gerado a partir dos dados do seu perfil.</p>
+          <button type="button" class="btn-candidatar" id="btnGerarCurriculo">📄 Gerar currículo</button>
+        </div>
+
+        <div class="ia-bloco">
+          <h3>Simulador de entrevista</h3>
+          <form id="formSimulador">
+            <label>Categoria
+              <select name="categoria" id="simuladorCategoria">
+                <option value="">Perguntas gerais</option>
+              </select>
+            </label>
+            <button type="submit" class="modal-enviar" style="max-width:220px;">Gerar perguntas</button>
+          </form>
+          <div id="iaSimuladorResultado"></div>
+        </div>
+      </section>
     </div>
 
   </div>
