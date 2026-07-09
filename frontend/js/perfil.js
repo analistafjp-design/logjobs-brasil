@@ -331,6 +331,66 @@ async function iniciarAtivacaoTotp() {
   }
 }
 
+document.getElementById('btnExportarDados')?.addEventListener('click', async () => {
+  try {
+    const resposta = await apiFetch(`${API_BASE}/auth/meus-dados`);
+    if (!resposta.ok) throw new Error();
+    const dados = await resposta.json();
+    const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'logjobs-meus-dados.json';
+    link.click();
+    URL.revokeObjectURL(link.href);
+  } catch {
+    mostrarToast('Não foi possível baixar seus dados agora');
+  }
+});
+
+const formExcluirConta = document.getElementById('formExcluirConta');
+const btnExcluirConta = document.getElementById('btnExcluirConta');
+
+btnExcluirConta?.addEventListener('click', () => {
+  const usuarioAtual = obterUsuario();
+  const campoSenha = formExcluirConta.senha;
+  if (usuarioAtual?.oauth_provider === 'google') {
+    campoSenha.required = false;
+    campoSenha.closest('label').hidden = true;
+  }
+  formExcluirConta.hidden = false;
+  btnExcluirConta.hidden = true;
+  campoSenha.hidden ? null : campoSenha.focus();
+});
+
+document.getElementById('btnCancelarExcluirConta')?.addEventListener('click', () => {
+  formExcluirConta.hidden = true;
+  btnExcluirConta.hidden = false;
+});
+
+formExcluirConta?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const erroEl = document.getElementById('excluirContaErro');
+  erroEl.hidden = true;
+  if (!confirm('Tem certeza que deseja excluir sua conta? Essa ação não pode ser desfeita.')) return;
+  try {
+    const resposta = await apiFetch(`${API_BASE}/auth/me`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ senha: formExcluirConta.senha.value }),
+    });
+    if (!resposta.ok) {
+      const corpo = await resposta.json().catch(() => ({}));
+      throw new Error(corpo.detail || 'Não foi possível excluir a conta');
+    }
+    encerrarSessao();
+    mostrarToast('Conta excluída. Sentiremos sua falta!');
+    window.location.href = 'index.html';
+  } catch (erro) {
+    erroEl.textContent = erro.message;
+    erroEl.hidden = false;
+  }
+});
+
 async function carregarConquistas() {
   try {
     const resposta = await fetch(`${API_BASE}/conquistas`, {

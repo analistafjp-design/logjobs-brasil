@@ -217,6 +217,44 @@ img{
   color:var(--texto);
 }
 
+.perfil-privacidade-acoes{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+.btn-secundario,
+.btn-perigo{
+  padding:10px 18px;
+  border-radius:10px;
+  font-weight:600;
+  font-size:14px;
+  transition:background .15s ease,transform .15s ease;
+}
+
+.btn-secundario{
+  background:none;
+  color:var(--texto-suave);
+  border:1px solid var(--borda);
+}
+
+.btn-secundario:hover{
+  background:var(--fundo);
+  color:var(--texto);
+}
+
+.btn-perigo{
+  background:none;
+  color:#DC2626;
+  border:1px solid #DC2626;
+}
+
+.btn-perigo:hover{
+  background:#DC2626;
+  color:var(--branco);
+  transform:translateY(-1px);
+}
+
 .btn-tema{
   background:none;
   border:1px solid var(--borda);

@@ -8,6 +8,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field
@@ -62,6 +63,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 
 @app.middleware("http")
@@ -1126,6 +1128,72 @@ def atualizar_perfil(
     db.commit()
     db.refresh(usuario)
     return usuario_para_json(usuario)
+
+
+@app.get("/api/auth/meus-dados")
+def exportar_meus_dados(usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    """Exportação de dados pessoais (portabilidade, LGPD art. 18): tudo o que o
+    sistema guarda sobre o usuário logado, em JSON pronto para download."""
+    favoritos = db.query(Favorito).filter(Favorito.usuario_id == usuario.id).all()
+    alertas = db.query(Alerta).filter(Alerta.usuario_id == usuario.id).all()
+    candidaturas = db.query(Candidatura).filter(Candidatura.email == usuario.email).all()
+
+    dados = {
+        "perfil": usuario_para_json(usuario),
+        "favoritos": [{"vaga_id": f.vaga_id, "criado_em": f.criado_em.isoformat() if f.criado_em else None} for f in favoritos],
+        "alertas": [
+            {
+                "cargo": a.cargo,
+                "categoria": a.categoria,
+                "cidade": a.cidade,
+                "estado": a.estado,
+                "criado_em": a.criado_em.isoformat() if a.criado_em else None,
+            }
+            for a in alertas
+        ],
+        "candidaturas": [
+            {"vaga_id": c.vaga_id, "criada_em": c.criada_em.isoformat() if c.criada_em else None}
+            for c in candidaturas
+        ],
+    }
+
+    if usuario.tipo == "empresa":
+        vagas = db.query(Vaga).filter(Vaga.usuario_id == usuario.id).all()
+        dados["vagas_publicadas"] = [
+            {"id": v.id, "cargo": v.cargo, "cidade": v.cidade, "estado": v.estado, "criada_em": v.criada_em.isoformat() if v.criada_em else None}
+            for v in vagas
+        ]
+
+    return dados
+
+
+class ExcluirContaEntrada(BaseModel):
+    senha: str = Field(min_length=1)
+
+
+@app.delete("/api/auth/me", status_code=204)
+def excluir_minha_conta(
+    dados: ExcluirContaEntrada,
+    usuario: Usuario = Depends(auth.usuario_atual),
+    db: Session = Depends(get_db),
+):
+    """Exclusão de conta pelo próprio usuário (LGPD art. 18, eliminação de dados).
+    Exige a senha atual para confirmar — mesma lógica de cascata do painel admin."""
+    if usuario.oauth_provider != "google" and not security.verify_password(dados.senha, usuario.senha_hash):
+        raise HTTPException(status_code=401, detail="Senha incorreta")
+
+    db.query(Favorito).filter(Favorito.usuario_id == usuario.id).delete()
+    db.query(Alerta).filter(Alerta.usuario_id == usuario.id).delete()
+
+    vaga_ids = [v.id for v in db.query(Vaga.id).filter(Vaga.usuario_id == usuario.id).all()]
+    if vaga_ids:
+        db.query(Candidatura).filter(Candidatura.vaga_id.in_(vaga_ids)).delete(synchronize_session=False)
+        db.query(Vaga).filter(Vaga.usuario_id == usuario.id).delete(synchronize_session=False)
+
+    auth.revogar_todos_refresh_tokens(db, usuario.id)
+    db.delete(usuario)
+    db.commit()
+    return Response(status_code=204)
 
 
 @app.get("/api/favoritos")

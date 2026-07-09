@@ -63,6 +63,13 @@ Em produção (Render), o SQLite **não deve ser usado**: o disco do plano free 
 
 ⚠️ O plano free de Postgres do Render expira em 90 dias (a Render exclui o banco depois disso). Para manter os dados permanentemente, faça upgrade do banco para um plano pago no painel do Render antes do prazo, ou migre para outro provedor com free tier sem expiração (ex: [Neon](https://neon.tech) ou [Supabase](https://supabase.com)) — basta apontar a variável `DATABASE_URL` para o novo banco.
 
+## Privacidade e dados pessoais (LGPD)
+
+Na seção "🛡️ Privacidade e meus dados" do perfil, qualquer usuário logado pode:
+
+- **Baixar seus dados** (`GET /api/auth/meus-dados`): exporta em JSON o perfil, favoritos, alertas, candidaturas e (para empresas) vagas publicadas — portabilidade de dados (art. 18 da LGPD).
+- **Excluir a própria conta** (`DELETE /api/auth/me`): exige confirmação da senha atual (dispensada para contas criadas via Google), revoga todas as sessões (refresh tokens) e remove em cascata favoritos, alertas e, se for empresa, as vagas publicadas e candidaturas recebidas — mesma lógica de cascata já usada na exclusão de usuários pelo painel administrativo.
+
 ## Contas de usuário (candidato / empresa)
 
 Login e cadastro reais estão disponíveis: botão "Entrar" na navbar abre um modal com abas de Entrar/Cadastrar. O cadastro aceita tipo "candidato" ou "empresa" (`POST /api/auth/registro`), login em `POST /api/auth/login`, e `GET /api/auth/me` retorna o usuário autenticado a partir do token.

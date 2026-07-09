@@ -148,3 +148,35 @@ def test_ativar_2fa_exige_login_com_codigo_depois(client, email_unico):
     )
     assert login_com_codigo.status_code == 200
     assert login_com_codigo.json()["access_token"]
+
+
+def test_exportar_meus_dados(client, usuario_registrado):
+    token = usuario_registrado["access_token"]
+    resposta = client.get("/api/auth/meus-dados", headers={"Authorization": f"Bearer {token}"})
+    assert resposta.status_code == 200
+    dados = resposta.json()
+    assert dados["perfil"]["email"] == usuario_registrado["usuario"]["email"]
+    assert dados["favoritos"] == []
+    assert dados["alertas"] == []
+    assert dados["candidaturas"] == []
+
+
+def test_excluir_conta_com_senha_errada_falha(client, usuario_registrado):
+    token = usuario_registrado["access_token"]
+    resposta = client.request(
+        "DELETE", "/api/auth/me", json={"senha": "senha-errada"}, headers={"Authorization": f"Bearer {token}"}
+    )
+    assert resposta.status_code == 401
+
+
+def test_excluir_conta_com_senha_correta_apaga_e_revoga_sessao(client, usuario_registrado):
+    token = usuario_registrado["access_token"]
+    refresh_token = usuario_registrado["refresh_token"]
+
+    resposta = client.request(
+        "DELETE", "/api/auth/me", json={"senha": "senha123456"}, headers={"Authorization": f"Bearer {token}"}
+    )
+    assert resposta.status_code == 204
+
+    assert client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"}).status_code == 401
+    assert client.post("/api/auth/refresh", json={"refresh_token": refresh_token}).status_code == 401
