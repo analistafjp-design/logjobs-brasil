@@ -92,6 +92,31 @@ function botaoSalvar(vaga) {
   return `<button class="btn-salvar${salva ? ' salvo' : ''}" data-vaga-id="${escapeHtml(vaga.id)}" aria-pressed="${salva}" aria-label="${salva ? 'Remover dos salvos' : 'Salvar vaga'}" title="${salva ? 'Remover dos salvos' : 'Salvar vaga'}">${salva ? '★' : '☆'}</button>`;
 }
 
+function botaoCompartilhar(vaga) {
+  return `<button class="btn-compartilhar" data-vaga-id="${escapeHtml(vaga.id)}" data-vaga-cargo="${escapeHtml(vaga.cargo)}" data-vaga-empresa="${escapeHtml(vaga.empresa)}" aria-label="Compartilhar vaga" title="Compartilhar vaga">🔗</button>`;
+}
+
+async function compartilharVaga(vagaId, cargo, empresa) {
+  const url = `${window.location.origin}/vagas/${vagaId}`;
+  const dadosCompartilhamento = { title: `${cargo} — ${empresa}`, text: `Vaga de ${cargo} na ${empresa} — LogJobs Brasil`, url };
+
+  if (navigator.share) {
+    try {
+      await navigator.share(dadosCompartilhamento);
+    } catch {
+      // Usuário cancelou o compartilhamento — não é um erro a ser tratado.
+    }
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(url);
+    mostrarToast('🔗 Link da vaga copiado!');
+  } catch {
+    mostrarToast('Não foi possível copiar o link');
+  }
+}
+
 function vagaParaHtml(vaga, indice = 0) {
   const detalhes = [vaga.modalidade, vaga.turno, vaga.tipo_contratacao].filter(Boolean);
   return `
@@ -106,6 +131,7 @@ function vagaParaHtml(vaga, indice = 0) {
         <span class="salario">${escapeHtml(formatarSalario(vaga.salario))}</span>
         <div class="vaga-acoes">
           ${botaoSalvar(vaga)}
+          ${botaoCompartilhar(vaga)}
           ${botaoCandidatura(vaga)}
         </div>
       </div>
@@ -621,6 +647,12 @@ if (vagasGrid) {
     const botaoSalvarEl = event.target.closest('.btn-salvar');
     if (botaoSalvarEl) {
       alternarFavorito(botaoSalvarEl.dataset.vagaId, botaoSalvarEl);
+      return;
+    }
+
+    const botaoCompartilharEl = event.target.closest('.btn-compartilhar');
+    if (botaoCompartilharEl) {
+      compartilharVaga(botaoCompartilharEl.dataset.vagaId, botaoCompartilharEl.dataset.vagaCargo, botaoCompartilharEl.dataset.vagaEmpresa);
     }
   });
 }

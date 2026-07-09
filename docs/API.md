@@ -133,6 +133,7 @@ Todas exigem header `X-Admin-Token` igual à variável de ambiente `ADMIN_TOKEN`
 | GET | `/api/admin/interessados` | Lista de espera |
 | GET | `/api/admin/usuarios?q=` | Todos os usuários |
 | DELETE | `/api/admin/usuarios/{id}` | Exclui usuário (e vagas/candidaturas dependentes, se empresa) |
+| GET | `/api/admin/auditoria` | Últimas ações administrativas registradas (criar/editar/excluir vaga, excluir usuário, atualizar vagas) |
 | POST | `/api/atualizar-agora` | Dispara a busca de vagas do Jooble imediatamente |
 
 ## SEO

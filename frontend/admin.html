@@ -44,6 +44,7 @@
     <button class="admin-tab" data-aba="candidaturas">Candidaturas</button>
     <button class="admin-tab" data-aba="interessados">Lista de espera</button>
     <button class="admin-tab" data-aba="usuarios">Usuários</button>
+    <button class="admin-tab" data-aba="auditoria">Auditoria</button>
   </nav>
 
   <section class="admin-secao" id="secaoVagas">
@@ -139,6 +140,16 @@
       <table class="admin-tabela">
         <thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Cidade</th><th>Cadastro</th><th></th></tr></thead>
         <tbody id="tabelaUsuarios"><tr><td colspan="6">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="admin-secao" id="secaoAuditoria" hidden>
+    <p class="modal-subtitulo">Últimas ações administrativas sensíveis (criar/editar/excluir vaga, excluir usuário, atualizar vagas manualmente).</p>
+    <div class="admin-tabela-wrap">
+      <table class="admin-tabela">
+        <thead><tr><th>Ação</th><th>Detalhes</th><th>IP</th><th>Data</th></tr></thead>
+        <tbody id="tabelaAuditoria"><tr><td colspan="4">Carregando...</td></tr></tbody>
       </table>
     </div>
   </section>

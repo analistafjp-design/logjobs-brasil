@@ -150,6 +150,29 @@ def test_ativar_2fa_exige_login_com_codigo_depois(client, email_unico):
     assert login_com_codigo.json()["access_token"]
 
 
+def test_atualizar_perfil_empresa_logo_e_redes_sociais(client, email_unico):
+    registro = client.post(
+        "/api/auth/registro",
+        json={"nome": "Transportadora Teste", "email": email_unico, "senha": "senha123456", "tipo": "empresa"},
+    ).json()
+    token = registro["access_token"]
+
+    resposta = client.patch(
+        "/api/auth/me",
+        json={
+            "logo_url": "https://exemplo.com/logo.png",
+            "site_url": "https://exemplo.com",
+            "instagram_url": "https://instagram.com/transportadorateste",
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resposta.status_code == 200
+    dados = resposta.json()
+    assert dados["logo_url"] == "https://exemplo.com/logo.png"
+    assert dados["site_url"] == "https://exemplo.com"
+    assert dados["instagram_url"] == "https://instagram.com/transportadorateste"
+
+
 def test_exportar_meus_dados(client, usuario_registrado):
     token = usuario_registrado["access_token"]
     resposta = client.get("/api/auth/meus-dados", headers={"Authorization": f"Bearer {token}"})

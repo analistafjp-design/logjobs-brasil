@@ -127,6 +127,33 @@ def test_admin_com_token_correto_e_autorizado(client):
     assert resposta.json() == {"ok": True}
 
 
+def test_admin_auditoria_registra_criacao_e_exclusao_de_vaga(client):
+    cabecalho = {"X-Admin-Token": "test-admin-token"}
+    criada = client.post(
+        "/api/admin/vagas",
+        headers=cabecalho,
+        json={
+            "cargo": "Motorista de auditoria",
+            "empresa": "Empresa Auditoria",
+            "cidade": "São Paulo",
+            "estado": "SP",
+            "categoria": "Motorista",
+        },
+    ).json()
+
+    client.delete(f"/api/admin/vagas/{criada['id']}", headers=cabecalho)
+
+    logs = client.get("/api/admin/auditoria", headers=cabecalho).json()["logs"]
+    acoes = [l["acao"] for l in logs]
+    assert "criar_vaga" in acoes
+    assert "excluir_vaga" in acoes
+    assert any(f"vaga_id={criada['id']}" in (l["detalhes"] or "") for l in logs)
+
+
+def test_admin_auditoria_sem_token_e_negado(client):
+    assert client.get("/api/admin/auditoria").status_code == 403
+
+
 def test_admin_criar_vaga_com_campos_muito_longos_e_rejeitado(client):
     resposta = client.post(
         "/api/admin/vagas",

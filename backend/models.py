@@ -26,6 +26,9 @@ class Usuario(Base):
     portfolio_url = Column(String, nullable=True)
     linkedin_url = Column(String, nullable=True)
     github_url = Column(String, nullable=True)
+    logo_url = Column(String, nullable=True)  # empresa: URL da logo, exibida no painel de empresa
+    site_url = Column(String, nullable=True)  # empresa: site institucional
+    instagram_url = Column(String, nullable=True)  # empresa: rede social
     # Listas estruturadas (experiências, formação, cursos, certificados, idiomas) guardadas como
     # JSON serializado em texto — evita criar 5 tabelas quase idênticas só para listas curtas que
     # ninguém precisa consultar/filtrar via SQL, e mantém a API ergonômica (o backend faz o
@@ -136,6 +139,19 @@ class Atualizacao(Base):
     jooble_configurado = Column(Integer, default=0)
     vagas_novas = Column(Integer, default=0)
     vagas_totais = Column(Integer, default=0)
+
+
+class LogAuditoria(Base):
+    """Registro de ações administrativas sensíveis (criar/editar/excluir vaga ou
+    usuário, forçar atualização) — só leitura no painel admin, sem edição/exclusão
+    pela própria interface, para manter o histórico confiável."""
+    __tablename__ = "logs_auditoria"
+
+    id = Column(Integer, primary_key=True, index=True)
+    acao = Column(String, nullable=False)
+    detalhes = Column(String, nullable=True)
+    ip = Column(String, nullable=True)
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class Marcador(Base):

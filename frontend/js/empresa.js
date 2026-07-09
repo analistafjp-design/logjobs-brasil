@@ -46,6 +46,14 @@ async function iniciarEmpresa() {
 
   empresaBloqueado.hidden = true;
   empresaConteudo.hidden = false;
+
+  const empresaLogo = document.getElementById('empresaLogo');
+  if (usuario.logo_url) {
+    empresaLogo.src = usuario.logo_url;
+    empresaLogo.alt = `Logo de ${usuario.nome}`;
+    empresaLogo.hidden = false;
+  }
+
   carregarEstatisticasEmpresa();
   carregarVagasEmpresa();
 }

@@ -30,7 +30,7 @@ from entrevista import categorias_disponiveis, gerar_simulado
 from recomendacao import recomendar_vagas
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_categorias
 from migrations import adicionar_colunas_faltantes
-from models import Alerta, Artigo, Atualizacao, Candidatura, Conversa, Favorito, Interessado, Mensagem, Usuario, Vaga
+from models import Alerta, Artigo, Atualizacao, Candidatura, Conversa, Favorito, Interessado, LogAuditoria, Mensagem, Usuario, Vaga
 from rate_limit import limitar_por_ip
 from scheduler import (
     aplicar_correcao_geografica_uma_vez,
@@ -50,6 +50,11 @@ def verificar_admin(request: Request, x_admin_token: Optional[str] = Header(defa
     limitar_por_ip(request, "admin", max_pedidos=30, janela_segundos=600)
     if not ADMIN_TOKEN or not x_admin_token or not secrets.compare_digest(x_admin_token, ADMIN_TOKEN):
         raise HTTPException(status_code=403, detail="Acesso negado")
+
+
+def registrar_auditoria(db: Session, request: Request, acao: str, detalhes: str = "") -> None:
+    db.add(LogAuditoria(acao=acao, detalhes=detalhes, ip=request.client.host if request.client else None))
+    db.commit()
 
 
 Base.metadata.create_all(bind=engine)
@@ -446,8 +451,9 @@ def status_atualizacao(db: Session = Depends(get_db)):
 
 
 @app.post("/api/atualizar-agora", dependencies=[Depends(verificar_admin)])
-def forcar_atualizacao():
+def forcar_atualizacao(request: Request, db: Session = Depends(get_db)):
     atualizar_vagas_periodicamente()
+    registrar_auditoria(db, request, "atualizar_vagas_agora")
     return {"mensagem": "Atualização executada."}
 
 
@@ -532,7 +538,7 @@ def admin_listar_vagas(
 
 
 @app.post("/api/admin/vagas", status_code=201, dependencies=[Depends(verificar_admin)])
-def admin_criar_vaga(dados: VagaEntrada, db: Session = Depends(get_db)):
+def admin_criar_vaga(dados: VagaEntrada, request: Request, db: Session = Depends(get_db)):
     vaga = Vaga(**dados.model_dump(), fonte="manual")
     db.add(vaga)
     try:
@@ -541,11 +547,12 @@ def admin_criar_vaga(dados: VagaEntrada, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail="Já existe uma vaga com esse cargo, empresa e cidade")
     db.refresh(vaga)
+    registrar_auditoria(db, request, "criar_vaga", f"vaga_id={vaga.id} cargo={vaga.cargo!r} empresa={vaga.empresa!r}")
     return vaga_admin_para_json(vaga)
 
 
 @app.patch("/api/admin/vagas/{vaga_id}", dependencies=[Depends(verificar_admin)])
-def admin_editar_vaga(vaga_id: int, dados: VagaAtualizacao, db: Session = Depends(get_db)):
+def admin_editar_vaga(vaga_id: int, dados: VagaAtualizacao, request: Request, db: Session = Depends(get_db)):
     vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
@@ -559,17 +566,20 @@ def admin_editar_vaga(vaga_id: int, dados: VagaAtualizacao, db: Session = Depend
         db.rollback()
         raise HTTPException(status_code=400, detail="Já existe uma vaga com esse cargo, empresa e cidade")
     db.refresh(vaga)
+    registrar_auditoria(db, request, "editar_vaga", f"vaga_id={vaga.id}")
     return vaga_admin_para_json(vaga)
 
 
 @app.delete("/api/admin/vagas/{vaga_id}", dependencies=[Depends(verificar_admin)])
-def admin_excluir_vaga(vaga_id: int, db: Session = Depends(get_db)):
+def admin_excluir_vaga(vaga_id: int, request: Request, db: Session = Depends(get_db)):
     vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    detalhes = f"vaga_id={vaga.id} cargo={vaga.cargo!r} empresa={vaga.empresa!r}"
     db.query(Candidatura).filter(Candidatura.vaga_id == vaga_id).delete()
     db.delete(vaga)
     db.commit()
+    registrar_auditoria(db, request, "excluir_vaga", detalhes)
     return {"mensagem": "Vaga excluída"}
 
 
@@ -632,13 +642,15 @@ def admin_listar_usuarios(
 
 
 @app.delete("/api/admin/usuarios/{usuario_id}", dependencies=[Depends(verificar_admin)])
-def admin_excluir_usuario(usuario_id: int, db: Session = Depends(get_db)):
+def admin_excluir_usuario(usuario_id: int, request: Request, db: Session = Depends(get_db)):
     """Exclui a conta e os dados que dependem dela. Se for empresa, também remove as
     vagas que ela publicou (e as candidaturas dessas vagas) — do contrário elas
     ficariam "órfãs" na busca pública, sem ninguém para gerenciá-las."""
     usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    detalhes = f"usuario_id={usuario.id} email={usuario.email!r} tipo={usuario.tipo}"
 
     db.query(Favorito).filter(Favorito.usuario_id == usuario_id).delete()
     db.query(Alerta).filter(Alerta.usuario_id == usuario_id).delete()
@@ -650,7 +662,19 @@ def admin_excluir_usuario(usuario_id: int, db: Session = Depends(get_db)):
 
     db.delete(usuario)
     db.commit()
+    registrar_auditoria(db, request, "excluir_usuario", detalhes)
     return {"mensagem": "Usuário excluído"}
+
+
+@app.get("/api/admin/auditoria", dependencies=[Depends(verificar_admin)])
+def admin_listar_auditoria(limit: int = Query(default=100, le=500), db: Session = Depends(get_db)):
+    logs = db.query(LogAuditoria).order_by(LogAuditoria.id.desc()).limit(limit).all()
+    return {
+        "logs": [
+            {"id": l.id, "acao": l.acao, "detalhes": l.detalhes, "ip": l.ip, "criado_em": l.criado_em.isoformat() if l.criado_em else None}
+            for l in logs
+        ]
+    }
 
 
 class CandidaturaEntrada(BaseModel):
@@ -791,6 +815,9 @@ class PerfilEntrada(BaseModel):
     portfolio_url: Optional[str] = Field(default=None, max_length=500)
     linkedin_url: Optional[str] = Field(default=None, max_length=500)
     github_url: Optional[str] = Field(default=None, max_length=500)
+    logo_url: Optional[str] = Field(default=None, max_length=500)
+    site_url: Optional[str] = Field(default=None, max_length=500)
+    instagram_url: Optional[str] = Field(default=None, max_length=500)
     experiencias: Optional[list[ExperienciaItem]] = ItemsLimitados
     formacoes: Optional[list[FormacaoItem]] = ItemsLimitados
     cursos: Optional[list[CursoItem]] = ItemsLimitados
@@ -842,6 +869,9 @@ def usuario_para_json(usuario: Usuario) -> dict:
         "portfolio_url": usuario.portfolio_url,
         "linkedin_url": usuario.linkedin_url,
         "github_url": usuario.github_url,
+        "logo_url": usuario.logo_url,
+        "site_url": usuario.site_url,
+        "instagram_url": usuario.instagram_url,
         "experiencias": _lista_json(usuario.experiencias_json),
         "formacoes": _lista_json(usuario.formacoes_json),
         "cursos": _lista_json(usuario.cursos_json),
@@ -1114,6 +1144,12 @@ def atualizar_perfil(
         usuario.linkedin_url = dados.linkedin_url.strip() or None
     if dados.github_url is not None:
         usuario.github_url = dados.github_url.strip() or None
+    if dados.logo_url is not None:
+        usuario.logo_url = dados.logo_url.strip() or None
+    if dados.site_url is not None:
+        usuario.site_url = dados.site_url.strip() or None
+    if dados.instagram_url is not None:
+        usuario.instagram_url = dados.instagram_url.strip() or None
     if dados.experiencias is not None:
         usuario.experiencias_json = json.dumps([e.model_dump() for e in dados.experiencias])
     if dados.formacoes is not None:

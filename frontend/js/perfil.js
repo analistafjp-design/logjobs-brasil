@@ -61,10 +61,14 @@ async function iniciarPerfil() {
   formPerfil.linkedin_url.value = usuario.linkedin_url || '';
   formPerfil.github_url.value = usuario.github_url || '';
   formPerfil.portfolio_url.value = usuario.portfolio_url || '';
+  formPerfil.logo_url.value = usuario.logo_url || '';
+  formPerfil.site_url.value = usuario.site_url || '';
+  formPerfil.instagram_url.value = usuario.instagram_url || '';
 
   const secaoAlertas = document.getElementById('secaoAlertas');
   const secaoCandidaturasHistorico = document.getElementById('secaoCandidaturasHistorico');
   const camposCandidato = document.getElementById('camposCandidato');
+  const camposEmpresa = document.getElementById('camposEmpresa');
   const secaoListasCandidato = document.getElementById('secaoListasCandidato');
   const secaoFormacoes = document.getElementById('secaoFormacoes');
   const secaoCursos = document.getElementById('secaoCursos');
@@ -86,6 +90,7 @@ async function iniciarPerfil() {
     secaoIdiomas.hidden = false;
     secaoCompletude.hidden = false;
     secaoIA.hidden = false;
+    camposEmpresa.hidden = true;
     carregarRecomendacoes();
     carregarConquistas();
     carregarAlertas();
@@ -107,6 +112,7 @@ async function iniciarPerfil() {
     secaoIdiomas.hidden = true;
     secaoCompletude.hidden = true;
     secaoIA.hidden = true;
+    camposEmpresa.hidden = false;
   }
 
   carregarFavoritosPerfil();
@@ -487,6 +493,9 @@ formPerfil?.addEventListener('submit', async (event) => {
         linkedin_url: formPerfil.linkedin_url.value.trim(),
         github_url: formPerfil.github_url.value.trim(),
         portfolio_url: formPerfil.portfolio_url.value.trim(),
+        logo_url: formPerfil.logo_url.value.trim(),
+        site_url: formPerfil.site_url.value.trim(),
+        instagram_url: formPerfil.instagram_url.value.trim(),
       }),
     });
     const usuarioAtualizado = await resposta.json();

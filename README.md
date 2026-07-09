@@ -142,6 +142,8 @@ A busca da home (`index.html`) foi expandida além do campo cargo/cidade origina
 
 Nenhum filtro depende de geolocalização/CEP — o banco não tem latitude/longitude nem bairro por vaga, então busca por distância em km não foi implementada (ver seção "Mapa de vagas" abaixo, que usa apenas cidade/UF).
 
+Cada card de vaga também tem um botão de **compartilhar** (🔗): usa a Web Share API nativa quando disponível (celular), ou copia o link direto da página da vaga (`/vagas/{id}`) para a área de transferência como alternativa.
+
 ## Mapa de vagas
 
 Disponível em `/mapa.html`: mapa de bolhas do Brasil (uma bolha por estado, tamanho proporcional ao número de vagas), usando coordenadas aproximadas das 27 capitais como ponto representativo — o banco não guarda geolocalização por vaga/cidade, então um mapa de fronteiras reais por estado ficaria fora de escopo. Reaproveita os dados de `/api/dashboard` (por_estado). Passar o mouse mostra o total; clicar filtra as vagas daquele estado na home (`index.html?estado=UF`).
@@ -192,6 +194,8 @@ Disponível em `/ranking.html` (linkado na navbar e no rodapé), via `GET /api/r
 
 Disponível em `/empresa.html` (linkado como "Empresas" na navbar de todas as páginas). Qualquer usuário pode criar uma conta do tipo "empresa" pelo mesmo modal de cadastro usado por candidatos (`tipo: "empresa"`); não há aprovação manual nem cobrança — é honestamente um cadastro livre, sem verificação de CNPJ ou pagamento, já que essas integrações não foram implementadas (ver seção sobre integrações pendentes).
 
+A empresa edita logo (URL da imagem), site e Instagram na mesma tela de perfil (`/perfil.html`, seção "Dados da conta" quando logada como empresa — campos `logo_url`, `site_url`, `instagram_url` via `PATCH /api/auth/me`). A logo aparece no cabeçalho do painel (`/empresa.html`) quando cadastrada.
+
 Uma conta de empresa logada pode, via `/api/empresa/*` (protegido por JWT + checagem de `usuario.tipo == "empresa"`, não pelo token de admin):
 - Publicar, editar e excluir suas próprias vagas (`GET/POST/PATCH/DELETE /api/empresa/vagas`) — as vagas publicadas aparecem imediatamente na busca pública, com `fonte: "empresa"`.
 - Ver quantas candidaturas cada vaga recebeu e os dados de cada candidato (`GET /api/empresa/candidaturas/{vaga_id}`).
@@ -215,6 +219,7 @@ Permite:
 - Cadastrar, editar e excluir vagas manualmente (`/api/admin/vagas`).
 - Visualizar candidaturas recebidas e a lista de espera (somente leitura).
 - Buscar e excluir contas de usuário (`GET/DELETE /api/admin/usuarios`) — útil para remover contas falsas/spam. Excluir uma empresa também remove as vagas que ela publicou e as candidaturas dessas vagas, para não deixar vagas "órfãs" na busca pública.
+- Consultar a aba "Auditoria" (`GET /api/admin/auditoria`): histórico somente-leitura das últimas ações administrativas sensíveis (criar/editar/excluir vaga, excluir usuário, forçar atualização de vagas), com ação, detalhes, IP de origem e data/hora — gravado automaticamente pelo backend a cada uma dessas ações, sem depender de nada configurado na interface.
 
 ## Endpoint administrativo
 
