@@ -1,5 +1,6 @@
 fastapi==0.139.0
 uvicorn==0.50.2
+websockets==16.0
 sqlalchemy==2.0.51
 requests==2.33.1
 pydantic[email]==2.13.4

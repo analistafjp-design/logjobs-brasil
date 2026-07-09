@@ -228,7 +228,7 @@ async function abrirCandidaturasVaga(vaga) {
   secaoCandidaturasVaga.hidden = false;
   secaoCandidaturasVaga.scrollIntoView({ behavior: 'smooth', block: 'center' });
   const tbody = document.getElementById('tabelaCandidaturasVaga');
-  tbody.innerHTML = '<tr><td colspan="4">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5">Carregando...</td></tr>';
   try {
     const resposta = await fetch(`${API_BASE}/empresa/candidaturas/${vaga.id}`, {
       headers: { Authorization: `Bearer ${obterToken()}` },
@@ -241,8 +241,15 @@ async function abrirCandidaturasVaga(vaga) {
         <td>${escapeHtml(c.email)}</td>
         <td>${escapeHtml(c.telefone || '—')}</td>
         <td>${c.criada_em ? new Date(c.criada_em).toLocaleString('pt-BR') : '—'}</td>
+        <td><button type="button" class="btn-sair" data-candidatura-id="${escapeHtml(c.id)}" data-candidatura-nome="${escapeHtml(c.nome)}">💬 Mensagem</button></td>
       </tr>
-    `).join('') : '<tr><td colspan="4">Nenhuma candidatura recebida ainda.</td></tr>';
+    `).join('') : '<tr><td colspan="5">Nenhuma candidatura recebida ainda.</td></tr>';
+
+    tbody.querySelectorAll('button[data-candidatura-id]').forEach((botao) => {
+      botao.addEventListener('click', () => {
+        abrirModalMensagemCandidatura(Number(botao.dataset.candidaturaId), botao.dataset.candidaturaNome);
+      });
+    });
 
     await fetch(`${API_BASE}/empresa/candidaturas/marcar-vistas`, {
       method: 'POST',
@@ -250,8 +257,43 @@ async function abrirCandidaturasVaga(vaga) {
     });
     carregarEstatisticasEmpresa();
   } catch {
-    tbody.innerHTML = '<tr><td colspan="4">Não foi possível carregar as candidaturas.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5">Não foi possível carregar as candidaturas.</td></tr>';
   }
+}
+
+function abrirModalMensagemCandidatura(candidaturaId, nomeCandidato) {
+  abrirModal(`
+    <h2>Mensagem para ${escapeHtml(nomeCandidato)}</h2>
+    <form id="formMensagemCandidatura">
+      <label>Sua mensagem
+        <textarea name="mensagem" rows="4" required maxlength="2000" placeholder="Escreva sua mensagem..."></textarea>
+      </label>
+      <p class="modal-erro" id="mensagemCandidaturaErro" hidden></p>
+      <button type="submit" class="modal-enviar">Enviar</button>
+    </form>
+  `);
+
+  document.getElementById('formMensagemCandidatura').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const erroEl = document.getElementById('mensagemCandidaturaErro');
+    erroEl.hidden = true;
+    const mensagem = event.target.mensagem.value.trim();
+    if (!mensagem) return;
+
+    try {
+      const resposta = await apiFetch(`${API_BASE}/chat/conversas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidatura_id: candidaturaId, mensagem }),
+      });
+      const dados = await resposta.json();
+      if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível enviar a mensagem.');
+      window.location.href = `chat.html?conversa=${dados.conversa_id}`;
+    } catch (erro) {
+      erroEl.textContent = erro.message;
+      erroEl.hidden = false;
+    }
+  });
 }
 
 document.getElementById('btnFecharCandidaturasVaga').addEventListener('click', () => {

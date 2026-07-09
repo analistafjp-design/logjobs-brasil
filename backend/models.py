@@ -160,3 +160,32 @@ class Alerta(Base):
     estado = Column(String, nullable=True)
     vistas_em = Column(DateTime(timezone=True), nullable=True)  # última vez que o candidato abriu a lista de vagas deste alerta
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Conversa(Base):
+    """Uma conversa por par (candidato, empresa) — não por vaga: manter um único
+    fio de conversa entre as mesmas duas contas evita proliferar threads
+    quando o candidato se candidata a várias vagas da mesma empresa.
+    `vaga_id` só guarda qual vaga deu origem à conversa, para dar contexto."""
+    __tablename__ = "conversas"
+    __table_args__ = (
+        UniqueConstraint("candidato_id", "empresa_id", name="uq_conversa_par_usuarios"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidato_id = Column(Integer, nullable=False, index=True)
+    empresa_id = Column(Integer, nullable=False, index=True)
+    vaga_id = Column(Integer, nullable=True, index=True)
+    criada_em = Column(DateTime(timezone=True), server_default=func.now())
+    atualizada_em = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class Mensagem(Base):
+    __tablename__ = "mensagens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    conversa_id = Column(Integer, nullable=False, index=True)
+    remetente_id = Column(Integer, nullable=False, index=True)
+    texto = Column(String, nullable=False)
+    lida_em = Column(DateTime(timezone=True), nullable=True)
+    criada_em = Column(DateTime(timezone=True), server_default=func.now())

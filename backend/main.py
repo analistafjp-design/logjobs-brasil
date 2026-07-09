@@ -6,7 +6,7 @@ import urllib.parse
 from pathlib import Path
 from typing import Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
@@ -20,11 +20,12 @@ import oauth_google
 import security
 import totp
 from blog_seed import ARTIGOS_EXEMPLO
+from chat_manager import gerenciador_chat
 from database import Base, SessionLocal, engine, get_db
 from recomendacao import recomendar_vagas
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_categorias
 from migrations import adicionar_colunas_faltantes
-from models import Alerta, Artigo, Atualizacao, Candidatura, Favorito, Interessado, Usuario, Vaga
+from models import Alerta, Artigo, Atualizacao, Candidatura, Conversa, Favorito, Interessado, Mensagem, Usuario, Vaga
 from rate_limit import limitar_por_ip
 from scheduler import (
     aplicar_correcao_geografica_uma_vez,
@@ -253,6 +254,7 @@ def obter_vaga(vaga_id: int, db: Session = Depends(get_db)):
         "requisitos": vaga.requisitos,
         "link": vaga.link,
         "fonte": vaga.fonte,
+        "usuario_id": vaga.usuario_id,
     }
 
 
@@ -1502,6 +1504,212 @@ def empresa_marcar_candidaturas_vistas(usuario: Usuario = Depends(verificar_empr
     usuario.candidaturas_vistas_em = func.now()
     db.commit()
     return {"mensagem": "Candidaturas marcadas como vistas"}
+
+
+# ===== Chat (mensagens entre candidato e empresa) =====
+#
+# Uma única conversa por par (candidato, empresa) — ver Conversa em models.py.
+# Quem pode iniciar:
+#   - Candidato: a partir de uma vaga publicada por uma empresa (vaga.usuario_id
+#     precisa existir — vagas do Jooble/seed/admin sem dono não têm chat).
+#   - Empresa: a partir de uma candidatura recebida, resolvendo o candidato pelo
+#     e-mail da candidatura (Candidatura não tem FK para Usuario — é só um
+#     contato avulso). Se não existir conta com esse e-mail, não há como
+#     conversar dentro da plataforma.
+#
+# Envio de mensagem é sempre via REST (POST); o WebSocket só entrega em tempo
+# real para quem estiver com a tela da conversa aberta — nunca conecta sozinho.
+
+
+class IniciarConversaEntrada(BaseModel):
+    vaga_id: Optional[int] = None
+    candidatura_id: Optional[int] = None
+    mensagem: str = Field(min_length=1, max_length=2000)
+
+
+class MensagemEntrada(BaseModel):
+    texto: str = Field(min_length=1, max_length=2000)
+
+
+def _mensagem_para_json(mensagem: Mensagem, usuario_id: int) -> dict:
+    return {
+        "id": mensagem.id,
+        "texto": mensagem.texto,
+        "de_mim": mensagem.remetente_id == usuario_id,
+        "criada_em": mensagem.criada_em.isoformat() if mensagem.criada_em else None,
+        "lida_em": mensagem.lida_em.isoformat() if mensagem.lida_em else None,
+    }
+
+
+def _obter_conversa_do_participante(conversa_id: int, usuario: Usuario, db: Session) -> Conversa:
+    conversa = db.query(Conversa).filter(Conversa.id == conversa_id).first()
+    if not conversa or usuario.id not in (conversa.candidato_id, conversa.empresa_id):
+        raise HTTPException(status_code=404, detail="Conversa não encontrada")
+    return conversa
+
+
+async def _registrar_e_transmitir_mensagem(conversa: Conversa, usuario: Usuario, texto: str, db: Session) -> Mensagem:
+    mensagem = Mensagem(conversa_id=conversa.id, remetente_id=usuario.id, texto=texto)
+    db.add(mensagem)
+    conversa.atualizada_em = func.now()
+    db.commit()
+    db.refresh(mensagem)
+
+    await gerenciador_chat.transmitir(conversa.id, {
+        "id": mensagem.id,
+        "texto": mensagem.texto,
+        "remetente_id": mensagem.remetente_id,
+        "criada_em": mensagem.criada_em.isoformat() if mensagem.criada_em else None,
+    })
+    return mensagem
+
+
+@app.post("/api/chat/conversas", status_code=201)
+async def iniciar_conversa(
+    dados: IniciarConversaEntrada, request: Request, usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)
+):
+    limitar_por_ip(request, "chat-iniciar", max_pedidos=20, janela_segundos=600)
+
+    if usuario.tipo == "candidato":
+        if not dados.vaga_id:
+            raise HTTPException(status_code=400, detail="Informe a vaga para iniciar a conversa com a empresa")
+        vaga = db.query(Vaga).filter(Vaga.id == dados.vaga_id).first()
+        if not vaga:
+            raise HTTPException(status_code=404, detail="Vaga não encontrada")
+        if not vaga.usuario_id:
+            raise HTTPException(status_code=400, detail="Esta vaga não tem uma empresa disponível para chat")
+        candidato_id, empresa_id, vaga_id = usuario.id, vaga.usuario_id, vaga.id
+
+    elif usuario.tipo == "empresa":
+        if not dados.candidatura_id:
+            raise HTTPException(status_code=400, detail="Informe a candidatura para iniciar a conversa com o candidato")
+        candidatura = db.query(Candidatura).filter(Candidatura.id == dados.candidatura_id).first()
+        vaga_da_candidatura = (
+            db.query(Vaga).filter(Vaga.id == candidatura.vaga_id, Vaga.usuario_id == usuario.id).first()
+            if candidatura else None
+        )
+        if not candidatura or not vaga_da_candidatura:
+            raise HTTPException(status_code=404, detail="Candidatura não encontrada")
+        candidato = (
+            db.query(Usuario)
+            .filter(func.lower(Usuario.email) == candidatura.email.lower(), Usuario.tipo == "candidato")
+            .first()
+        )
+        if not candidato:
+            raise HTTPException(status_code=404, detail="Este candidato ainda não tem conta na plataforma para receber mensagens")
+        candidato_id, empresa_id, vaga_id = candidato.id, usuario.id, vaga_da_candidatura.id
+
+    else:
+        raise HTTPException(status_code=403, detail="Este tipo de conta não pode iniciar conversas")
+
+    conversa = (
+        db.query(Conversa)
+        .filter(Conversa.candidato_id == candidato_id, Conversa.empresa_id == empresa_id)
+        .first()
+    )
+    if not conversa:
+        conversa = Conversa(candidato_id=candidato_id, empresa_id=empresa_id, vaga_id=vaga_id)
+        db.add(conversa)
+        db.commit()
+        db.refresh(conversa)
+
+    mensagem = await _registrar_e_transmitir_mensagem(conversa, usuario, dados.mensagem, db)
+    return {"conversa_id": conversa.id, "mensagem": _mensagem_para_json(mensagem, usuario.id)}
+
+
+@app.get("/api/chat/conversas")
+def listar_conversas(usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    if usuario.tipo not in ("candidato", "empresa"):
+        return []
+
+    campo_proprio = Conversa.candidato_id if usuario.tipo == "candidato" else Conversa.empresa_id
+    conversas = (
+        db.query(Conversa).filter(campo_proprio == usuario.id).order_by(Conversa.atualizada_em.desc()).all()
+    )
+    if not conversas:
+        return []
+
+    outro_ids = [c.empresa_id if usuario.tipo == "candidato" else c.candidato_id for c in conversas]
+    outros = {u.id: u for u in db.query(Usuario).filter(Usuario.id.in_(outro_ids)).all()}
+    vaga_ids = [c.vaga_id for c in conversas if c.vaga_id]
+    vagas = {v.id: v for v in db.query(Vaga).filter(Vaga.id.in_(vaga_ids)).all()} if vaga_ids else {}
+
+    resultado = []
+    for c in conversas:
+        outro_id = c.empresa_id if usuario.tipo == "candidato" else c.candidato_id
+        outro = outros.get(outro_id)
+        ultima = db.query(Mensagem).filter(Mensagem.conversa_id == c.id).order_by(Mensagem.id.desc()).first()
+        nao_lidas = (
+            db.query(func.count(Mensagem.id))
+            .filter(Mensagem.conversa_id == c.id, Mensagem.remetente_id != usuario.id, Mensagem.lida_em.is_(None))
+            .scalar()
+        )
+        vaga = vagas.get(c.vaga_id)
+        resultado.append({
+            "id": c.id,
+            "outro_usuario": {"id": outro.id, "nome": outro.nome} if outro else None,
+            "vaga": {"id": vaga.id, "cargo": vaga.cargo} if vaga else None,
+            "ultima_mensagem": _mensagem_para_json(ultima, usuario.id) if ultima else None,
+            "nao_lidas": nao_lidas or 0,
+            "atualizada_em": c.atualizada_em.isoformat() if c.atualizada_em else None,
+        })
+    return resultado
+
+
+@app.get("/api/chat/conversas/{conversa_id}/mensagens")
+def listar_mensagens(conversa_id: int, usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    conversa = _obter_conversa_do_participante(conversa_id, usuario, db)
+    mensagens = db.query(Mensagem).filter(Mensagem.conversa_id == conversa.id).order_by(Mensagem.id.asc()).all()
+
+    houve_alteracao = False
+    for m in mensagens:
+        if m.remetente_id != usuario.id and m.lida_em is None:
+            m.lida_em = func.now()
+            houve_alteracao = True
+    if houve_alteracao:
+        db.commit()
+
+    return {"mensagens": [_mensagem_para_json(m, usuario.id) for m in mensagens]}
+
+
+@app.post("/api/chat/conversas/{conversa_id}/mensagens", status_code=201)
+async def enviar_mensagem(
+    conversa_id: int, dados: MensagemEntrada, request: Request, usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)
+):
+    limitar_por_ip(request, "chat-mensagem", max_pedidos=60, janela_segundos=600)
+    conversa = _obter_conversa_do_participante(conversa_id, usuario, db)
+    mensagem = await _registrar_e_transmitir_mensagem(conversa, usuario, dados.texto, db)
+    return _mensagem_para_json(mensagem, usuario.id)
+
+
+@app.websocket("/ws/chat/{conversa_id}")
+async def websocket_chat(websocket: WebSocket, conversa_id: int, token: Optional[str] = None):
+    payload = security.decode_jwt(token, auth.SECRET_KEY) if token else None
+    if not payload:
+        await websocket.close(code=1008)
+        return
+
+    db = SessionLocal()
+    try:
+        try:
+            usuario_id = int(payload.get("sub"))
+        except (TypeError, ValueError):
+            await websocket.close(code=1008)
+            return
+        usuario = db.get(Usuario, usuario_id)
+        conversa = db.query(Conversa).filter(Conversa.id == conversa_id).first()
+        if not usuario or not conversa or usuario.id not in (conversa.candidato_id, conversa.empresa_id):
+            await websocket.close(code=1008)
+            return
+    finally:
+        db.close()
+
+    await gerenciador_chat.conectar(conversa_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()  # conexão é só para receber; envio de mensagens é via POST REST
+    except WebSocketDisconnect:
+        gerenciador_chat.desconectar(conversa_id, websocket)
 
 
 @app.get("/vagas/{vaga_id}", response_class=HTMLResponse)

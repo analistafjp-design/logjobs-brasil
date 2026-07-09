@@ -518,7 +518,21 @@ function abrirModalCandidatura(vaga) {
       <p class="modal-erro" id="candidaturaErro" hidden></p>
       <button type="submit" class="modal-enviar">Enviar candidatura</button>
     </form>
+    <div id="candidaturaChatArea"></div>
   `);
+
+  if (usuarioLogado && usuarioLogado.tipo === 'candidato') {
+    fetch(`${API_BASE}/vagas/${vaga.id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((detalhe) => {
+        if (!detalhe || !detalhe.usuario_id) return;
+        const area = document.getElementById('candidaturaChatArea');
+        if (!area) return;
+        area.innerHTML = `<button type="button" class="btn-login" id="btnEnviarMensagemEmpresa" style="margin-top:12px;width:100%;">💬 Enviar mensagem para a empresa</button>`;
+        document.getElementById('btnEnviarMensagemEmpresa')?.addEventListener('click', () => abrirModalMensagemVaga(vaga));
+      })
+      .catch(() => {});
+  }
 
   document.getElementById('formCandidatura').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -555,6 +569,42 @@ function abrirModalCandidatura(vaga) {
       erroEl.textContent = erro.message || 'Não foi possível enviar sua candidatura. Tente novamente.';
       erroEl.hidden = false;
       console.error(erro);
+    }
+  });
+}
+
+function abrirModalMensagemVaga(vaga) {
+  abrirModal(`
+    <h2>Mensagem para ${escapeHtml(vaga.empresa)}</h2>
+    <p class="modal-subtitulo">Sobre a vaga: ${escapeHtml(vaga.cargo)}</p>
+    <form id="formMensagemVaga">
+      <label>Sua mensagem
+        <textarea name="mensagem" rows="4" required maxlength="2000" placeholder="Escreva sua mensagem..."></textarea>
+      </label>
+      <p class="modal-erro" id="mensagemVagaErro" hidden></p>
+      <button type="submit" class="modal-enviar">Enviar</button>
+    </form>
+  `);
+
+  document.getElementById('formMensagemVaga').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const erroEl = document.getElementById('mensagemVagaErro');
+    erroEl.hidden = true;
+    const mensagem = event.target.mensagem.value.trim();
+    if (!mensagem) return;
+
+    try {
+      const resposta = await apiFetch(`${API_BASE}/chat/conversas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vaga_id: vaga.id, mensagem }),
+      });
+      const dados = await resposta.json();
+      if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível enviar a mensagem.');
+      window.location.href = `chat.html?conversa=${dados.conversa_id}`;
+    } catch (erro) {
+      erroEl.textContent = erro.message;
+      erroEl.hidden = false;
     }
   });
 }
@@ -751,6 +801,7 @@ function renderAreaConta() {
   }
 
   areaConta.innerHTML = `
+    <a href="chat.html" class="conta-nome" title="Mensagens" aria-label="Mensagens">💬</a>
     <a href="perfil.html" class="conta-nome">Olá, ${escapeHtml(usuario.nome.split(' ')[0])}</a>
     <button class="btn-login btn-sair" id="btnSair">Sair</button>
   `;
