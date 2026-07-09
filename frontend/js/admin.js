@@ -96,6 +96,7 @@ document.querySelectorAll('.admin-tab').forEach((tab) => {
     if (tab.dataset.aba === 'candidaturas') carregarCandidaturas();
     if (tab.dataset.aba === 'interessados') carregarInteressados();
     if (tab.dataset.aba === 'usuarios') carregarUsuarios();
+    if (tab.dataset.aba === 'auditoria') carregarAuditoria();
   });
 });
 
@@ -311,6 +312,25 @@ async function carregarUsuarios(busca = '') {
     `).join('') : '<tr><td colspan="6">Nenhum usuário cadastrado ainda.</td></tr>';
   } catch {
     tbody.innerHTML = '<tr><td colspan="6">Não foi possível carregar.</td></tr>';
+  }
+}
+
+async function carregarAuditoria() {
+  const tbody = document.getElementById('tabelaAuditoria');
+  tbody.innerHTML = '<tr><td colspan="4">Carregando...</td></tr>';
+  try {
+    const resposta = await chamarAdmin('/admin/auditoria');
+    const dados = await resposta.json();
+    tbody.innerHTML = dados.logs.length ? dados.logs.map((l) => `
+      <tr>
+        <td>${escapeHtml(l.acao)}</td>
+        <td>${escapeHtml(l.detalhes || '—')}</td>
+        <td>${escapeHtml(l.ip || '—')}</td>
+        <td>${formatarData(l.criado_em)}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="4">Nenhuma ação registrada ainda.</td></tr>';
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="4">Não foi possível carregar.</td></tr>';
   }
 }
 

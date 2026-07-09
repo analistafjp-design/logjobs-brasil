@@ -112,6 +112,11 @@
             <label>GitHub <input type="url" name="github_url" placeholder="https://github.com/..."></label>
             <label>Portfólio <input type="url" name="portfolio_url" placeholder="https://..."></label>
           </div>
+          <div class="admin-form-grid" id="camposEmpresa" hidden>
+            <label>Logo (URL da imagem) <input type="url" name="logo_url" placeholder="https://.../logo.png"></label>
+            <label>Site <input type="url" name="site_url" placeholder="https://suaempresa.com.br"></label>
+            <label>Instagram <input type="url" name="instagram_url" placeholder="https://instagram.com/suaempresa"></label>
+          </div>
           <p class="modal-erro" id="perfilErro" hidden></p>
           <p class="perfil-sucesso" id="perfilSucesso" hidden>✅ Perfil atualizado!</p>
           <button type="submit" class="modal-enviar">Salvar alterações</button>
@@ -206,6 +211,24 @@
         <h2>🔒 Segurança</h2>
         <p class="modal-subtitulo">Verificação em duas etapas (2FA): exige um código do seu app autenticador (Google Authenticator, Authy etc.) além da senha para entrar na conta.</p>
         <div id="totpStatus"></div>
+      </section>
+
+      <section class="perfil-card">
+        <h2>🛡️ Privacidade e meus dados</h2>
+        <p class="modal-subtitulo">De acordo com a LGPD, você pode baixar uma cópia de tudo o que guardamos sobre você, ou excluir sua conta e seus dados permanentemente.</p>
+        <div class="perfil-privacidade-acoes">
+          <button type="button" class="btn-secundario" id="btnExportarDados">⬇️ Baixar meus dados</button>
+          <button type="button" class="btn-perigo" id="btnExcluirConta">🗑️ Excluir minha conta</button>
+        </div>
+        <form id="formExcluirConta" hidden style="margin-top:16px;">
+          <p class="modal-subtitulo"><strong>Essa ação não pode ser desfeita.</strong> Suas vagas salvas, alertas e (se empresa) vagas publicadas serão apagados. Confirme sua senha:</p>
+          <label>Senha atual
+            <input type="password" name="senha" required autocomplete="current-password">
+          </label>
+          <p class="modal-erro" id="excluirContaErro" hidden></p>
+          <button type="submit" class="btn-perigo">Confirmar exclusão</button>
+          <button type="button" class="btn-sair" id="btnCancelarExcluirConta">Cancelar</button>
+        </form>
       </section>
 
       <section class="perfil-card" id="secaoConquistas">

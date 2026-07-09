@@ -55,6 +55,8 @@ Documentação interativa (Swagger/OpenAPI), gerada automaticamente pelo FastAPI
 | POST | `/api/auth/redefinir-senha` | público (token de uso único) | Define nova senha a partir do token do e-mail; revoga todas as sessões ativas do usuário |
 | GET | `/api/auth/me` | 🔒 | Dados do usuário autenticado |
 | PATCH | `/api/auth/me` | 🔒 | Atualiza perfil (nome, telefone, cidade, resumo, habilidades, experiências, formações, cursos, certificados, idiomas, etc.) |
+| GET | `/api/auth/meus-dados` | 🔒 | Exporta em JSON todos os dados pessoais do usuário (LGPD, portabilidade) |
+| DELETE | `/api/auth/me` | 🔒 (+ senha) | Exclui a própria conta e dados associados (LGPD, eliminação); revoga todas as sessões |
 | GET | `/api/auth/google/configurado` | público | Se o login com Google está disponível neste servidor |
 | GET | `/api/auth/google/login` | público | Redireciona para o Google (OAuth) |
 | GET | `/api/auth/google/callback` | público | Callback do Google, cria/loga a conta |
@@ -131,6 +133,7 @@ Todas exigem header `X-Admin-Token` igual à variável de ambiente `ADMIN_TOKEN`
 | GET | `/api/admin/interessados` | Lista de espera |
 | GET | `/api/admin/usuarios?q=` | Todos os usuários |
 | DELETE | `/api/admin/usuarios/{id}` | Exclui usuário (e vagas/candidaturas dependentes, se empresa) |
+| GET | `/api/admin/auditoria` | Últimas ações administrativas registradas (criar/editar/excluir vaga, excluir usuário, atualizar vagas) |
 | POST | `/api/atualizar-agora` | Dispara a busca de vagas do Jooble imediatamente |
 
 ## SEO

@@ -8,6 +8,7 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr, Field
@@ -29,7 +30,7 @@ from entrevista import categorias_disponiveis, gerar_simulado
 from recomendacao import recomendar_vagas
 from jooble_client import JOOBLE_API_KEY, buscar_vagas_todas_categorias
 from migrations import adicionar_colunas_faltantes
-from models import Alerta, Artigo, Atualizacao, Candidatura, Conversa, Favorito, Interessado, Mensagem, Usuario, Vaga
+from models import Alerta, Artigo, Atualizacao, Candidatura, Conversa, Favorito, Interessado, LogAuditoria, Mensagem, Usuario, Vaga
 from rate_limit import limitar_por_ip
 from scheduler import (
     aplicar_correcao_geografica_uma_vez,
@@ -51,6 +52,11 @@ def verificar_admin(request: Request, x_admin_token: Optional[str] = Header(defa
         raise HTTPException(status_code=403, detail="Acesso negado")
 
 
+def registrar_auditoria(db: Session, request: Request, acao: str, detalhes: str = "") -> None:
+    db.add(LogAuditoria(acao=acao, detalhes=detalhes, ip=request.client.host if request.client else None))
+    db.commit()
+
+
 Base.metadata.create_all(bind=engine)
 adicionar_colunas_faltantes(engine, Base)
 
@@ -62,6 +68,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 
 @app.middleware("http")
@@ -444,8 +451,9 @@ def status_atualizacao(db: Session = Depends(get_db)):
 
 
 @app.post("/api/atualizar-agora", dependencies=[Depends(verificar_admin)])
-def forcar_atualizacao():
+def forcar_atualizacao(request: Request, db: Session = Depends(get_db)):
     atualizar_vagas_periodicamente()
+    registrar_auditoria(db, request, "atualizar_vagas_agora")
     return {"mensagem": "Atualização executada."}
 
 
@@ -530,7 +538,7 @@ def admin_listar_vagas(
 
 
 @app.post("/api/admin/vagas", status_code=201, dependencies=[Depends(verificar_admin)])
-def admin_criar_vaga(dados: VagaEntrada, db: Session = Depends(get_db)):
+def admin_criar_vaga(dados: VagaEntrada, request: Request, db: Session = Depends(get_db)):
     vaga = Vaga(**dados.model_dump(), fonte="manual")
     db.add(vaga)
     try:
@@ -539,11 +547,12 @@ def admin_criar_vaga(dados: VagaEntrada, db: Session = Depends(get_db)):
         db.rollback()
         raise HTTPException(status_code=400, detail="Já existe uma vaga com esse cargo, empresa e cidade")
     db.refresh(vaga)
+    registrar_auditoria(db, request, "criar_vaga", f"vaga_id={vaga.id} cargo={vaga.cargo!r} empresa={vaga.empresa!r}")
     return vaga_admin_para_json(vaga)
 
 
 @app.patch("/api/admin/vagas/{vaga_id}", dependencies=[Depends(verificar_admin)])
-def admin_editar_vaga(vaga_id: int, dados: VagaAtualizacao, db: Session = Depends(get_db)):
+def admin_editar_vaga(vaga_id: int, dados: VagaAtualizacao, request: Request, db: Session = Depends(get_db)):
     vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
@@ -557,17 +566,20 @@ def admin_editar_vaga(vaga_id: int, dados: VagaAtualizacao, db: Session = Depend
         db.rollback()
         raise HTTPException(status_code=400, detail="Já existe uma vaga com esse cargo, empresa e cidade")
     db.refresh(vaga)
+    registrar_auditoria(db, request, "editar_vaga", f"vaga_id={vaga.id}")
     return vaga_admin_para_json(vaga)
 
 
 @app.delete("/api/admin/vagas/{vaga_id}", dependencies=[Depends(verificar_admin)])
-def admin_excluir_vaga(vaga_id: int, db: Session = Depends(get_db)):
+def admin_excluir_vaga(vaga_id: int, request: Request, db: Session = Depends(get_db)):
     vaga = db.query(Vaga).filter(Vaga.id == vaga_id).first()
     if not vaga:
         raise HTTPException(status_code=404, detail="Vaga não encontrada")
+    detalhes = f"vaga_id={vaga.id} cargo={vaga.cargo!r} empresa={vaga.empresa!r}"
     db.query(Candidatura).filter(Candidatura.vaga_id == vaga_id).delete()
     db.delete(vaga)
     db.commit()
+    registrar_auditoria(db, request, "excluir_vaga", detalhes)
     return {"mensagem": "Vaga excluída"}
 
 
@@ -630,13 +642,15 @@ def admin_listar_usuarios(
 
 
 @app.delete("/api/admin/usuarios/{usuario_id}", dependencies=[Depends(verificar_admin)])
-def admin_excluir_usuario(usuario_id: int, db: Session = Depends(get_db)):
+def admin_excluir_usuario(usuario_id: int, request: Request, db: Session = Depends(get_db)):
     """Exclui a conta e os dados que dependem dela. Se for empresa, também remove as
     vagas que ela publicou (e as candidaturas dessas vagas) — do contrário elas
     ficariam "órfãs" na busca pública, sem ninguém para gerenciá-las."""
     usuario = db.query(Usuario).filter(Usuario.id == usuario_id).first()
     if not usuario:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    detalhes = f"usuario_id={usuario.id} email={usuario.email!r} tipo={usuario.tipo}"
 
     db.query(Favorito).filter(Favorito.usuario_id == usuario_id).delete()
     db.query(Alerta).filter(Alerta.usuario_id == usuario_id).delete()
@@ -648,7 +662,19 @@ def admin_excluir_usuario(usuario_id: int, db: Session = Depends(get_db)):
 
     db.delete(usuario)
     db.commit()
+    registrar_auditoria(db, request, "excluir_usuario", detalhes)
     return {"mensagem": "Usuário excluído"}
+
+
+@app.get("/api/admin/auditoria", dependencies=[Depends(verificar_admin)])
+def admin_listar_auditoria(limit: int = Query(default=100, le=500), db: Session = Depends(get_db)):
+    logs = db.query(LogAuditoria).order_by(LogAuditoria.id.desc()).limit(limit).all()
+    return {
+        "logs": [
+            {"id": l.id, "acao": l.acao, "detalhes": l.detalhes, "ip": l.ip, "criado_em": l.criado_em.isoformat() if l.criado_em else None}
+            for l in logs
+        ]
+    }
 
 
 class CandidaturaEntrada(BaseModel):
@@ -789,6 +815,9 @@ class PerfilEntrada(BaseModel):
     portfolio_url: Optional[str] = Field(default=None, max_length=500)
     linkedin_url: Optional[str] = Field(default=None, max_length=500)
     github_url: Optional[str] = Field(default=None, max_length=500)
+    logo_url: Optional[str] = Field(default=None, max_length=500)
+    site_url: Optional[str] = Field(default=None, max_length=500)
+    instagram_url: Optional[str] = Field(default=None, max_length=500)
     experiencias: Optional[list[ExperienciaItem]] = ItemsLimitados
     formacoes: Optional[list[FormacaoItem]] = ItemsLimitados
     cursos: Optional[list[CursoItem]] = ItemsLimitados
@@ -840,6 +869,9 @@ def usuario_para_json(usuario: Usuario) -> dict:
         "portfolio_url": usuario.portfolio_url,
         "linkedin_url": usuario.linkedin_url,
         "github_url": usuario.github_url,
+        "logo_url": usuario.logo_url,
+        "site_url": usuario.site_url,
+        "instagram_url": usuario.instagram_url,
         "experiencias": _lista_json(usuario.experiencias_json),
         "formacoes": _lista_json(usuario.formacoes_json),
         "cursos": _lista_json(usuario.cursos_json),
@@ -1112,6 +1144,12 @@ def atualizar_perfil(
         usuario.linkedin_url = dados.linkedin_url.strip() or None
     if dados.github_url is not None:
         usuario.github_url = dados.github_url.strip() or None
+    if dados.logo_url is not None:
+        usuario.logo_url = dados.logo_url.strip() or None
+    if dados.site_url is not None:
+        usuario.site_url = dados.site_url.strip() or None
+    if dados.instagram_url is not None:
+        usuario.instagram_url = dados.instagram_url.strip() or None
     if dados.experiencias is not None:
         usuario.experiencias_json = json.dumps([e.model_dump() for e in dados.experiencias])
     if dados.formacoes is not None:
@@ -1126,6 +1164,72 @@ def atualizar_perfil(
     db.commit()
     db.refresh(usuario)
     return usuario_para_json(usuario)
+
+
+@app.get("/api/auth/meus-dados")
+def exportar_meus_dados(usuario: Usuario = Depends(auth.usuario_atual), db: Session = Depends(get_db)):
+    """Exportação de dados pessoais (portabilidade, LGPD art. 18): tudo o que o
+    sistema guarda sobre o usuário logado, em JSON pronto para download."""
+    favoritos = db.query(Favorito).filter(Favorito.usuario_id == usuario.id).all()
+    alertas = db.query(Alerta).filter(Alerta.usuario_id == usuario.id).all()
+    candidaturas = db.query(Candidatura).filter(Candidatura.email == usuario.email).all()
+
+    dados = {
+        "perfil": usuario_para_json(usuario),
+        "favoritos": [{"vaga_id": f.vaga_id, "criado_em": f.criado_em.isoformat() if f.criado_em else None} for f in favoritos],
+        "alertas": [
+            {
+                "cargo": a.cargo,
+                "categoria": a.categoria,
+                "cidade": a.cidade,
+                "estado": a.estado,
+                "criado_em": a.criado_em.isoformat() if a.criado_em else None,
+            }
+            for a in alertas
+        ],
+        "candidaturas": [
+            {"vaga_id": c.vaga_id, "criada_em": c.criada_em.isoformat() if c.criada_em else None}
+            for c in candidaturas
+        ],
+    }
+
+    if usuario.tipo == "empresa":
+        vagas = db.query(Vaga).filter(Vaga.usuario_id == usuario.id).all()
+        dados["vagas_publicadas"] = [
+            {"id": v.id, "cargo": v.cargo, "cidade": v.cidade, "estado": v.estado, "criada_em": v.criada_em.isoformat() if v.criada_em else None}
+            for v in vagas
+        ]
+
+    return dados
+
+
+class ExcluirContaEntrada(BaseModel):
+    senha: str = Field(min_length=1)
+
+
+@app.delete("/api/auth/me", status_code=204)
+def excluir_minha_conta(
+    dados: ExcluirContaEntrada,
+    usuario: Usuario = Depends(auth.usuario_atual),
+    db: Session = Depends(get_db),
+):
+    """Exclusão de conta pelo próprio usuário (LGPD art. 18, eliminação de dados).
+    Exige a senha atual para confirmar — mesma lógica de cascata do painel admin."""
+    if usuario.oauth_provider != "google" and not security.verify_password(dados.senha, usuario.senha_hash):
+        raise HTTPException(status_code=401, detail="Senha incorreta")
+
+    db.query(Favorito).filter(Favorito.usuario_id == usuario.id).delete()
+    db.query(Alerta).filter(Alerta.usuario_id == usuario.id).delete()
+
+    vaga_ids = [v.id for v in db.query(Vaga.id).filter(Vaga.usuario_id == usuario.id).all()]
+    if vaga_ids:
+        db.query(Candidatura).filter(Candidatura.vaga_id.in_(vaga_ids)).delete(synchronize_session=False)
+        db.query(Vaga).filter(Vaga.usuario_id == usuario.id).delete(synchronize_session=False)
+
+    auth.revogar_todos_refresh_tokens(db, usuario.id)
+    db.delete(usuario)
+    db.commit()
+    return Response(status_code=204)
 
 
 @app.get("/api/favoritos")
