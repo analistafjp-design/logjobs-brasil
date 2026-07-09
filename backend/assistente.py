@@ -3,6 +3,7 @@ sem nenhuma IA generativa/LLM externa (o projeto não tem chave configurada
 para isso). É deliberadamente apresentado como "central de ajuda inteligente"
 e não como um chat conversacional livre, para não prometer mais do que
 entrega — mesma filosofia de recomendacao.py."""
+import re
 import unicodedata
 
 RESPOSTA_PADRAO = (
@@ -10,8 +11,19 @@ RESPOSTA_PADRAO = (
     "ou fale diretamente com nosso suporte em contato@logjobsbrasil.com.br."
 )
 
-# Cada intenção: palavras-chave (já sem acento/minúsculas) -> resposta.
+# Cada intenção: palavras-chave (já sem acento/minúsculas) -> resposta. As
+# palavras/frases são casadas por palavra inteira (não substring) — sem isso,
+# "chat" combinaria com "chateado", "cv" com qualquer palavra que contivesse
+# "cv", etc.
 INTENCOES = [
+    (
+        ("obrigado", "obrigada", "valeu", "brigado", "vlw"),
+        "De nada! Se tiver mais alguma dúvida, é só perguntar. 😊",
+    ),
+    (
+        ("oi", "ola", "bom dia", "boa tarde", "boa noite", "eae"),
+        "Olá! Como posso ajudar? Pergunte sobre candidaturas, perfil, chat, 2FA e mais.",
+    ),
     (
         ("candidatar", "candidatura", "aplicar", "vaga"),
         "Para se candidatar, clique em \"Candidatar-se\" no card da vaga e preencha nome, e-mail e telefone. "
@@ -72,13 +84,17 @@ def _normalizar(texto: str) -> str:
     return texto
 
 
+def _contem_palavra(palavra: str, texto: str) -> bool:
+    return re.search(rf"\b{re.escape(palavra)}\b", texto) is not None
+
+
 def responder(pergunta: str) -> dict:
     pergunta_normalizada = _normalizar(pergunta)
 
     melhor_resposta = None
     melhor_pontuacao = 0
     for palavras_chave, resposta in INTENCOES:
-        pontuacao = sum(1 for palavra in palavras_chave if palavra in pergunta_normalizada)
+        pontuacao = sum(1 for palavra in palavras_chave if _contem_palavra(palavra, pergunta_normalizada))
         if pontuacao > melhor_pontuacao:
             melhor_pontuacao = pontuacao
             melhor_resposta = resposta

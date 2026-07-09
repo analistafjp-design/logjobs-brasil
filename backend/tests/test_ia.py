@@ -129,6 +129,34 @@ def test_assistente_pergunta_desconhecida_traz_resposta_padrao(client):
     assert resposta.json()["encontrou"] is False
 
 
+def test_assistente_responde_agradecimento(client):
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "Ok, obrigado!"})
+    assert resposta.status_code == 200
+    dados = resposta.json()
+    assert dados["encontrou"] is True
+    assert "de nada" in dados["resposta"].lower()
+
+
+def test_assistente_responde_saudacao(client):
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "oi"})
+    assert resposta.status_code == 200
+    assert resposta.json()["encontrou"] is True
+
+
+def test_assistente_nao_confunde_palavra_parecida_com_chat(client):
+    """'chateado' não deveria disparar a intenção de chat (correspondência por palavra inteira, não substring)."""
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "Estou meio chateado com a demora da resposta"})
+    assert resposta.status_code == 200
+    assert resposta.json()["encontrou"] is False
+
+
+def test_assistente_nao_confunde_ola_com_escola(client):
+    """'escola' não deveria disparar a saudação 'olá' (correspondência por palavra inteira, não substring)."""
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "fiz um curso técnico numa escola de logística"})
+    assert resposta.status_code == 200
+    assert resposta.json()["encontrou"] is False
+
+
 def test_assistente_rate_limit(client):
     for _ in range(30):
         client.post("/api/ia/assistente", json={"pergunta": "oi"})
