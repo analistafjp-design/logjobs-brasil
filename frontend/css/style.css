@@ -1950,6 +1950,10 @@ img{
   overflow:hidden;
 }
 
+.assistente-painel[hidden]{
+  display:none;
+}
+
 .assistente-cabecalho{
   padding:14px 16px;
   border-bottom:1px solid var(--borda);
