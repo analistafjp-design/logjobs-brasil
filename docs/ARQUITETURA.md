@@ -34,6 +34,7 @@ Cada arquivo tem uma única responsabilidade. `main.py` é o único lugar que de
 | `auth.py` | Emissão/validação de access token, refresh token (opaco, hash em banco, rotação de uso único) |
 | `totp.py` | TOTP (RFC 6238) para 2FA — só biblioteca padrão |
 | `oauth_google.py` | OAuth 2.0 Authorization Code com Google — só `urllib` da biblioteca padrão |
+| `email_sender.py` | Envio de e-mail via SMTP — só `smtplib`/`email` da biblioteca padrão |
 | `rate_limit.py` | Limitador de pedidos por IP, em memória (sliding window) |
 | `jooble_client.py` | Integração com a API do Jooble para buscar vagas reais |
 | `recomendacao.py` | Motor de recomendação de vagas por correspondência de palavras-chave |

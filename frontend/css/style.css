@@ -997,6 +997,21 @@ img{
   font-size:13px;
 }
 
+.link-esqueci-senha{
+  background:none;
+  border:none;
+  color:var(--azul);
+  font-size:13px;
+  text-align:right;
+  cursor:pointer;
+  padding:0;
+  margin-top:-8px;
+}
+
+.link-esqueci-senha:hover{
+  text-decoration:underline;
+}
+
 /* ===== Toast ===== */
 
 .toast{

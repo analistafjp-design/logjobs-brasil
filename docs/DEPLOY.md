@@ -47,7 +47,12 @@ Acesse `http://localhost:8000`. Na primeira execução, o SQLite (`logjobs.db`) 
 | `GOOGLE_CLIENT_ID` | Não | nenhum | ID do cliente OAuth do Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | Não | nenhum | Secret do cliente OAuth |
 | `GOOGLE_REDIRECT_URI` | Não (mas recomendado em produção) | `http://localhost:8000/api/auth/google/callback` | Precisa bater exatamente com a URI cadastrada no Google Cloud Console |
-| `SITE_URL` | Não | `RENDER_EXTERNAL_URL` ou a URL de produção padrão | Usada no `sitemap.xml` e nas meta tags de SEO |
+| `SITE_URL` | Não | `RENDER_EXTERNAL_URL` ou a URL de produção padrão | Usada no `sitemap.xml`, meta tags de SEO e no link do e-mail de recuperação de senha |
+| `SMTP_HOST` | Não | nenhum (recuperação de senha fica indisponível) | Endereço do servidor SMTP para envio de e-mails |
+| `SMTP_PORT` | Não | `587` | Porta do servidor SMTP (STARTTLS) |
+| `SMTP_USER` | Não | nenhum | Usuário/e-mail de autenticação no SMTP |
+| `SMTP_PASSWORD` | Não | nenhum | Senha (ou senha de app) do SMTP |
+| `SMTP_FROM_EMAIL` | Não | mesmo valor de `SMTP_USER` | Endereço de remetente exibido nos e-mails |
 
 ### Ativando o login com Google
 
@@ -55,6 +60,11 @@ Acesse `http://localhost:8000`. Na primeira execução, o SQLite (`logjobs.db`) 
 2. Cadastre a URI de redirecionamento autorizada: `https://<seu-dominio>/api/auth/google/callback`.
 3. Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` e `GOOGLE_REDIRECT_URI` no ambiente do serviço.
 4. Sem essas variáveis, o login com Google fica automaticamente desativado — `GET /api/auth/google/configurado` retorna `{"configurado": false}` e o botão nem aparece no modal de login.
+
+### Ativando recuperação de senha por e-mail
+
+1. Configure `SMTP_HOST`, `SMTP_USER` e `SMTP_PASSWORD` (e opcionalmente `SMTP_PORT`/`SMTP_FROM_EMAIL`) no ambiente do serviço — funciona com qualquer provedor SMTP (Gmail, Outlook, um relay do SendGrid/Mailgun, etc.). Para Gmail, use uma [senha de app](https://support.google.com/accounts/answer/185833), não a senha normal da conta.
+2. Sem essas variáveis, a funcionalidade fica automaticamente desativada — `GET /api/auth/recuperar-senha/configurado` retorna `{"configurado": false}` e o link "Esqueci minha senha" nem aparece no modal de login, mesmo padrão do login com Google.
 
 ### Ativando busca de vagas reais (Jooble)
 

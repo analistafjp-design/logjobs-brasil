@@ -62,6 +62,7 @@ pytest
 | `test_api.py` | Vagas, estatísticas, favoritos, rate limit, proteção do admin |
 | `test_chat.py` | Iniciar conversa (das duas formas), controle de acesso, não lidas, WebSocket |
 | `test_ia.py` | Análise de perfil, gerador de currículo, simulador de entrevista, assistente |
+| `test_recuperacao_senha.py` | Fluxo completo de "esqueci minha senha" (envio de e-mail simulado via `monkeypatch`, token de uso único, revogação de sessões) |
 
 ## Checklist antes de abrir um PR / dar push
 

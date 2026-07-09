@@ -16,6 +16,7 @@ from database import get_db
 SECRET_KEY = os.getenv("LOGJOBS_SECRET_KEY", "dev-secret-change-in-production")
 ACCESS_TOKEN_EXPIRE_SECONDS = 60 * 60 * 24 * 7  # 7 dias
 REFRESH_TOKEN_EXPIRE_SECONDS = 60 * 60 * 24 * 30  # 30 dias
+RECUPERACAO_SENHA_EXPIRE_SECONDS = 60 * 60  # 1 hora
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login", auto_error=False)
 
@@ -25,7 +26,7 @@ def criar_token(usuario_id: int) -> str:
     return security.encode_jwt(payload, SECRET_KEY)
 
 
-def _hash_refresh_token(token: str) -> str:
+def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
@@ -35,7 +36,7 @@ def criar_refresh_token(db: Session, usuario_id: int) -> str:
     token = secrets.token_urlsafe(48)
     registro = models.RefreshToken(
         usuario_id=usuario_id,
-        token_hash=_hash_refresh_token(token),
+        token_hash=_hash_token(token),
         expira_em=datetime.now(timezone.utc) + timedelta(seconds=REFRESH_TOKEN_EXPIRE_SECONDS),
     )
     db.add(registro)
@@ -48,7 +49,7 @@ def rotacionar_refresh_token(db: Session, token: str) -> Optional[tuple[models.U
     de uso único — se o mesmo token for reaproveitado depois, já estará revogado)."""
     registro = (
         db.query(models.RefreshToken)
-        .filter(models.RefreshToken.token_hash == _hash_refresh_token(token))
+        .filter(models.RefreshToken.token_hash == _hash_token(token))
         .first()
     )
     if not registro or registro.revogado_em is not None:
@@ -72,12 +73,62 @@ def rotacionar_refresh_token(db: Session, token: str) -> Optional[tuple[models.U
 def revogar_refresh_token(db: Session, token: str) -> None:
     registro = (
         db.query(models.RefreshToken)
-        .filter(models.RefreshToken.token_hash == _hash_refresh_token(token))
+        .filter(models.RefreshToken.token_hash == _hash_token(token))
         .first()
     )
     if registro and registro.revogado_em is None:
         registro.revogado_em = datetime.now(timezone.utc)
         db.commit()
+
+
+def revogar_todos_refresh_tokens(db: Session, usuario_id: int) -> None:
+    """Encerra todas as sessões persistentes do usuário — usado depois de
+    redefinir a senha, para que um possível invasor com a senha antiga
+    (e um refresh token já emitido) perca o acesso."""
+    db.query(models.RefreshToken).filter(
+        models.RefreshToken.usuario_id == usuario_id, models.RefreshToken.revogado_em.is_(None)
+    ).update({"revogado_em": datetime.now(timezone.utc)})
+    db.commit()
+
+
+def criar_token_recuperacao_senha(db: Session, usuario_id: int) -> str:
+    """Token opaco de uso único para o link de 'esqueci minha senha', enviado
+    por e-mail. Guardado só como hash, mesmo raciocínio do refresh token."""
+    token = secrets.token_urlsafe(32)
+    registro = models.TokenRecuperacaoSenha(
+        usuario_id=usuario_id,
+        token_hash=_hash_token(token),
+        expira_em=datetime.now(timezone.utc) + timedelta(seconds=RECUPERACAO_SENHA_EXPIRE_SECONDS),
+    )
+    db.add(registro)
+    db.commit()
+    return token
+
+
+def validar_e_consumir_token_recuperacao(db: Session, token: str) -> Optional[models.Usuario]:
+    """Valida o token de recuperação e, se válido, marca como usado (uso
+    único) e devolve o usuário — quem chama é responsável por trocar a senha."""
+    registro = (
+        db.query(models.TokenRecuperacaoSenha)
+        .filter(models.TokenRecuperacaoSenha.token_hash == _hash_token(token))
+        .first()
+    )
+    if not registro or registro.usado_em is not None:
+        return None
+
+    expira_em = registro.expira_em
+    if expira_em.tzinfo is None:
+        expira_em = expira_em.replace(tzinfo=timezone.utc)
+    if expira_em < datetime.now(timezone.utc):
+        return None
+
+    usuario = db.get(models.Usuario, registro.usuario_id)
+    if not usuario:
+        return None
+
+    registro.usado_em = datetime.now(timezone.utc)
+    db.commit()
+    return usuario
 
 
 def usuario_atual(

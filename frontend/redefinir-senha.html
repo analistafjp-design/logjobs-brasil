@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Redefinir senha — LogJobs Brasil</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
+</head>
+<body>
+
+<main class="perfil-main">
+  <div class="perfil-container">
+    <div class="perfil-card" id="redefinirCard" style="max-width:420px;margin:0 auto;">
+      <h1>Redefinir senha</h1>
+
+      <div id="redefinirSemToken" hidden>
+        <p class="modal-subtitulo">Link inválido. Volte para a página inicial e peça um novo link em "Esqueci minha senha".</p>
+        <a class="btn-candidatar" href="index.html">Voltar para o início</a>
+      </div>
+
+      <form id="formRedefinir">
+        <label>Nova senha
+          <input type="password" name="nova_senha" required minlength="6" autocomplete="new-password">
+        </label>
+        <label>Confirmar nova senha
+          <input type="password" name="confirmar_senha" required minlength="6" autocomplete="new-password">
+        </label>
+        <p class="modal-erro" id="redefinirErro" hidden></p>
+        <button type="submit" class="modal-enviar">Redefinir senha</button>
+      </form>
+
+      <div id="redefinirSucesso" hidden>
+        <div class="modal-sucesso">
+          <div class="icone">✅</div>
+          <h2>Senha redefinida!</h2>
+          <p class="modal-subtitulo">Sua senha foi alterada com sucesso. Todas as sessões ativas foram encerradas por segurança.</p>
+          <a class="btn-candidatar" href="index.html">Entrar agora</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  const API_BASE = '/api';
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('token');
+
+  const form = document.getElementById('formRedefinir');
+  const semToken = document.getElementById('redefinirSemToken');
+  const sucesso = document.getElementById('redefinirSucesso');
+  const erroEl = document.getElementById('redefinirErro');
+
+  if (!token) {
+    form.hidden = true;
+    semToken.hidden = false;
+    return;
+  }
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    erroEl.hidden = true;
+
+    const novaSenha = form.nova_senha.value;
+    const confirmarSenha = form.confirmar_senha.value;
+
+    if (novaSenha !== confirmarSenha) {
+      erroEl.textContent = 'As senhas não coincidem.';
+      erroEl.hidden = false;
+      return;
+    }
+
+    try {
+      const resposta = await fetch(`${API_BASE}/auth/redefinir-senha`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, nova_senha: novaSenha }),
+      });
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        throw new Error(dados.detail || 'Não foi possível redefinir sua senha. Tente novamente.');
+      }
+
+      form.hidden = true;
+      sucesso.hidden = false;
+    } catch (erro) {
+      erroEl.textContent = erro.message;
+      erroEl.hidden = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

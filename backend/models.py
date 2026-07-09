@@ -54,6 +54,20 @@ class RefreshToken(Base):
     revogado_em = Column(DateTime(timezone=True), nullable=True)
 
 
+class TokenRecuperacaoSenha(Base):
+    """Token de uso único para o fluxo de "esqueci minha senha", enviado por
+    e-mail. Mesmo raciocínio do RefreshToken: guardado só como hash, nunca em
+    texto puro, e de vida curta (1 hora)."""
+    __tablename__ = "tokens_recuperacao_senha"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, nullable=False, index=True)
+    token_hash = Column(String, unique=True, nullable=False, index=True)
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())
+    expira_em = Column(DateTime(timezone=True), nullable=False)
+    usado_em = Column(DateTime(timezone=True), nullable=True)
+
+
 class Favorito(Base):
     __tablename__ = "favoritos"
     __table_args__ = (

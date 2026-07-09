@@ -821,6 +821,19 @@ async function verificarGoogleConfigurado() {
   return googleConfiguradoCache;
 }
 
+let recuperarSenhaConfiguradaCache = null;
+async function verificarRecuperarSenhaConfigurada() {
+  if (recuperarSenhaConfiguradaCache !== null) return recuperarSenhaConfiguradaCache;
+  try {
+    const resposta = await fetch(`${API_BASE}/auth/recuperar-senha/configurado`);
+    const dados = await resposta.json();
+    recuperarSenhaConfiguradaCache = Boolean(dados.configurado);
+  } catch {
+    recuperarSenhaConfiguradaCache = false;
+  }
+  return recuperarSenhaConfiguradaCache;
+}
+
 function abrirModalAuth(modoInicial) {
   const renderizarCodigoTotp = (email, senha) => {
     abrirModal(`
@@ -889,6 +902,7 @@ function abrirModalAuth(modoInicial) {
         <label>Senha
           <input type="password" name="senha" required minlength="6" autocomplete="${ehLogin ? 'current-password' : 'new-password'}">
         </label>
+        ${ehLogin ? '<button type="button" class="link-esqueci-senha" id="btnEsqueciSenha" hidden>Esqueci minha senha</button>' : ''}
         <p class="modal-erro" id="authErro" hidden></p>
         <button type="submit" class="modal-enviar">${ehLogin ? 'Entrar' : 'Criar conta'}</button>
       </form>
@@ -904,6 +918,14 @@ function abrirModalAuth(modoInicial) {
       document.getElementById('authDivisorGoogle').hidden = false;
       document.getElementById('btnLoginGoogle').hidden = false;
     });
+
+    if (ehLogin) {
+      verificarRecuperarSenhaConfigurada().then((configurado) => {
+        const botao = document.getElementById('btnEsqueciSenha');
+        if (botao) botao.hidden = !configurado;
+      });
+      document.getElementById('btnEsqueciSenha')?.addEventListener('click', () => abrirModalRecuperarSenha());
+    }
 
     document.querySelectorAll('.auth-tab').forEach((tab) => {
       tab.addEventListener('click', () => renderizar(tab.dataset.modo));
@@ -958,6 +980,52 @@ function abrirModalAuth(modoInicial) {
   };
 
   renderizar(modoInicial);
+}
+
+function abrirModalRecuperarSenha() {
+  abrirModal(`
+    <h2>Recuperar senha</h2>
+    <p class="modal-subtitulo">Digite seu e-mail e enviaremos um link para você escolher uma nova senha.</p>
+    <form id="formRecuperarSenha">
+      <label>E-mail
+        <input type="email" name="email" required autocomplete="email">
+      </label>
+      <p class="modal-erro" id="recuperarSenhaErro" hidden></p>
+      <button type="submit" class="modal-enviar">Enviar link</button>
+    </form>
+  `);
+
+  document.getElementById('formRecuperarSenha').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const erroEl = document.getElementById('recuperarSenhaErro');
+    erroEl.hidden = true;
+    const email = event.target.email.value.trim();
+
+    try {
+      const resposta = await fetch(`${API_BASE}/auth/recuperar-senha`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const dados = await resposta.json();
+
+      if (!resposta.ok) {
+        if (resposta.status === 429) throw new Error('Muitas tentativas. Aguarde alguns minutos.');
+        throw new Error(dados.detail || 'Não foi possível enviar o link agora. Tente novamente.');
+      }
+
+      abrirModal(`
+        <div class="modal-sucesso">
+          <div class="icone">📧</div>
+          <h2>Verifique seu e-mail</h2>
+          <p class="modal-subtitulo">${escapeHtml(dados.mensagem)}</p>
+        </div>
+      `);
+    } catch (erro) {
+      erroEl.textContent = erro.message;
+      erroEl.hidden = false;
+    }
+  });
 }
 
 async function carregarFavoritos() {

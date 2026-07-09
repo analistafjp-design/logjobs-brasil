@@ -16,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import auth
+import email_sender
 import oauth_google
 import security
 import totp
@@ -39,7 +40,7 @@ from scheduler import (
     remover_vagas_exemplo_se_ha_reais,
 )
 from seed_data import VAGAS_EXEMPLO
-from seo import ROBOTS_TXT, pagina_404_html, pagina_sitemap_xml, pagina_vaga_html
+from seo import ROBOTS_TXT, SITE_URL, pagina_404_html, pagina_sitemap_xml, pagina_vaga_html
 
 ADMIN_TOKEN = os.getenv("ADMIN_TOKEN")
 
@@ -729,6 +730,15 @@ class LogoutEntrada(BaseModel):
     refresh_token: str = Field(min_length=1, max_length=200)
 
 
+class RecuperarSenhaEntrada(BaseModel):
+    email: EmailStr
+
+
+class RedefinirSenhaEntrada(BaseModel):
+    token: str = Field(min_length=1, max_length=200)
+    nova_senha: str = Field(max_length=200)
+
+
 class ExperienciaItem(BaseModel):
     cargo: str = Field(max_length=150)
     empresa: str = Field(max_length=150)
@@ -911,6 +921,60 @@ def renovar_token(dados: RefreshEntrada, request: Request, db: Session = Depends
 def logout(dados: LogoutEntrada, db: Session = Depends(get_db)):
     auth.revogar_refresh_token(db, dados.refresh_token)
     return Response(status_code=204)
+
+
+@app.get("/api/auth/recuperar-senha/configurado")
+def recuperar_senha_configurado():
+    return {"configurado": email_sender.configurado()}
+
+
+@app.post("/api/auth/recuperar-senha")
+def recuperar_senha(dados: RecuperarSenhaEntrada, request: Request, db: Session = Depends(get_db)):
+    limitar_por_ip(request, "recuperar-senha", max_pedidos=5, janela_segundos=600)
+
+    # Mensagem sempre igual, independente de o e-mail existir ou não —
+    # evita que alguém descubra quais e-mails têm conta testando aqui.
+    mensagem_padrao = {"mensagem": "Se este e-mail estiver cadastrado, você vai receber um link para redefinir sua senha."}
+
+    if not email_sender.configurado():
+        raise HTTPException(status_code=503, detail="Recuperação de senha por e-mail não está disponível neste servidor")
+
+    usuario = db.query(Usuario).filter(Usuario.email == dados.email).first()
+    if not usuario:
+        return mensagem_padrao
+
+    token = auth.criar_token_recuperacao_senha(db, usuario.id)
+    link = f"{SITE_URL}/redefinir-senha.html?token={token}"
+    corpo = (
+        f"Olá, {usuario.nome}!\n\n"
+        f"Recebemos um pedido para redefinir a senha da sua conta no LogJobs Brasil.\n\n"
+        f"Clique no link abaixo para escolher uma nova senha (válido por 1 hora):\n{link}\n\n"
+        f"Se você não pediu isso, pode ignorar este e-mail — sua senha continua a mesma."
+    )
+    try:
+        email_sender.enviar_email(usuario.email, "Redefinir sua senha — LogJobs Brasil", corpo)
+    except email_sender.ErroEnvioEmail:
+        raise HTTPException(status_code=502, detail="Não foi possível enviar o e-mail agora. Tente novamente em instantes.")
+
+    return mensagem_padrao
+
+
+@app.post("/api/auth/redefinir-senha")
+def redefinir_senha(dados: RedefinirSenhaEntrada, request: Request, db: Session = Depends(get_db)):
+    limitar_por_ip(request, "redefinir-senha", max_pedidos=10, janela_segundos=600)
+
+    if len(dados.nova_senha) < 6:
+        raise HTTPException(status_code=400, detail="A senha precisa ter pelo menos 6 caracteres")
+
+    usuario = auth.validar_e_consumir_token_recuperacao(db, dados.token)
+    if not usuario:
+        raise HTTPException(status_code=401, detail="Link inválido ou expirado. Peça uma nova recuperação de senha.")
+
+    usuario.senha_hash = security.hash_password(dados.nova_senha)
+    db.commit()
+    auth.revogar_todos_refresh_tokens(db, usuario.id)
+
+    return {"mensagem": "Senha redefinida com sucesso. Faça login com sua nova senha."}
 
 
 @app.get("/api/auth/google/configurado")

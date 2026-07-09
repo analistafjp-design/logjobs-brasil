@@ -50,6 +50,9 @@ Documentação interativa (Swagger/OpenAPI), gerada automaticamente pelo FastAPI
 | POST | `/api/auth/login` | público | Login. Se 2FA ativado e sem `codigo_totp`, retorna `{"requer_totp": true}` |
 | POST | `/api/auth/refresh` | público (requer refresh token) | Troca refresh token por novo par (rotação de uso único) |
 | POST | `/api/auth/logout` | público (requer refresh token) | Revoga o refresh token informado |
+| GET | `/api/auth/recuperar-senha/configurado` | público | Se a recuperação de senha por e-mail está disponível neste servidor |
+| POST | `/api/auth/recuperar-senha` | público (rate limit) | Envia e-mail com link de redefinição, se o e-mail existir (resposta idêntica em ambos os casos, para não revelar quais e-mails têm conta) |
+| POST | `/api/auth/redefinir-senha` | público (token de uso único) | Define nova senha a partir do token do e-mail; revoga todas as sessões ativas do usuário |
 | GET | `/api/auth/me` | 🔒 | Dados do usuário autenticado |
 | PATCH | `/api/auth/me` | 🔒 | Atualiza perfil (nome, telefone, cidade, resumo, habilidades, experiências, formações, cursos, certificados, idiomas, etc.) |
 | GET | `/api/auth/google/configurado` | público | Se o login com Google está disponível neste servidor |

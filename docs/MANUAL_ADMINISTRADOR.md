@@ -29,7 +29,7 @@ Diferente do painel administrativo, o painel da empresa (`/empresa.html`) é ace
 - Enviar mensagem para um candidato que se candidatou (abre uma conversa no chat).
 - Ver estatísticas próprias (candidaturas novas desde a última visita).
 
-Se um usuário perdeu acesso à própria conta de empresa (esqueceu a senha, por exemplo), hoje a única forma de recuperar é pelo suporte diretamente no banco de dados — não há fluxo de "esqueci minha senha" implementado ainda (veja `contato@logjobsbrasil.com.br` no rodapé do site).
+Se um usuário perdeu acesso à própria conta (esqueceu a senha), existe o fluxo de "esqueci minha senha" no modal de login — mas ele só funciona se o servidor tiver `SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD` configurados (ver [`DEPLOY.md`](./DEPLOY.md#ativando-recuperação-de-senha-por-e-mail)). Sem essas variáveis, o link nem aparece, e a única forma de recuperar é pelo suporte diretamente no banco de dados (veja `contato@logjobsbrasil.com.br` no rodapé do site).
 
 ## Moderação de conteúdo
 

@@ -73,6 +73,14 @@ O access token (JWT) dura 7 dias, mas a sessão pode durar bem mais que isso: re
 
 Usuários logados podem salvar vagas (favoritos): botão de estrela em cada card, endpoints `GET/POST/DELETE /api/favoritos`.
 
+### Recuperação de senha
+
+Link "Esqueci minha senha" no modal de login (`POST /api/auth/recuperar-senha`, e-mail) envia um link de redefinição válido por 1 hora, e `POST /api/auth/redefinir-senha` (página `redefinir-senha.html`) troca a senha a partir desse token. Token opaco de uso único, guardado no banco só como hash SHA-256 (`backend/models.py: TokenRecuperacaoSenha`) — mesmo raciocínio do refresh token. Redefinir a senha revoga todas as sessões ativas (refresh tokens) do usuário, por segurança.
+
+A resposta de `POST /api/auth/recuperar-senha` é sempre a mesma, exista ou não uma conta com aquele e-mail — evita que alguém descubra quais e-mails têm conta testando o endpoint.
+
+Envio de e-mail via SMTP, implementado só com `smtplib`/`email` da biblioteca padrão do Python (`backend/email_sender.py`) — sem depender de SendGrid/Mailgun/SES. Fica **desativado automaticamente** se `SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD` não estiverem configurados: `GET /api/auth/recuperar-senha/configurado` retorna `{"configurado": false}` e o link nem aparece no modal de login — mesmo padrão do login com Google, abaixo.
+
 ### Login com Google
 
 Implementado em `backend/oauth_google.py` como um fluxo OAuth 2.0 Authorization Code manual, usando só `urllib` da biblioteca padrão (sem `authlib`/`google-auth`) — mesma filosofia do resto da autenticação do projeto. Fica **desativado automaticamente** se as variáveis de ambiente não estiverem configuradas: `GET /api/auth/google/configurado` retorna `{"configurado": false}` e o botão "Continuar com Google" nem aparece no modal de login/cadastro.
