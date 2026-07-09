@@ -2,14 +2,22 @@
 
 Portal inteligente de vagas para logística.
 
-📄 Documento oficial do projeto (visão, missão, arquitetura, roadmap e padrão de qualidade): [`docs/PVD.md`](./docs/PVD.md)
+📄 Documento oficial do projeto (visão, missão, roadmap e padrão de qualidade): [`docs/PVD.md`](./docs/PVD.md)
+
+📚 Documentação técnica: [Arquitetura](./docs/ARQUITETURA.md) · [Banco de dados](./docs/BANCO_DE_DADOS.md) · [Referência de API](./docs/API.md) · [Deploy e variáveis de ambiente](./docs/DEPLOY.md) · [Manual do desenvolvedor](./docs/MANUAL_DESENVOLVEDOR.md) · [Manual do administrador](./docs/MANUAL_ADMINISTRADOR.md)
 
 ## Estrutura
 
 ```
 logjobs-brasil/
 ├── docs/
-│   └── PVD.md          # Project Vision Document
+│   ├── PVD.md                    # Project Vision Document (visão de produto)
+│   ├── ARQUITETURA.md            # Como o sistema é construído por dentro
+│   ├── BANCO_DE_DADOS.md         # Esquema completo das tabelas
+│   ├── API.md                    # Referência de todas as rotas
+│   ├── DEPLOY.md                 # Deploy no Render + variáveis de ambiente
+│   ├── MANUAL_DESENVOLVEDOR.md   # Convenções, como adicionar endpoints/páginas, testes
+│   └── MANUAL_ADMINISTRADOR.md   # Painel admin, moderação, LGPD
 ├── frontend/           # HTML5 + CSS3 + JS (consome a API do backend)
 ├── backend/            # FastAPI + SQLite (local) / Postgres (produção)
 └── render.yaml         # Configuração de deploy (Render, com banco Postgres incluso)
@@ -97,6 +105,15 @@ Candidatos têm campos extras de perfil, só exibidos para `tipo: "candidato"`: 
 
 Candidatos com o mini-currículo preenchido recebem uma seção "Vagas recomendadas para você" no perfil, via `GET /api/recomendacoes`. O motor (`backend/recomendacao.py`) é uma correspondência de palavras-chave com pesos por campo (cargo/categoria valem mais que descrição/benefícios) — determinístico e sem depender de nenhuma API externa de IA, já que o projeto não tem chave de LLM configurada. Cada vaga recomendada mostra um percentual de compatibilidade (proporção das palavras-chave do currículo do candidato encontradas na vaga).
 
+### IA sob demanda: análise de perfil, currículo, entrevista e assistente
+
+Mesma filosofia determinística acima, em quatro recursos novos, todos na seção "🤖 IA para você" do perfil (menos o assistente, que é um widget flutuante em todas as páginas) — nenhum roda em segundo plano, só quando o candidato pede:
+
+- **Análise de perfil** (`GET /api/ia/analise-perfil`, `backend/analise_perfil.py`): lista pontos fortes e sugestões de melhoria a partir de um checklist de campos preenchidos (mini-currículo, habilidades, experiências, formação, CNH, idiomas, links, disponibilidade).
+- **Gerador de currículo** (`GET /api/ia/gerar-curriculo`): monta um currículo em texto plano a partir dos dados já cadastrados no perfil, pronto para copiar ou imprimir (`Ctrl+P` do navegador) — sem depender de nenhuma biblioteca de PDF no cliente.
+- **Simulador de entrevista** (`GET /api/ia/simulador-entrevista?categoria=`, `backend/entrevista.py`): banco de perguntas fixo por categoria de vaga (Motorista, Entregador, Estoquista, Conferente, Auxiliar Logístico, Operador) + perguntas comportamentais gerais, com uma dica sobre o método STAR. É um simulador de prática — não há avaliação automática de respostas, isso exigiria uma IA de verdade.
+- **Assistente virtual** (`POST /api/ia/assistente`, `backend/assistente.py`): widget flutuante (💬, canto inferior direito, em qualquer página) que responde dúvidas comuns por correspondência de palavras-chave contra uma lista de intenções (candidatura, favoritos, 2FA, chat, currículo, recomendações, entrevista, anunciar vaga, alertas, login com Google). Deliberadamente descrito como central de ajuda, não como um chat conversacional livre.
+
 ## Busca avançada e experiência de listagem
 
 A busca da home (`index.html`) foi expandida além do campo cargo/cidade original:
@@ -123,6 +140,16 @@ Cada alerta também mostra um badge "+N novas" com as vagas que passaram a corre
 **Histórico de candidaturas** (`/api/minhas-candidaturas`): lista as candidaturas do usuário logado, casadas pelo e-mail com a tabela `candidaturas` (que não exige login para se candidatar). O formulário de candidatura agora pré-preenche nome/e-mail/telefone quando o candidato está logado, para que o histórico funcione de forma consistente.
 
 **Histórico de buscas**: as últimas 5 buscas ficam salvas no navegador (`localStorage`, sem backend) e aparecem como chips clicáveis abaixo da busca na home.
+
+## Chat entre candidato e empresa
+
+Disponível em `/chat.html` (link 💬 na navbar quando logado). Uma única conversa por par (candidato, empresa) — não por vaga, para não proliferar threads quando o candidato se candidata a várias vagas da mesma empresa.
+
+Quem pode iniciar uma conversa:
+- **Candidato**, a partir do modal de candidatura de uma vaga com empresa dona (botão "💬 Enviar mensagem para a empresa", só aparece quando a vaga foi publicada pelo painel de empresas, não para vagas de exemplo/Jooble/admin).
+- **Empresa**, a partir da lista de candidaturas recebidas de uma vaga (botão "💬 Mensagem"), resolvendo o candidato pelo e-mail da candidatura — como `Candidatura` não tem vínculo direto com `Usuario` (permite candidatura sem conta), se não existir uma conta com esse e-mail, a empresa recebe um aviso de que o candidato ainda não tem conta na plataforma.
+
+Envio de mensagem é sempre via REST (`POST /api/chat/conversas/{id}/mensagens`); um WebSocket (`/ws/chat/{id}`) entrega em tempo real para quem estiver com a tela da conversa aberta — nunca conecta sozinho/automaticamente. Autenticado via token JWT na query string, já que o `WebSocket` nativo do navegador não permite headers customizados no handshake. Requer a dependência `websockets` no `requirements.txt` (Uvicorn sem ela responde 404 a qualquer tentativa de conexão).
 
 ## Blog
 
