@@ -40,6 +40,20 @@ class Usuario(Base):
     criado_em = Column(DateTime(timezone=True), server_default=func.now())
 
 
+class RefreshToken(Base):
+    """Refresh token de sessão persistente: opaco para o cliente, guardado aqui
+    só como hash (sha256) — nunca em texto puro — para permitir revogação
+    (logout, rotação a cada uso) sem depender de estado no JWT de acesso."""
+    __tablename__ = "refresh_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, nullable=False, index=True)
+    token_hash = Column(String, unique=True, nullable=False, index=True)
+    criado_em = Column(DateTime(timezone=True), server_default=func.now())
+    expira_em = Column(DateTime(timezone=True), nullable=False)
+    revogado_em = Column(DateTime(timezone=True), nullable=True)
+
+
 class Favorito(Base):
     __tablename__ = "favoritos"
     __table_args__ = (

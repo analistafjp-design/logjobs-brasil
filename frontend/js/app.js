@@ -654,12 +654,17 @@ document.querySelectorAll('[data-em-breve]').forEach((el) => {
 /* ===== Autenticação (candidato / empresa) ===== */
 
 const CHAVE_TOKEN = 'logjobs-token';
+const CHAVE_REFRESH = 'logjobs-refresh-token';
 const CHAVE_USUARIO = 'logjobs-usuario';
 const areaConta = document.getElementById('areaConta');
 let favoritosIds = new Set();
 
 function obterToken() {
   return localStorage.getItem(CHAVE_TOKEN);
+}
+
+function obterRefreshToken() {
+  return localStorage.getItem(CHAVE_REFRESH);
 }
 
 function obterUsuario() {
@@ -670,13 +675,65 @@ function obterUsuario() {
   }
 }
 
-function salvarSessao(token, usuario) {
+function salvarSessao(token, usuario, refreshToken) {
   localStorage.setItem(CHAVE_TOKEN, token);
   localStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario));
+  if (refreshToken) localStorage.setItem(CHAVE_REFRESH, refreshToken);
+}
+
+// Troca o refresh token guardado por um novo par de tokens (rotação de uso
+// único no backend). Usado pelo apiFetch quando um pedido autenticado leva
+// 401 — mantém a sessão viva sem exigir login de novo a cada expiração do
+// access token.
+async function renovarSessao() {
+  const refreshToken = obterRefreshToken();
+  if (!refreshToken) return false;
+
+  try {
+    const resposta = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    });
+    if (!resposta.ok) return false;
+    const dados = await resposta.json();
+    salvarSessao(dados.access_token, dados.usuario, dados.refresh_token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Wrapper de fetch para chamadas autenticadas: anexa o access token e, se a
+// resposta vier 401 (token expirado), tenta renovar a sessão uma vez e repete
+// o pedido antes de desistir.
+async function apiFetch(url, opcoes = {}) {
+  const comToken = (token) => ({
+    ...opcoes,
+    headers: { ...(opcoes.headers || {}), Authorization: `Bearer ${token}` },
+  });
+
+  let resposta = await fetch(url, comToken(obterToken()));
+  if (resposta.status === 401 && obterRefreshToken()) {
+    const renovou = await renovarSessao();
+    if (renovou) {
+      resposta = await fetch(url, comToken(obterToken()));
+    }
+  }
+  return resposta;
 }
 
 function encerrarSessao() {
+  const refreshToken = obterRefreshToken();
+  if (refreshToken) {
+    fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    }).catch(() => {});
+  }
   localStorage.removeItem(CHAVE_TOKEN);
+  localStorage.removeItem(CHAVE_REFRESH);
   localStorage.removeItem(CHAVE_USUARIO);
   favoritosIds = new Set();
   renderAreaConta();
@@ -742,7 +799,7 @@ function abrirModalAuth(modoInicial) {
         const dados = await resposta.json();
         if (!resposta.ok) throw new Error(dados.detail || 'Código inválido');
 
-        salvarSessao(dados.access_token, dados.usuario);
+        salvarSessao(dados.access_token, dados.usuario, dados.refresh_token);
         renderAreaConta();
         await carregarFavoritos();
         if (vagasCarregadas.length) renderizarVagas(vagasCarregadas);
@@ -835,7 +892,7 @@ function abrirModalAuth(modoInicial) {
           return;
         }
 
-        salvarSessao(dados.access_token, dados.usuario);
+        salvarSessao(dados.access_token, dados.usuario, dados.refresh_token);
         renderAreaConta();
         await carregarFavoritos();
         if (vagasCarregadas.length) renderizarVagas(vagasCarregadas);
@@ -859,9 +916,7 @@ async function carregarFavoritos() {
     return;
   }
   try {
-    const resposta = await fetch(`${API_BASE}/favoritos`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const resposta = await apiFetch(`${API_BASE}/favoritos`);
     if (!resposta.ok) throw new Error();
     const dados = await resposta.json();
     favoritosIds = new Set((dados.vagas || []).map((v) => Number(v.id)));
@@ -881,10 +936,7 @@ async function alternarFavorito(vagaId, botaoEl) {
   const metodo = salva ? 'DELETE' : 'POST';
 
   try {
-    const resposta = await fetch(`${API_BASE}/favoritos/${id}`, {
-      method: metodo,
-      headers: { Authorization: `Bearer ${obterToken()}` },
-    });
+    const resposta = await apiFetch(`${API_BASE}/favoritos/${id}`, { method: metodo });
     if (!resposta.ok) throw new Error();
 
     if (salva) {

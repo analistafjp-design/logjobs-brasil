@@ -8,9 +8,9 @@ from typing import Optional
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -66,6 +66,7 @@ async def cabecalhos_seguranca(request: Request, call_next):
     resposta.headers["X-Frame-Options"] = "DENY"
     resposta.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     resposta.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+    resposta.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     resposta.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline'; "
@@ -448,37 +449,37 @@ def admin_verificar():
 
 
 class VagaEntrada(BaseModel):
-    cargo: str
-    empresa: str
-    cidade: str
-    estado: str
-    categoria: str
+    cargo: str = Field(min_length=1, max_length=150)
+    empresa: str = Field(min_length=1, max_length=150)
+    cidade: str = Field(min_length=1, max_length=150)
+    estado: str = Field(min_length=1, max_length=5)
+    categoria: str = Field(min_length=1, max_length=100)
     salario: Optional[float] = None
-    modalidade: Optional[str] = None
-    turno: Optional[str] = None
-    tipo_contratacao: Optional[str] = None
-    veiculo: Optional[str] = None
-    descricao: Optional[str] = None
-    beneficios: Optional[str] = None
-    requisitos: Optional[str] = None
-    link: Optional[str] = None
+    modalidade: Optional[str] = Field(default=None, max_length=100)
+    turno: Optional[str] = Field(default=None, max_length=100)
+    tipo_contratacao: Optional[str] = Field(default=None, max_length=100)
+    veiculo: Optional[str] = Field(default=None, max_length=100)
+    descricao: Optional[str] = Field(default=None, max_length=5000)
+    beneficios: Optional[str] = Field(default=None, max_length=5000)
+    requisitos: Optional[str] = Field(default=None, max_length=5000)
+    link: Optional[str] = Field(default=None, max_length=500)
 
 
 class VagaAtualizacao(BaseModel):
-    cargo: Optional[str] = None
-    empresa: Optional[str] = None
-    cidade: Optional[str] = None
-    estado: Optional[str] = None
-    categoria: Optional[str] = None
+    cargo: Optional[str] = Field(default=None, min_length=1, max_length=150)
+    empresa: Optional[str] = Field(default=None, min_length=1, max_length=150)
+    cidade: Optional[str] = Field(default=None, min_length=1, max_length=150)
+    estado: Optional[str] = Field(default=None, min_length=1, max_length=5)
+    categoria: Optional[str] = Field(default=None, min_length=1, max_length=100)
     salario: Optional[float] = None
-    modalidade: Optional[str] = None
-    turno: Optional[str] = None
-    tipo_contratacao: Optional[str] = None
-    veiculo: Optional[str] = None
-    descricao: Optional[str] = None
-    beneficios: Optional[str] = None
-    requisitos: Optional[str] = None
-    link: Optional[str] = None
+    modalidade: Optional[str] = Field(default=None, max_length=100)
+    turno: Optional[str] = Field(default=None, max_length=100)
+    tipo_contratacao: Optional[str] = Field(default=None, max_length=100)
+    veiculo: Optional[str] = Field(default=None, max_length=100)
+    descricao: Optional[str] = Field(default=None, max_length=5000)
+    beneficios: Optional[str] = Field(default=None, max_length=5000)
+    requisitos: Optional[str] = Field(default=None, max_length=5000)
+    link: Optional[str] = Field(default=None, max_length=500)
     pausada: Optional[int] = None
 
 
@@ -646,9 +647,9 @@ def admin_excluir_usuario(usuario_id: int, db: Session = Depends(get_db)):
 
 class CandidaturaEntrada(BaseModel):
     vaga_id: int
-    nome: str
+    nome: str = Field(min_length=1, max_length=150)
     email: EmailStr
-    telefone: Optional[str] = None
+    telefone: Optional[str] = Field(default=None, max_length=30)
     empresa_no_meio: Optional[str] = None  # honeypot: deve ficar vazio
 
 
@@ -677,9 +678,9 @@ def criar_candidatura(dados: CandidaturaEntrada, request: Request, db: Session =
 
 
 class InteressadoEntrada(BaseModel):
-    nome: str
+    nome: str = Field(min_length=1, max_length=150)
     email: EmailStr
-    tipo: str
+    tipo: str = Field(min_length=1, max_length=50)
     empresa_no_meio: Optional[str] = None  # honeypot: deve ficar vazio
 
 
@@ -699,70 +700,85 @@ def criar_interessado(dados: InteressadoEntrada, request: Request, db: Session =
 
 
 class RegistroEntrada(BaseModel):
-    nome: str
+    # A validação de tamanho mínimo da senha continua no corpo de `registrar()`
+    # (não aqui via Field) para manter a mensagem de erro amigável em português —
+    # um erro do Pydantic aqui devolveria uma lista de erros genérica em vez de
+    # "A senha precisa ter pelo menos 6 caracteres", que o frontend não sabe exibir.
+    nome: str = Field(min_length=1, max_length=150)
     email: EmailStr
-    senha: str
+    senha: str = Field(max_length=200)
     tipo: str = "candidato"
 
 
 class LoginEntrada(BaseModel):
     email: EmailStr
-    senha: str
-    codigo_totp: Optional[str] = None
+    senha: str = Field(max_length=200)
+    codigo_totp: Optional[str] = Field(default=None, max_length=10)
+
+
+class RefreshEntrada(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=200)
+
+
+class LogoutEntrada(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=200)
 
 
 class ExperienciaItem(BaseModel):
-    cargo: str
-    empresa: str
-    cidade: Optional[str] = None
-    inicio: Optional[str] = None  # "MM/AAAA"
-    fim: Optional[str] = None  # vazio/None = emprego atual
-    descricao: Optional[str] = None
+    cargo: str = Field(max_length=150)
+    empresa: str = Field(max_length=150)
+    cidade: Optional[str] = Field(default=None, max_length=150)
+    inicio: Optional[str] = Field(default=None, max_length=20)  # "MM/AAAA"
+    fim: Optional[str] = Field(default=None, max_length=20)  # vazio/None = emprego atual
+    descricao: Optional[str] = Field(default=None, max_length=2000)
 
 
 class FormacaoItem(BaseModel):
-    curso: str
-    instituicao: str
-    nivel: Optional[str] = None  # Ensino Médio | Técnico | Graduação | Pós-graduação | Mestrado | Doutorado
-    status: Optional[str] = None  # Concluído | Cursando | Trancado
-    ano: Optional[str] = None
+    curso: str = Field(max_length=150)
+    instituicao: str = Field(max_length=150)
+    nivel: Optional[str] = Field(default=None, max_length=50)  # Ensino Médio | Técnico | Graduação | Pós-graduação | Mestrado | Doutorado
+    status: Optional[str] = Field(default=None, max_length=50)  # Concluído | Cursando | Trancado
+    ano: Optional[str] = Field(default=None, max_length=20)
 
 
 class CursoItem(BaseModel):
-    nome: str
-    instituicao: Optional[str] = None
-    ano: Optional[str] = None
+    nome: str = Field(max_length=150)
+    instituicao: Optional[str] = Field(default=None, max_length=150)
+    ano: Optional[str] = Field(default=None, max_length=20)
 
 
 class CertificadoItem(BaseModel):
-    nome: str
-    instituicao: Optional[str] = None
-    ano: Optional[str] = None
+    nome: str = Field(max_length=150)
+    instituicao: Optional[str] = Field(default=None, max_length=150)
+    ano: Optional[str] = Field(default=None, max_length=20)
 
 
 class IdiomaItem(BaseModel):
-    idioma: str
-    nivel: Optional[str] = None  # Básico | Intermediário | Avançado | Fluente | Nativo
+    idioma: str = Field(max_length=100)
+    nivel: Optional[str] = Field(default=None, max_length=50)  # Básico | Intermediário | Avançado | Fluente | Nativo
+
+
+ItemsLimitados = Field(default=None, max_length=50)  # limite razoável de itens por lista (evita payloads absurdos)
 
 
 class PerfilEntrada(BaseModel):
-    nome: Optional[str] = None
-    telefone: Optional[str] = None
-    cidade: Optional[str] = None
-    resumo: Optional[str] = None
-    habilidades: Optional[str] = None
+    nome: Optional[str] = Field(default=None, max_length=150)
+    telefone: Optional[str] = Field(default=None, max_length=30)
+    cidade: Optional[str] = Field(default=None, max_length=150)
+    resumo: Optional[str] = Field(default=None, max_length=5000)
+    habilidades: Optional[str] = Field(default=None, max_length=1000)
     pretensao_salarial: Optional[float] = None
-    disponibilidade: Optional[str] = None
-    possui_cnh: Optional[str] = None
-    veiculo_proprio: Optional[str] = None
-    portfolio_url: Optional[str] = None
-    linkedin_url: Optional[str] = None
-    github_url: Optional[str] = None
-    experiencias: Optional[list[ExperienciaItem]] = None
-    formacoes: Optional[list[FormacaoItem]] = None
-    cursos: Optional[list[CursoItem]] = None
-    certificados: Optional[list[CertificadoItem]] = None
-    idiomas: Optional[list[IdiomaItem]] = None
+    disponibilidade: Optional[str] = Field(default=None, max_length=50)
+    possui_cnh: Optional[str] = Field(default=None, max_length=10)
+    veiculo_proprio: Optional[str] = Field(default=None, max_length=10)
+    portfolio_url: Optional[str] = Field(default=None, max_length=500)
+    linkedin_url: Optional[str] = Field(default=None, max_length=500)
+    github_url: Optional[str] = Field(default=None, max_length=500)
+    experiencias: Optional[list[ExperienciaItem]] = ItemsLimitados
+    formacoes: Optional[list[FormacaoItem]] = ItemsLimitados
+    cursos: Optional[list[CursoItem]] = ItemsLimitados
+    certificados: Optional[list[CertificadoItem]] = ItemsLimitados
+    idiomas: Optional[list[IdiomaItem]] = ItemsLimitados
 
 
 def _lista_json(texto: Optional[str]) -> list:
@@ -841,7 +857,8 @@ def registrar(dados: RegistroEntrada, request: Request, db: Session = Depends(ge
     db.refresh(usuario)
 
     token = auth.criar_token(usuario.id)
-    return {"access_token": token, "usuario": usuario_para_json(usuario)}
+    refresh_token = auth.criar_refresh_token(db, usuario.id)
+    return {"access_token": token, "refresh_token": refresh_token, "usuario": usuario_para_json(usuario)}
 
 
 @app.post("/api/auth/login")
@@ -859,12 +876,36 @@ def login(dados: LoginEntrada, request: Request, db: Session = Depends(get_db)):
             raise HTTPException(status_code=401, detail="Código de verificação inválido")
 
     token = auth.criar_token(usuario.id)
-    return {"access_token": token, "usuario": usuario_para_json(usuario)}
+    refresh_token = auth.criar_refresh_token(db, usuario.id)
+    return {"access_token": token, "refresh_token": refresh_token, "usuario": usuario_para_json(usuario)}
 
 
 @app.get("/api/auth/me")
 def me(usuario: Usuario = Depends(auth.usuario_atual)):
     return usuario_para_json(usuario)
+
+
+@app.post("/api/auth/refresh")
+def renovar_token(dados: RefreshEntrada, request: Request, db: Session = Depends(get_db)):
+    limitar_por_ip(request, "auth-refresh", max_pedidos=30, janela_segundos=600)
+
+    resultado = auth.rotacionar_refresh_token(db, dados.refresh_token)
+    if not resultado:
+        raise HTTPException(status_code=401, detail="Sessão expirada, faça login novamente")
+
+    usuario, novo_refresh_token = resultado
+    novo_access_token = auth.criar_token(usuario.id)
+    return {
+        "access_token": novo_access_token,
+        "refresh_token": novo_refresh_token,
+        "usuario": usuario_para_json(usuario),
+    }
+
+
+@app.post("/api/auth/logout", status_code=204)
+def logout(dados: LogoutEntrada, db: Session = Depends(get_db)):
+    auth.revogar_refresh_token(db, dados.refresh_token)
+    return Response(status_code=204)
 
 
 @app.get("/api/auth/google/configurado")
@@ -922,7 +963,8 @@ def google_callback(request: Request, code: Optional[str] = None, state: Optiona
         db.commit()
 
     token = auth.criar_token(usuario.id)
-    return RedirectResponse(f"/oauth-callback.html#token={token}")
+    refresh_token = auth.criar_refresh_token(db, usuario.id)
+    return RedirectResponse(f"/oauth-callback.html#token={token}&refresh_token={refresh_token}")
 
 
 @app.post("/api/auth/2fa/iniciar")

@@ -40,6 +40,7 @@
 
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
   const token = hash.get('token');
+  const refreshToken = hash.get('refresh_token');
   if (!token) {
     statusEl.innerHTML = '<h1>Não foi possível entrar</h1><p class="modal-subtitulo">Token ausente.</p><a class="btn-candidatar" href="index.html">Voltar para o início</a>';
     return;
@@ -50,6 +51,7 @@
     if (!resposta.ok) throw new Error();
     const usuario = await resposta.json();
     localStorage.setItem('logjobs-token', token);
+    if (refreshToken) localStorage.setItem('logjobs-refresh-token', refreshToken);
     localStorage.setItem('logjobs-usuario', JSON.stringify(usuario));
     window.location.replace('perfil.html');
   } catch {

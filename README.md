@@ -27,6 +27,16 @@ Acesse `http://localhost:8000` — o próprio backend serve o frontend e a API (
 
 Na primeira execução, o banco SQLite é criado e populado automaticamente com vagas de exemplo.
 
+## Testes automatizados
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+pytest
+```
+
+Os testes (`backend/tests/`) usam um banco SQLite temporário próprio, isolado do `logjobs.db` de desenvolvimento — cobrem o fluxo de autenticação (registro, login, refresh token, logout, 2FA) e os endpoints públicos principais (vagas, estatísticas, favoritos, rate limit, proteção do painel admin).
+
 ## Conectando dados reais (Jooble)
 
 A busca de vagas reais via [Jooble](https://jooble.org/api/about) já está implementada em `backend/jooble_client.py`, mas depende de uma chave de API:
@@ -50,6 +60,8 @@ Em produção (Render), o SQLite **não deve ser usado**: o disco do plano free 
 Login e cadastro reais estão disponíveis: botão "Entrar" na navbar abre um modal com abas de Entrar/Cadastrar. O cadastro aceita tipo "candidato" ou "empresa" (`POST /api/auth/registro`), login em `POST /api/auth/login`, e `GET /api/auth/me` retorna o usuário autenticado a partir do token.
 
 Senhas são armazenadas com hash PBKDF2-HMAC-SHA256 (salt por usuário) e o token de sessão é um JWT HS256 — ambos implementados só com a biblioteca padrão do Python (`backend/security.py`), sem depender de `passlib[bcrypt]`/`cryptography`, que têm extensões nativas propensas a quebrar entre plataformas diferentes de desenvolvimento/deploy. Configure `LOGJOBS_SECRET_KEY` em produção (sem isso, usa uma chave de desenvolvimento fixa).
+
+O access token (JWT) dura 7 dias, mas a sessão pode durar bem mais que isso: registro, login e login com Google também devolvem um **refresh token** opaco (não é JWT — só um valor aleatório, guardado no banco só como hash SHA-256, nunca em texto puro). `POST /api/auth/refresh` troca um refresh token válido por um novo par (access + refresh) e revoga o antigo — rotação de uso único, então um refresh token vazado/reaproveitado já não funciona mais depois do primeiro uso legítimo. `POST /api/auth/logout` revoga o refresh token da sessão atual. No frontend, o `apiFetch()` (`frontend/js/app.js`) encapsula chamadas autenticadas e renova a sessão sozinho, sem exigir login de novo, sempre que o access token expira.
 
 Usuários logados podem salvar vagas (favoritos): botão de estrela em cada card, endpoints `GET/POST/DELETE /api/favoritos`.
 

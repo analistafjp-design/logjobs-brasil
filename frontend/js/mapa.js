@@ -39,9 +39,9 @@ async function carregarMapa() {
       const [x, y] = projetar(lat, lng);
       const raio = raioMin + Math.sqrt(d.total / max) * (raioMax - raioMin);
       return `
-        <g class="mapa-ponto" data-estado="${d.estado}" data-total="${d.total}" tabindex="0" role="button" aria-label="${d.estado}: ${d.total} vagas">
+        <g class="mapa-ponto" data-estado="${escapeHtml(d.estado)}" data-total="${escapeHtml(d.total)}" tabindex="0" role="button" aria-label="${escapeHtml(d.estado)}: ${escapeHtml(d.total)} vagas">
           <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${raio.toFixed(1)}"></circle>
-          <text x="${x.toFixed(1)}" y="${y.toFixed(1)}" dy="0.35em" text-anchor="middle">${d.estado}</text>
+          <text x="${x.toFixed(1)}" y="${y.toFixed(1)}" dy="0.35em" text-anchor="middle">${escapeHtml(d.estado)}</text>
         </g>
       `;
     }).join('');
