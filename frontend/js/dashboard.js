@@ -1,72 +1,7 @@
 const API_BASE_DASH = '/api';
-const CORES_SERIE = ['--serie-1', '--serie-2', '--serie-3', '--serie-4', '--serie-5', '--serie-6', '--serie-7', '--serie-8'];
-
-function corVar(nome) {
-  return `var(${nome})`;
-}
-
-function agruparTop(lista, chaveLabel, chaveValor, maximo = 8) {
-  const ordenado = [...lista].sort((a, b) => b[chaveValor] - a[chaveValor]);
-  if (ordenado.length <= maximo) return ordenado;
-
-  const top = ordenado.slice(0, maximo - 1);
-  const resto = ordenado.slice(maximo - 1);
-  const somaResto = resto.reduce((acc, item) => acc + item[chaveValor], 0);
-  top.push({ [chaveLabel]: 'Outros', [chaveValor]: somaResto });
-  return top;
-}
-
-function formatarNumero(valor) {
-  return Number(valor).toLocaleString('pt-BR');
-}
 
 function formatarSalarioDash(valor) {
   return `R$ ${Number(valor).toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`;
-}
-
-function renderizarBarras(container, dados, chaveLabel, chaveValor, mapaCores, formatador = formatarNumero) {
-  if (!container) return;
-
-  if (!dados.length) {
-    container.innerHTML = '<p class="dash-carregando">Ainda sem dados suficientes.</p>';
-    return;
-  }
-
-  const max = Math.max(...dados.map((d) => d[chaveValor]));
-
-  container.innerHTML = dados.map((d) => {
-    const pct = max > 0 ? Math.max(2, Math.round((d[chaveValor] / max) * 100)) : 0;
-    const cor = mapaCores.get(d[chaveLabel]) || corVar('--texto-suave');
-    const rotulo = escapeHtml(d[chaveLabel]);
-    return `
-      <div class="barra-item">
-        <span class="barra-rotulo" title="${rotulo}">${rotulo}</span>
-        <div class="barra-trilho"><div class="barra-preenchimento" style="width:${pct}%;background:${cor}"></div></div>
-        <span class="barra-valor">${formatador(d[chaveValor])}</span>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderizarLegenda(dados, chaveLabel, mapaCores) {
-  return dados.map((d) => {
-    const cor = mapaCores.get(d[chaveLabel]) || corVar('--texto-suave');
-    return `
-      <span class="dash-legenda-item">
-        <span class="dash-legenda-ponto" style="background:${cor}"></span>
-        ${escapeHtml(d[chaveLabel])}
-      </span>
-    `;
-  }).join('');
-}
-
-function construirMapaCores(dadosAgrupados, chaveLabel) {
-  const mapa = new Map();
-  dadosAgrupados.forEach((d, i) => {
-    const cor = d[chaveLabel] === 'Outros' ? corVar('--texto-suave') : corVar(CORES_SERIE[i % CORES_SERIE.length]);
-    mapa.set(d[chaveLabel], cor);
-  });
-  return mapa;
 }
 
 function renderizarEvolucao(container, dados) {

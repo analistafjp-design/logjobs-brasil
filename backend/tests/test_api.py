@@ -167,3 +167,41 @@ def test_admin_criar_vaga_com_campos_muito_longos_e_rejeitado(client):
         },
     )
     assert resposta.status_code == 422
+
+
+def test_admin_dashboard_retorna_kpis(client):
+    resposta = client.get("/api/admin/dashboard", headers={"X-Admin-Token": "test-admin-token"})
+    assert resposta.status_code == 200
+    dados = resposta.json()
+    for chave in ["total_usuarios", "candidatos", "empresas", "total_vagas", "vagas_por_fonte", "total_candidaturas", "total_interessados"]:
+        assert chave in dados
+
+
+def test_admin_dashboard_sem_token_e_negado(client):
+    assert client.get("/api/admin/dashboard").status_code == 403
+
+
+def test_empresa_estatisticas_traz_candidaturas_por_vaga(client):
+    email = f"empresa.{uuid.uuid4().hex[:12]}@exemplo.com"
+    registro = client.post(
+        "/api/auth/registro",
+        json={"nome": "Transportadora KPI", "email": email, "senha": "senha123456", "tipo": "empresa"},
+    ).json()
+    token = registro["access_token"]
+
+    vaga = client.post(
+        "/api/empresa/vagas",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"cargo": "Motorista KPI", "empresa": "Transportadora KPI", "cidade": "Curitiba", "estado": "PR", "categoria": "Motorista"},
+    ).json()
+
+    client.post(
+        "/api/candidaturas",
+        json={"vaga_id": vaga["id"], "nome": "Candidato Teste", "email": "candidato.kpi@exemplo.com"},
+    )
+
+    estatisticas = client.get("/api/empresa/estatisticas", headers={"Authorization": f"Bearer {token}"}).json()
+    assert estatisticas["total_candidaturas"] == 1
+    assert estatisticas["vagas_ativas"] == 1
+    assert estatisticas["vagas_pausadas"] == 0
+    assert estatisticas["candidaturas_por_vaga"] == [{"cargo": "Motorista KPI (Curitiba)", "total": 1}]

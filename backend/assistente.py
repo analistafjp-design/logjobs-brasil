@@ -75,6 +75,11 @@ INTENCOES = [
         "Se disponível, o botão \"Continuar com Google\" aparece no formulário de login/cadastro. "
         "Se não aparecer, o login com Google ainda não foi configurado neste servidor.",
     ),
+    (
+        ("entregador", "motorista", "estoquista", "conferente", "auxiliar logistico", "operador", "categoria"),
+        "Você pode filtrar vagas por essa categoria direto na página inicial — clique no botão da categoria "
+        "logo abaixo da busca, ou digite o cargo no campo de busca.",
+    ),
 ]
 
 
@@ -85,7 +90,9 @@ def _normalizar(texto: str) -> str:
 
 
 def _contem_palavra(palavra: str, texto: str) -> bool:
-    return re.search(rf"\b{re.escape(palavra)}\b", texto) is not None
+    # "s?" no final: casa também o plural regular (vaga/vagas, candidatura/candidaturas),
+    # sem o que uma pergunta como "quais vagas vocês têm?" não batia com a intenção de "vaga".
+    return re.search(rf"\b{re.escape(palavra)}s?\b", texto) is not None
 
 
 def responder(pergunta: str) -> dict:
