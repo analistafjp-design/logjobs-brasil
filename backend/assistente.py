@@ -40,8 +40,9 @@ INTENCOES = [
     ),
     (
         ("senha", "esqueci", "recuperar acesso", "trocar senha"),
-        "No momento a recuperação de senha é feita entrando em contato com o suporte "
-        "(contato@logjobsbrasil.com.br) — em breve teremos recuperação automática por e-mail.",
+        "Clique em \"Esqueci minha senha\" na tela de login — enviamos um link de redefinição para o seu "
+        "e-mail, válido por 1 hora. Se o link não aparecer no login, a recuperação por e-mail ainda não foi "
+        "configurada neste servidor; nesse caso, fale com o suporte em contato@logjobsbrasil.com.br.",
     ),
     (
         ("chat", "mensagem", "conversar com a empresa", "falar com o candidato"),
@@ -80,6 +81,69 @@ INTENCOES = [
         "Você pode filtrar vagas por essa categoria direto na página inicial — clique no botão da categoria "
         "logo abaixo da busca, ou digite o cargo no campo de busca.",
     ),
+    (
+        ("cadastro", "cadastrar", "criar conta", "registrar", "registro"),
+        "Clique em \"Entrar\" no menu e depois na aba \"Cadastrar\". Escolha se você é candidato ou empresa, "
+        "preencha nome, e-mail e senha — leva menos de 2 minutos.",
+    ),
+    (
+        ("mapa", "mapa de vagas", "vagas no mapa"),
+        "O \"Mapa\" (menu principal) mostra o número de vagas por estado em bolhas — clique em um estado para "
+        "ver as vagas de lá na busca.",
+    ),
+    (
+        ("ranking", "melhores empresas", "empresas que mais contratam"),
+        "O \"Ranking\" (menu principal) lista as empresas que mais publicam vagas e as com maior salário médio "
+        "informado.",
+    ),
+    (
+        ("salario", "comparar salario", "faixa salarial", "quanto ganha"),
+        "Em \"Salários\" (menu principal) você compara a faixa salarial (mínimo, média e máximo) de até duas "
+        "categorias lado a lado.",
+    ),
+    (
+        ("blog", "artigo", "dicas de carreira"),
+        "O \"Blog\" (menu principal) tem artigos sobre documentos, currículo e entrevistas para quem trabalha "
+        "com logística.",
+    ),
+    (
+        (
+            "meus dados", "excluir conta", "excluir minha conta", "apagar conta", "apagar minha conta",
+            "apagar meus dados", "deletar conta", "deletar minha conta", "cancelar conta", "lgpd", "privacidade",
+        ),
+        "Na seção \"🛡️ Privacidade e meus dados\" do seu perfil, você baixa uma cópia de tudo o que guardamos "
+        "sobre você ou exclui sua conta e os dados associados definitivamente.",
+    ),
+    (
+        ("logo", "site da empresa", "instagram da empresa", "redes sociais"),
+        "Empresas cadastram logo, site e Instagram na tela de perfil (\"Dados da conta\", logado como empresa) — "
+        "a logo aparece no cabeçalho do painel da empresa.",
+    ),
+    (
+        ("compartilhar", "compartilhar vaga"),
+        "Clique no ícone 🔗 no card da vaga para compartilhar o link — abre o menu de compartilhamento do "
+        "celular ou copia o link direto para a área de transferência.",
+    ),
+    (
+        ("conquista", "selo", "nivel", "gamificacao"),
+        "Em \"🏅 Suas conquistas\", no seu perfil de candidato, você vê selos por completar o perfil, salvar "
+        "vagas e enviar candidaturas.",
+    ),
+    (
+        ("exportar candidaturas", "baixar candidaturas", "csv"),
+        "No painel da empresa, o botão de exportar candidaturas gera um CSV com todos os candidatos de todas "
+        "as suas vagas.",
+    ),
+    (
+        ("pausar vaga", "renovar vaga", "reativar vaga"),
+        "No painel da empresa, cada vaga tem botões para pausar (some da busca pública sem excluir), reativar "
+        "e renovar (volta ao topo das mais recentes).",
+    ),
+    (
+        ("plano", "preco", "quanto custa", "gratuito", "pagar"),
+        "O LogJobs Brasil é gratuito para candidatos. Para planos de empresa, deixe seu contato pelo link "
+        "\"Planos\" no rodapé — ainda estamos definindo os valores.",
+    ),
 ]
 
 
@@ -101,7 +165,10 @@ def responder(pergunta: str) -> dict:
     melhor_resposta = None
     melhor_pontuacao = 0
     for palavras_chave, resposta in INTENCOES:
-        pontuacao = sum(1 for palavra in palavras_chave if _contem_palavra(palavra, pergunta_normalizada))
+        # Pontua pelo tamanho das palavras-chave casadas, não pela quantidade — senão uma
+        # palavra genérica como "vaga" (que aparece em quase toda pergunta sobre o site) empata
+        # ou vence uma intenção mais específica só por estar numa lista com mais sinônimos.
+        pontuacao = sum(len(palavra) for palavra in palavras_chave if _contem_palavra(palavra, pergunta_normalizada))
         if pontuacao > melhor_pontuacao:
             melhor_pontuacao = pontuacao
             melhor_resposta = resposta
