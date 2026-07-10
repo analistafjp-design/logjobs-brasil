@@ -666,6 +666,25 @@ def admin_excluir_usuario(usuario_id: int, request: Request, db: Session = Depen
     return {"mensagem": "Usuário excluído"}
 
 
+@app.get("/api/admin/dashboard", dependencies=[Depends(verificar_admin)])
+def admin_dashboard(db: Session = Depends(get_db)):
+    """KPIs exclusivos do admin — os gráficos de mercado (vagas por categoria/estado/
+    empresa, salário médio, evolução) já existem em GET /api/dashboard (público) e
+    são reaproveitados pelo frontend, sem duplicar essas consultas aqui."""
+    usuarios_por_tipo = dict(db.query(Usuario.tipo, func.count(Usuario.id)).group_by(Usuario.tipo).all())
+    vagas_por_fonte = dict(db.query(Vaga.fonte, func.count(Vaga.id)).group_by(Vaga.fonte).all())
+
+    return {
+        "total_usuarios": sum(usuarios_por_tipo.values()),
+        "candidatos": usuarios_por_tipo.get("candidato", 0),
+        "empresas": usuarios_por_tipo.get("empresa", 0),
+        "total_vagas": db.query(func.count(Vaga.id)).scalar(),
+        "vagas_por_fonte": [{"fonte": f, "total": t} for f, t in vagas_por_fonte.items()],
+        "total_candidaturas": db.query(func.count(Candidatura.id)).scalar(),
+        "total_interessados": db.query(func.count(Interessado.id)).scalar(),
+    }
+
+
 @app.get("/api/admin/auditoria", dependencies=[Depends(verificar_admin)])
 def admin_listar_auditoria(limit: int = Query(default=100, le=500), db: Session = Depends(get_db)):
     logs = db.query(LogAuditoria).order_by(LogAuditoria.id.desc()).limit(limit).all()
@@ -1697,7 +1716,8 @@ def empresa_listar_candidaturas_da_vaga(
 
 @app.get("/api/empresa/estatisticas")
 def empresa_estatisticas(usuario: Usuario = Depends(verificar_empresa), db: Session = Depends(get_db)):
-    vaga_ids = [v.id for v in db.query(Vaga.id).filter(Vaga.usuario_id == usuario.id).all()]
+    vagas = db.query(Vaga).filter(Vaga.usuario_id == usuario.id).all()
+    vaga_ids = [v.id for v in vagas]
     total_candidaturas = (
         db.query(func.count(Candidatura.id)).filter(Candidatura.vaga_id.in_(vaga_ids)).scalar() if vaga_ids else 0
     )
@@ -1707,10 +1727,33 @@ def empresa_estatisticas(usuario: Usuario = Depends(verificar_empresa), db: Sess
         if usuario.candidaturas_vistas_em:
             query_novas = query_novas.filter(Candidatura.criada_em > usuario.candidaturas_vistas_em)
         candidaturas_novas = query_novas.scalar()
+
+    por_vaga = dict(
+        db.query(Candidatura.vaga_id, func.count(Candidatura.id))
+        .filter(Candidatura.vaga_id.in_(vaga_ids))
+        .group_by(Candidatura.vaga_id)
+        .all()
+    ) if vaga_ids else {}
+    candidaturas_por_vaga = sorted(
+        (
+            {"cargo": f"{v.cargo} ({v.cidade})", "total": por_vaga.get(v.id, 0)}
+            for v in vagas
+            if por_vaga.get(v.id, 0) > 0
+        ),
+        key=lambda item: item["total"],
+        reverse=True,
+    )[:10]
+
+    vagas_ativas = sum(1 for v in vagas if not v.pausada)
+    vagas_pausadas = sum(1 for v in vagas if v.pausada)
+
     return {
         "total_vagas": len(vaga_ids),
+        "vagas_ativas": vagas_ativas,
+        "vagas_pausadas": vagas_pausadas,
         "total_candidaturas": total_candidaturas,
         "candidaturas_novas": candidaturas_novas,
+        "candidaturas_por_vaga": candidaturas_por_vaga,
     }
 
 

@@ -65,6 +65,7 @@ async function carregarEstatisticasEmpresa() {
     });
     const dados = await resposta.json();
     document.getElementById('empresaStatVagas').textContent = dados.total_vagas ?? '—';
+    document.getElementById('empresaStatVagasAtivas').textContent = dados.vagas_ativas ?? '—';
     document.getElementById('empresaStatCandidaturas').textContent = dados.total_candidaturas ?? '—';
     const badgeNovas = document.getElementById('empresaBadgeNovas');
     if (dados.candidaturas_novas > 0) {
@@ -72,6 +73,16 @@ async function carregarEstatisticasEmpresa() {
       badgeNovas.hidden = false;
     } else {
       badgeNovas.hidden = true;
+    }
+
+    const secaoGrafico = document.getElementById('secaoGraficoCandidaturasEmpresa');
+    const grafico = document.getElementById('graficoCandidaturasEmpresa');
+    if (dados.candidaturas_por_vaga && dados.candidaturas_por_vaga.length) {
+      secaoGrafico.hidden = false;
+      const mapaCores = construirMapaCores(dados.candidaturas_por_vaga, 'cargo');
+      renderizarBarras(grafico, dados.candidaturas_por_vaga, 'cargo', 'total', mapaCores);
+    } else {
+      secaoGrafico.hidden = true;
     }
   } catch {
     // estatísticas são um extra visual — falha silenciosa não impede o resto do painel

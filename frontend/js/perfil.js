@@ -76,6 +76,7 @@ async function iniciarPerfil() {
   const secaoIdiomas = document.getElementById('secaoIdiomas');
   const secaoCompletude = document.getElementById('secaoCompletude');
   const secaoIA = document.getElementById('secaoIA');
+  const secaoResumoCandidato = document.getElementById('secaoResumoCandidato');
 
   if (usuario.tipo === 'candidato') {
     secaoRecomendadas.hidden = false;
@@ -90,6 +91,7 @@ async function iniciarPerfil() {
     secaoIdiomas.hidden = false;
     secaoCompletude.hidden = false;
     secaoIA.hidden = false;
+    secaoResumoCandidato.hidden = false;
     camposEmpresa.hidden = true;
     carregarRecomendacoes();
     carregarConquistas();
@@ -112,6 +114,7 @@ async function iniciarPerfil() {
     secaoIdiomas.hidden = true;
     secaoCompletude.hidden = true;
     secaoIA.hidden = true;
+    secaoResumoCandidato.hidden = true;
     camposEmpresa.hidden = false;
   }
 
@@ -519,6 +522,9 @@ formPerfil?.addEventListener('submit', async (event) => {
 async function carregarFavoritosPerfil() {
   await carregarFavoritos();
 
+  const statFavoritos = document.getElementById('statResumoFavoritos');
+  if (statFavoritos) statFavoritos.textContent = favoritosIds.size;
+
   if (favoritosIds.size === 0) {
     perfilFavoritosEl.innerHTML = '<p class="vagas-carregando">Você ainda não salvou nenhuma vaga.</p>';
     return;
@@ -596,6 +602,9 @@ async function carregarAlertas() {
       headers: { Authorization: `Bearer ${obterToken()}` },
     });
     const alertas = await resposta.json();
+
+    const statAlertas = document.getElementById('statResumoAlertas');
+    if (statAlertas) statAlertas.textContent = alertas.length;
 
     if (!alertas.length) {
       perfilAlertasEl.innerHTML = '<p class="vagas-carregando">Você ainda não salvou nenhum alerta.</p>';
@@ -680,6 +689,9 @@ async function carregarCandidaturasHistorico() {
       headers: { Authorization: `Bearer ${obterToken()}` },
     });
     const candidaturas = await resposta.json();
+
+    const statCandidaturas = document.getElementById('statResumoCandidaturas');
+    if (statCandidaturas) statCandidaturas.textContent = candidaturas.length;
 
     if (!candidaturas.length) {
       perfilCandidaturasEl.innerHTML = '<p class="vagas-carregando">Você ainda não se candidatou a nenhuma vaga por aqui.</p>';

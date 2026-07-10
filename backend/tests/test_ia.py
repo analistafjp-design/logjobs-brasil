@@ -157,6 +157,21 @@ def test_assistente_nao_confunde_ola_com_escola(client):
     assert resposta.json()["encontrou"] is False
 
 
+def test_assistente_reconhece_plural(client):
+    """'vagas' (plural) deve casar com a intenção de 'vaga'."""
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "vagas"})
+    assert resposta.status_code == 200
+    assert resposta.json()["encontrou"] is True
+
+
+def test_assistente_reconhece_categoria_de_vaga(client):
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "entregador"})
+    assert resposta.status_code == 200
+    dados = resposta.json()
+    assert dados["encontrou"] is True
+    assert "categoria" in dados["resposta"].lower()
+
+
 def test_assistente_rate_limit(client):
     for _ in range(30):
         client.post("/api/ia/assistente", json={"pergunta": "oi"})

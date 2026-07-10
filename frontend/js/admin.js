@@ -19,6 +19,63 @@ function mostrarToast(texto) {
   toastTimeout = setTimeout(() => { toast.hidden = true; }, 3500);
 }
 
+/* ===== Gráficos de barra (mesmo padrão visual de dashboard.js/perfil da empresa;
+   duplicado aqui de propósito — admin.js é um app isolado, sem app.js) ===== */
+
+const CORES_SERIE = ['--serie-1', '--serie-2', '--serie-3', '--serie-4', '--serie-5', '--serie-6', '--serie-7', '--serie-8'];
+
+function corVar(nome) {
+  return `var(${nome})`;
+}
+
+function agruparTop(lista, chaveLabel, chaveValor, maximo = 8) {
+  const ordenado = [...lista].sort((a, b) => b[chaveValor] - a[chaveValor]);
+  if (ordenado.length <= maximo) return ordenado;
+
+  const top = ordenado.slice(0, maximo - 1);
+  const resto = ordenado.slice(maximo - 1);
+  const somaResto = resto.reduce((acc, item) => acc + item[chaveValor], 0);
+  top.push({ [chaveLabel]: 'Outros', [chaveValor]: somaResto });
+  return top;
+}
+
+function formatarNumero(valor) {
+  return Number(valor).toLocaleString('pt-BR');
+}
+
+function renderizarBarras(container, dados, chaveLabel, chaveValor, mapaCores, formatador = formatarNumero) {
+  if (!container) return;
+
+  if (!dados.length) {
+    container.innerHTML = '<p class="dash-carregando">Ainda sem dados suficientes.</p>';
+    return;
+  }
+
+  const max = Math.max(...dados.map((d) => d[chaveValor]));
+
+  container.innerHTML = dados.map((d) => {
+    const pct = max > 0 ? Math.max(2, Math.round((d[chaveValor] / max) * 100)) : 0;
+    const cor = mapaCores.get(d[chaveLabel]) || corVar('--texto-suave');
+    const rotulo = escapeHtml(d[chaveLabel]);
+    return `
+      <div class="barra-item">
+        <span class="barra-rotulo" title="${rotulo}">${rotulo}</span>
+        <div class="barra-trilho"><div class="barra-preenchimento" style="width:${pct}%;background:${cor}"></div></div>
+        <span class="barra-valor">${formatador(d[chaveValor])}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function construirMapaCores(dadosAgrupados, chaveLabel) {
+  const mapa = new Map();
+  dadosAgrupados.forEach((d, i) => {
+    const cor = d[chaveLabel] === 'Outros' ? corVar('--texto-suave') : corVar(CORES_SERIE[i % CORES_SERIE.length]);
+    mapa.set(d[chaveLabel], cor);
+  });
+  return mapa;
+}
+
 /* ===== Token / sessão ===== */
 
 function obterTokenAdmin() {
@@ -97,8 +154,38 @@ document.querySelectorAll('.admin-tab').forEach((tab) => {
     if (tab.dataset.aba === 'interessados') carregarInteressados();
     if (tab.dataset.aba === 'usuarios') carregarUsuarios();
     if (tab.dataset.aba === 'auditoria') carregarAuditoria();
+    if (tab.dataset.aba === 'geral') carregarVisaoGeral();
   });
 });
+
+/* ===== Visão geral (dashboard) ===== */
+
+async function carregarVisaoGeral() {
+  try {
+    const [respostaAdmin, respostaMercado] = await Promise.all([
+      chamarAdmin('/admin/dashboard'),
+      fetch(`${API_BASE}/dashboard`),
+    ]);
+    const admin = await respostaAdmin.json();
+    const mercado = await respostaMercado.json();
+
+    document.getElementById('adminStatVagas').textContent = formatarNumero(admin.total_vagas ?? 0);
+    document.getElementById('adminStatCandidatos').textContent = formatarNumero(admin.candidatos ?? 0);
+    document.getElementById('adminStatEmpresas').textContent = formatarNumero(admin.empresas ?? 0);
+    document.getElementById('adminStatCandidaturas').textContent = formatarNumero(admin.total_candidaturas ?? 0);
+    document.getElementById('adminStatInteressados').textContent = formatarNumero(admin.total_interessados ?? 0);
+
+    const graficoFonte = document.getElementById('graficoAdminFonte');
+    const fontes = admin.vagas_por_fonte || [];
+    renderizarBarras(graficoFonte, fontes, 'fonte', 'total', construirMapaCores(fontes, 'fonte'));
+
+    const graficoCategoria = document.getElementById('graficoAdminCategoria');
+    const categorias = agruparTop(mercado.por_categoria || [], 'categoria', 'total', 8);
+    renderizarBarras(graficoCategoria, categorias, 'categoria', 'total', construirMapaCores(categorias, 'categoria'));
+  } catch {
+    mostrarToast('Não foi possível carregar a visão geral');
+  }
+}
 
 /* ===== Vagas ===== */
 
@@ -357,7 +444,7 @@ document.getElementById('tabelaUsuarios').addEventListener('click', async (event
 /* ===== Inicialização ===== */
 
 function iniciarPainel() {
-  carregarVagas();
+  carregarVisaoGeral();
 }
 
 (async function iniciar() {
