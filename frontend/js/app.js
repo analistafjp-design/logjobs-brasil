@@ -87,6 +87,88 @@ function construirMapaCores(dadosAgrupados, chaveLabel) {
   return mapa;
 }
 
+/* ===== Geolocalização: "vagas perto de mim" =====
+   O banco não guarda latitude/longitude por vaga (só cidade/UF em texto), então a
+   aproximação possível é por estado: usamos a posição do navegador (Geolocation API,
+   só quando o usuário clica e autoriza — nunca automático) e achamos o estado mais
+   próximo por distância geodésica até o centróide de cada UF. Sem geocodificação
+   nem serviço externo de terceiros — tudo calculado no cliente. */
+
+const NOME_ESTADO = {
+  AC: 'Acre', AL: 'Alagoas', AM: 'Amazonas', AP: 'Amapá', BA: 'Bahia', CE: 'Ceará',
+  DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão',
+  MG: 'Minas Gerais', MS: 'Mato Grosso do Sul', MT: 'Mato Grosso', PA: 'Pará',
+  PB: 'Paraíba', PE: 'Pernambuco', PI: 'Piauí', PR: 'Paraná', RJ: 'Rio de Janeiro',
+  RN: 'Rio Grande do Norte', RO: 'Rondônia', RR: 'Roraima', RS: 'Rio Grande do Sul',
+  SC: 'Santa Catarina', SE: 'Sergipe', SP: 'São Paulo', TO: 'Tocantins',
+};
+
+const LATLNG_ESTADO = {
+  AC: [-8.875, -71.85], AL: [-9.27, -36.47], AM: [-2.4, -65.002], AP: [1.41, -52.008],
+  BA: [-12.832, -42.198], CE: [-5.377, -39.67], ES: [-19.493, -40.859], GO: [-15.233, -48.87],
+  MA: [-4.772, -45.309], MG: [-18.342, -44.991], MS: [-19.941, -55.095], MT: [-14.193, -56.343],
+  PA: [-1.679, -52.255], PB: [-7.115, -37.09], PE: [-8.299, -38.214], PI: [-7.068, -43.047],
+  PR: [-24.777, -50.943], RJ: [-22.492, -43.264], RN: [-6.043, -37.037], RO: [-10.735, -63.101],
+  RR: [2.391, -61.505], RS: [-30.495, -52.732], SC: [-27.333, -50.748], SE: [-10.479, -37.638],
+  SP: [-22.464, -47.856], TO: [-10.347, -47.884], DF: [-15.824, -47.702],
+};
+
+function distanciaKm([lat1, lng1], [lat2, lng2]) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function estadoMaisProximo(lat, lng) {
+  let melhorUf = null;
+  let melhorDist = Infinity;
+  for (const [uf, coords] of Object.entries(LATLNG_ESTADO)) {
+    const d = distanciaKm([lat, lng], coords);
+    if (d < melhorDist) { melhorDist = d; melhorUf = uf; }
+  }
+  return melhorUf;
+}
+
+function obterLocalizacaoUsuario() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) { reject(new Error('Geolocalização não é suportada neste navegador.')); return; }
+    navigator.geolocation.getCurrentPosition(
+      (posicao) => resolve({ lat: posicao.coords.latitude, lng: posicao.coords.longitude }),
+      () => reject(new Error('Não foi possível acessar sua localização. Verifique a permissão do navegador.')),
+      { timeout: 8000 }
+    );
+  });
+}
+
+async function localizarEstadoDoUsuario() {
+  const { lat, lng } = await obterLocalizacaoUsuario();
+  return estadoMaisProximo(lat, lng);
+}
+
+document.getElementById('btnVagasPertoDeMim')?.addEventListener('click', async (event) => {
+  const botao = event.currentTarget;
+  const textoOriginal = botao.textContent;
+  botao.disabled = true;
+  botao.textContent = '📍 Localizando...';
+  try {
+    const uf = await localizarEstadoDoUsuario();
+    const filtroEstadoEl = document.getElementById('filtroEstado');
+    if (filtroEstadoEl) filtroEstadoEl.value = uf;
+    if (painelFiltrosAvancados) painelFiltrosAvancados.hidden = false;
+    if (btnFiltrosAvancados) btnFiltrosAvancados.setAttribute('aria-expanded', 'true');
+    executarBuscaCompleta();
+    document.getElementById('vagas')?.scrollIntoView({ behavior: 'smooth' });
+    mostrarToast(`📍 Mostrando vagas em ${NOME_ESTADO[uf] || uf}`);
+  } catch (erro) {
+    mostrarToast(erro.message);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = textoOriginal;
+  }
+});
+
 /* ===== Tema claro/escuro ===== */
 
 const CHAVE_TEMA = 'logjobs-tema';

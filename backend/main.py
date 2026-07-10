@@ -77,7 +77,7 @@ async def cabecalhos_seguranca(request: Request, call_next):
     resposta.headers["X-Content-Type-Options"] = "nosniff"
     resposta.headers["X-Frame-Options"] = "DENY"
     resposta.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    resposta.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+    resposta.headers["Permissions-Policy"] = "geolocation=(self), camera=(), microphone=()"
     resposta.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
     resposta.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
