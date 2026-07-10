@@ -20,9 +20,11 @@ services:
 Passos:
 
 1. No painel do Render, **New → Blueprint**, aponte para este repositório.
-2. O Render lê o `render.yaml`, cria o banco Postgres e o serviço web, e já conecta a variável `DATABASE_URL` entre os dois — nada a configurar manualmente.
+2. O Render lê o `render.yaml`, cria o banco Postgres e o serviço web, já conecta a variável `DATABASE_URL` entre os dois e **gera sozinho um valor aleatório para `LOGJOBS_SECRET_KEY`** (`generateValue: true`) — nada a configurar manualmente num deploy novo.
 3. Configure as variáveis de ambiente opcionais (tabela abaixo) em **Environment** no painel do serviço web.
 4. Todo push no branch conectado (`main`) dispara um redeploy automático.
+
+⚠️ **Se o serviço já existia antes do `render.yaml` passar a provisionar `LOGJOBS_SECRET_KEY`** (ou seja, o Blueprint não vai gerar o valor retroativamente): confira em **Environment**, no painel do serviço, se essa variável já está definida. Se não estiver, o backend está assinando os tokens de login com a chave de desenvolvimento fixa que está no código-fonte público — qualquer pessoa poderia forjar um token de acesso válido. Gere um valor aleatório próprio (por exemplo `openssl rand -hex 32`) e configure manualmente antes de considerar o site pronto para uso real.
 
 ⚠️ **O plano free do Postgres do Render expira em 90 dias** (a Render exclui o banco depois disso). Antes do prazo, faça upgrade do banco para um plano pago, ou migre para outro provedor com free tier sem expiração (ex.: [Neon](https://neon.tech), [Supabase](https://supabase.com)) apontando `DATABASE_URL` para o novo banco.
 

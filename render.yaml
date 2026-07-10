@@ -10,6 +10,8 @@ services:
     buildCommand: pip install -r backend/requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --app-dir backend
     envVars:
+      - key: LOGJOBS_SECRET_KEY
+        generateValue: true
       - key: JOOBLE_API_KEY
         sync: false
       - key: ADMIN_TOKEN

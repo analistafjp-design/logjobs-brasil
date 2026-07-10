@@ -408,13 +408,14 @@ async function carregarStatusAtualizacao() {
     const resposta = await fetch(`${API_BASE}/status`);
     const dados = await resposta.json();
 
-    if (dados.ultima_atualizacao) {
+    if (dados.ultima_atualizacao && dados.jooble_configurado) {
+      // Só mostra o tempo decorrido ("há Xh") quando existe uma fonte de vagas
+      // reais configurada: nesse caso o número reflete a idade de dados que de
+      // fato mudam. Sem isso, o site está usando só vagas de exemplo (fixas), e
+      // exibir "há 9h" ao lado delas parecia sinal de que algo estava quebrado,
+      // quando na verdade não há nada para "atualizar".
       if (statAtualizacao) statAtualizacao.textContent = tempoDecorrido(dados.ultima_atualizacao);
-      if (statAtualizacaoLegenda) {
-        statAtualizacaoLegenda.textContent = dados.jooble_configurado
-          ? 'Última atualização automática'
-          : 'Última verificação (aguardando fonte real)';
-      }
+      if (statAtualizacaoLegenda) statAtualizacaoLegenda.textContent = 'Última atualização automática';
     } else if (statAtualizacaoLegenda) {
       statAtualizacaoLegenda.textContent = dados.jooble_configurado
         ? 'Atualização automática a cada 20 min'
