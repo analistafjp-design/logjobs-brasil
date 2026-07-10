@@ -1,0 +1,28 @@
+<?php
+// Copie este arquivo para config.local.php (mesma pasta) e preencha com os dados reais.
+// config.local.php NUNCA deve ser commitado nem enviado a lugar público — ele contém
+// a senha do banco e a chave secreta usada para assinar os tokens de login.
+
+// Dados do banco MySQL criado no hPanel da Hostinger (Bancos de dados MySQL).
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'u000000000_logjobs');
+define('DB_USER', 'u000000000_logjobs');
+define('DB_PASS', 'TROQUE_ESTA_SENHA');
+
+// Chave HMAC usada para assinar os JWTs (login) — gere uma própria e aleatória, por
+// exemplo rodando localmente: php -r "echo bin2hex(random_bytes(32)), PHP_EOL;"
+// NUNCA reaproveite o valor de exemplo abaixo em produção.
+define('LOGJOBS_SECRET_KEY', 'TROQUE_ESTA_CHAVE_POR_UMA_ALEATORIA_DE_64_HEX_CHARS');
+
+// Token exigido no header X-Admin-Token para acessar /api/admin/*.
+define('ADMIN_TOKEN', 'TROQUE_ESTE_TOKEN');
+
+// URL pública do site (usada no sitemap.xml e em textos). Ex.: https://logjobsbrasil.com.br
+define('SITE_URL', 'https://logjobsbrasil.com.br');
+
+// Opcionais — deixe como estão (vazio) se não for usar agora.
+define('SMTP_HOST', '');
+define('SMTP_PORT', '587');
+define('SMTP_USER', '');
+define('SMTP_PASSWORD', '');
+define('SMTP_FROM_EMAIL', '');
