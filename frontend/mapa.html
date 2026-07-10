@@ -44,15 +44,27 @@
 
 <main>
   <div class="dash-header">
-    <h1>🗺️ Mapa de vagas por estado</h1>
-    <p>O tamanho de cada círculo representa o número de vagas ativas no estado. Passe o mouse para ver o total e clique para filtrar as vagas dessa região.</p>
+    <h1>🗺️ Mapa de vagas do Brasil</h1>
+    <p>A cor de cada estado indica a concentração de vagas ativas — quanto mais escuro, mais oportunidades. Clique num estado para ver as vagas de lá.</p>
+    <button type="button" class="btn-filtros-toggle mapa-btn-localizar" id="btnOndeEstou">📍 Onde eu estou</button>
   </div>
 
-  <div class="dash-grid">
-    <div class="dash-card dash-full">
+  <div class="mapa-layout">
+    <div class="dash-card mapa-card">
       <div class="mapa-wrap" id="mapaWrap">
         <p class="dash-carregando">Carregando mapa...</p>
       </div>
+      <div class="mapa-legenda" id="mapaLegenda" hidden>
+        <span>Menos vagas</span>
+        <div class="mapa-legenda-barra"></div>
+        <span>Mais vagas</span>
+      </div>
+    </div>
+
+    <div class="dash-card mapa-ranking">
+      <h2>Ranking por estado</h2>
+      <p class="dash-sub">Os 10 estados com mais vagas ativas agora</p>
+      <div class="barra-lista" id="mapaRankingLista"><p class="dash-carregando">Carregando...</p></div>
     </div>
   </div>
 </main>
