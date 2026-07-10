@@ -489,6 +489,13 @@ if (btnFiltrosAvancados && painelFiltrosAvancados) {
     const estaAberto = !painelFiltrosAvancados.hidden;
     painelFiltrosAvancados.hidden = estaAberto;
     btnFiltrosAvancados.setAttribute('aria-expanded', String(!estaAberto));
+    if (!estaAberto) {
+      // Painel acabou de abrir: centraliza ele na tela, já que em telas
+      // menores ele pode nascer parcialmente fora da área visível.
+      requestAnimationFrame(() => {
+        painelFiltrosAvancados.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    }
   });
 }
 
