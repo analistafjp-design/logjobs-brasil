@@ -172,6 +172,48 @@ def test_assistente_reconhece_categoria_de_vaga(client):
     assert "categoria" in dados["resposta"].lower()
 
 
+def test_assistente_recuperacao_de_senha_nao_esta_mais_desatualizada(client):
+    """A resposta antiga dizia que a recuperação automática estava 'em breve' —
+    mas o recurso já existe (POST /api/auth/recuperar-senha). A resposta não
+    pode mais prometer algo que já foi entregue."""
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "esqueci minha senha"})
+    assert resposta.status_code == 200
+    dados = resposta.json()
+    assert dados["encontrou"] is True
+    assert "em breve" not in dados["resposta"].lower()
+    assert "esqueci minha senha" in dados["resposta"].lower()
+
+
+def test_assistente_reconhece_lgpd(client):
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "quero baixar meus dados, é LGPD?"})
+    assert resposta.status_code == 200
+    assert resposta.json()["encontrou"] is True
+
+
+def test_assistente_reconhece_mapa(client):
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "onde vejo o mapa de vagas?"})
+    assert resposta.status_code == 200
+    assert resposta.json()["encontrou"] is True
+
+
+def test_assistente_reconhece_frase_com_palavra_no_meio(client):
+    """'excluir conta' não deveria exigir adjacência exata — frases reais têm
+    pronomes no meio ('excluir minha conta')."""
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "Como excluir minha conta?"})
+    assert resposta.status_code == 200
+    assert resposta.json()["encontrou"] is True
+
+
+def test_assistente_prefere_intencao_mais_especifica_a_palavra_generica(client):
+    """'vaga' é genérica e aparece em quase toda pergunta sobre o site — não deveria
+    vencer uma palavra-chave mais específica como 'empresa' só por empate de contagem."""
+    resposta = client.post("/api/ia/assistente", json={"pergunta": "Como a empresa publica uma vaga?"})
+    assert resposta.status_code == 200
+    dados = resposta.json()
+    assert dados["encontrou"] is True
+    assert "painel da empresa" in dados["resposta"].lower()
+
+
 def test_assistente_rate_limit(client):
     for _ in range(30):
         client.post("/api/ia/assistente", json={"pergunta": "oi"})

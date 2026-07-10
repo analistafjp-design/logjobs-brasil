@@ -2082,6 +2082,31 @@ img{
   color:var(--branco);
 }
 
+.assistente-sugestoes{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  padding:0 16px 12px;
+}
+
+.assistente-sugestoes[hidden]{display:none;}
+
+.assistente-sugestoes button{
+  background:var(--fundo);
+  border:1px solid var(--borda);
+  color:var(--texto-suave);
+  border-radius:999px;
+  padding:6px 12px;
+  font-size:12px;
+  cursor:pointer;
+  transition:border-color .15s ease,color .15s ease;
+}
+
+.assistente-sugestoes button:hover{
+  border-color:var(--azul);
+  color:var(--azul);
+}
+
 .assistente-form{
   display:flex;
   gap:8px;

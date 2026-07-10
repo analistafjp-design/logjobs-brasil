@@ -120,6 +120,14 @@ async function iniciarPerfil() {
 
   carregarFavoritosPerfil();
   renderizarTotpStatus(usuario);
+
+  // As seções só ficam visíveis depois deste ponto (dependem do tipo de conta), então um link
+  // direto tipo perfil.html#secaoIA precisa de rolagem manual — o navegador já tentou rolar
+  // pro id no carregamento da página, quando a seção ainda estava "hidden".
+  if (window.location.hash) {
+    const alvo = document.querySelector(window.location.hash);
+    if (alvo && !alvo.hidden) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function renderizarCompletude(percentual) {

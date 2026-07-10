@@ -1209,6 +1209,13 @@ function criarWidgetAssistente() {
     <div class="assistente-mensagens" id="assistenteMensagens">
       <div class="assistente-bolha">Olá! Sou a central de ajuda do LogJobs. Pergunte sobre candidaturas, perfil, chat, 2FA e mais.</div>
     </div>
+    <div class="assistente-sugestoes" id="assistenteSugestoes">
+      <button type="button">Como me candidato a uma vaga?</button>
+      <button type="button">Esqueci minha senha</button>
+      <button type="button">Como criar meu currículo?</button>
+      <button type="button">Como excluir minha conta?</button>
+      <button type="button">Como a empresa publica uma vaga?</button>
+    </div>
     <form class="assistente-form" id="assistenteForm">
       <input type="text" name="pergunta" placeholder="Digite sua dúvida..." maxlength="500" autocomplete="off" required>
       <button type="submit">Enviar</button>
@@ -1218,19 +1225,17 @@ function criarWidgetAssistente() {
 
   botao.addEventListener('click', () => {
     painel.hidden = !painel.hidden;
+    if (!painel.hidden) painel.querySelector('input[name="pergunta"]')?.focus();
   });
   painel.querySelector('.assistente-fechar').addEventListener('click', () => {
     painel.hidden = true;
   });
 
   const mensagensEl = painel.querySelector('#assistenteMensagens');
-  painel.querySelector('#assistenteForm').addEventListener('submit', async (evento) => {
-    evento.preventDefault();
-    const form = evento.target;
-    const pergunta = form.pergunta.value.trim();
-    if (!pergunta) return;
-    form.pergunta.value = '';
+  const sugestoesEl = painel.querySelector('#assistenteSugestoes');
 
+  async function perguntarAssistente(pergunta) {
+    sugestoesEl.hidden = true;
     mensagensEl.insertAdjacentHTML('beforeend', `<div class="assistente-bolha assistente-bolha-usuario">${escapeHtml(pergunta)}</div>`);
     mensagensEl.scrollTop = mensagensEl.scrollHeight;
 
@@ -1247,6 +1252,20 @@ function criarWidgetAssistente() {
       mensagensEl.insertAdjacentHTML('beforeend', '<div class="assistente-bolha">Não foi possível responder agora. Tente novamente em instantes.</div>');
     }
     mensagensEl.scrollTop = mensagensEl.scrollHeight;
+  }
+
+  sugestoesEl.addEventListener('click', (evento) => {
+    const botaoSugestao = evento.target.closest('button');
+    if (botaoSugestao) perguntarAssistente(botaoSugestao.textContent);
+  });
+
+  painel.querySelector('#assistenteForm').addEventListener('submit', (evento) => {
+    evento.preventDefault();
+    const form = evento.target;
+    const pergunta = form.pergunta.value.trim();
+    if (!pergunta) return;
+    form.pergunta.value = '';
+    perguntarAssistente(pergunta);
   });
 }
 
