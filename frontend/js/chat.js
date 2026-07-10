@@ -13,6 +13,8 @@ document.getElementById('btnEntrarChat')?.addEventListener('click', () => abrirM
 let conversaAtivaId = null;
 let socketAtivo = null;
 let idsMensagensRenderizadas = new Set();
+let intervalPollingMensagens = null;
+let intervalPollingConversas = null;
 
 function formatarHoraMensagem(iso) {
   if (!iso) return '';
@@ -40,27 +42,57 @@ function fecharSocket() {
     socketAtivo.close();
     socketAtivo = null;
   }
+  if (intervalPollingMensagens) {
+    clearInterval(intervalPollingMensagens);
+    intervalPollingMensagens = null;
+  }
+}
+
+async function buscarMensagensNovas(conversaId) {
+  try {
+    const resposta = await apiFetch(`${API_BASE}/chat/conversas/${conversaId}/mensagens`);
+    if (!resposta.ok) return;
+    const dados = await resposta.json();
+    dados.mensagens.forEach(renderizarMensagem);
+  } catch {
+    // silencioso: tenta de novo no próximo ciclo
+  }
 }
 
 function conectarSocket(conversaId) {
   fecharSocket();
-  const protocolo = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const token = obterToken();
-  socketAtivo = new WebSocket(`${protocolo}//${window.location.host}/ws/chat/${conversaId}?token=${encodeURIComponent(token)}`);
-  socketAtivo.addEventListener('message', (evento) => {
-    try {
-      const mensagem = JSON.parse(evento.data);
-      renderizarMensagem({ ...mensagem, de_mim: false });
-      // se a mensagem é minha (recebida de volta pelo próprio socket), corrige a marcação
-      const usuario = obterUsuario();
-      if (usuario && mensagem.remetente_id === usuario.id) {
-        const el = chatMensagensEl.querySelector(`[data-mensagem-id="${mensagem.id}"]`);
-        el?.classList.add('chat-bolha-mim');
+
+  // Servidores sem suporte a WebSocket (ex.: hospedagem compartilhada, sem processo de
+  // longa duração para manter a conexão) simplesmente não têm a rota /ws/chat/ — a conexão
+  // falha e cai no catch. Por isso a busca por polling abaixo roda sempre, como reforço:
+  // com WebSocket disponível, mensagens aparecem na hora; sem ele, aparecem em até 5s.
+  // renderizarMensagem já ignora IDs repetidos, então não duplica nada.
+  try {
+    const protocolo = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const token = obterToken();
+    socketAtivo = new WebSocket(`${protocolo}//${window.location.host}/ws/chat/${conversaId}?token=${encodeURIComponent(token)}`);
+    socketAtivo.addEventListener('message', (evento) => {
+      try {
+        const mensagem = JSON.parse(evento.data);
+        renderizarMensagem({ ...mensagem, de_mim: false });
+        // se a mensagem é minha (recebida de volta pelo próprio socket), corrige a marcação
+        const usuario = obterUsuario();
+        if (usuario && mensagem.remetente_id === usuario.id) {
+          const el = chatMensagensEl.querySelector(`[data-mensagem-id="${mensagem.id}"]`);
+          el?.classList.add('chat-bolha-mim');
+        }
+      } catch {
+        // ignora mensagens que não sejam JSON válido
       }
-    } catch {
-      // ignora mensagens que não sejam JSON válido
-    }
-  });
+    });
+    socketAtivo.addEventListener('error', () => {
+      socketAtivo = null;
+    });
+  } catch {
+    socketAtivo = null;
+  }
+
+  intervalPollingMensagens = setInterval(() => buscarMensagensNovas(conversaId), 5000);
 }
 
 async function abrirConversa(conversaId, outroNome, vagaCargo) {
@@ -178,8 +210,20 @@ async function iniciarChat() {
     const conversa = conversas.find((c) => c.id === Number(conversaAlvo));
     if (conversa) abrirConversa(conversa.id, conversa.outro_usuario?.nome, conversa.vaga?.cargo);
   }
+
+  // Atualiza a lista de conversas (contagem de não lidas) periodicamente, mesmo sem
+  // nenhuma conversa aberta — mesma lógica de reforço por polling usada nas mensagens.
+  intervalPollingConversas = setInterval(carregarConversas, 20000);
 }
 
-window.addEventListener('beforeunload', fecharSocket);
+function pararPolling() {
+  fecharSocket();
+  if (intervalPollingConversas) {
+    clearInterval(intervalPollingConversas);
+    intervalPollingConversas = null;
+  }
+}
+
+window.addEventListener('beforeunload', pararPolling);
 
 iniciarChat();
