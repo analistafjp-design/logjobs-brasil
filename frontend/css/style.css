@@ -433,6 +433,10 @@ img{
   border:1px solid rgba(255,255,255,.35);
   color:var(--branco);
   padding:9px 18px;
+  min-height:44px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
   border-radius:999px;
   font-size:13px;
   font-weight:600;
@@ -2300,6 +2304,9 @@ img{
     bottom:-260px;
   }
   .cta-banner-visivel{
-    bottom:16px;
+    /* Empilha acima do botão flutuante do assistente (56px + 24px de
+       margem) em vez de ficar por cima dele — no mobile os dois disputam
+       o mesmo canto inferior da tela. */
+    bottom:106px;
   }
 }
