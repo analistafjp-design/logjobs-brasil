@@ -160,12 +160,21 @@ def iniciar_agendador():
         # b138702) e nunca disparou em produção: as vagas nunca eram atualizadas
         # nem expiradas automaticamente. Sem passar o parâmetro, o job roda
         # normalmente a cada INTERVALO_MINUTOS, como o resto do código já assume.
+        #
+        # next_run_time=datetime.now() força uma execução imediata na inicialização,
+        # além das execuções periódicas seguintes. Isso importa especialmente no
+        # plano free do Render: o serviço "dorme" depois de ~15 min sem tráfego, o
+        # que reinicia o processo (e o agendador) a cada acordar. Sem essa linha, o
+        # primeiro disparo só aconteceria 20 min depois de cada reinício — e se o
+        # serviço voltar a dormir antes disso, "última atualização" fica cada vez
+        # mais desatualizada (foi o caso relatado como "9 horas atrás").
         scheduler.add_job(
             atualizar_vagas_periodicamente,
             trigger="interval",
             minutes=INTERVALO_MINUTOS,
             id="atualizar_vagas",
             replace_existing=True,
+            next_run_time=datetime.now(),
         )
         scheduler.start()
 

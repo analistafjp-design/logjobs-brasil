@@ -108,4 +108,86 @@ ARTIGOS_EXEMPLO = [
             "um caminho natural de evolução de carreira."
         ),
     },
+    {
+        "slug": "mei-para-entregadores-e-motoristas",
+        "titulo": "MEI para entregadores e motoristas: o que é, como se cadastrar e vale a pena",
+        "resumo": "Guia prático de MEI para quem trabalha ou quer trabalhar como entregador, motoboy ou motorista autônomo: cadastro, custo mensal, direitos e limites.",
+        "categoria": "MEI",
+        "conteudo": (
+            "Boa parte das plataformas de entrega e algumas transportadoras só contratam entregadores e "
+            "motoristas como prestadores de serviço — o que exige um CNPJ. Para quem trabalha sozinho, sem "
+            "funcionários, o MEI (Microempreendedor Individual) é normalmente o enquadramento mais simples e "
+            "barato para atender essa exigência.\n\n"
+            "O MEI é uma categoria de empresa individual criada para formalizar quem trabalha por conta própria. "
+            "O cadastro é gratuito e leva poucos minutos pelo site gov.br/mei (ou pelo aplicativo Empresa "
+            "Simples), usando CPF e um endereço de e-mail. Ao final, você recebe um CNPJ válido e o Certificado "
+            "da Condição de Microempreendedor Individual (CCMEI) — o documento que a maioria das empresas pede "
+            "no cadastro.\n\n"
+            "Na hora de se cadastrar, escolha a atividade (CNAE) que bate com o que você faz: para entrega de "
+            "mercadorias, motofrete ou serviços de entrega rápida, existem CNAEs específicos de \"serviço de "
+            "entrega rápida\" e \"transporte remunerado de passageiros\"/\"transporte rodoviário de carga\" — "
+            "algumas plataformas orientam qual escolher no próprio processo de cadastro delas; na dúvida, dá "
+            "pra alterar a atividade depois pelo mesmo site.\n\n"
+            "Como MEI, você paga um valor fixo mensal (o DAS-MEI), que já inclui a contribuição ao INSS — isso "
+            "dá direito a benefícios como auxílio-doença, salário-maternidade e aposentadoria por idade (com "
+            "regras próprias, geralmente com valor menor que a aposentadoria de quem contribui sobre o salário "
+            "mínimo integral). O valor exato do DAS muda todo ano com o salário mínimo e pode ser emitido "
+            "direto no site gov.br/mei — vale conferir o valor atualizado por lá, em vez de confiar em um "
+            "número fixo, já que ele é reajustado com frequência.\n\n"
+            "O MEI tem um teto de faturamento anual (hoje R$ 81.000, o que dá em média R$ 6.750 por mês) — "
+            "esse valor também pode ser reajustado, então vale confirmar o teto vigente no mesmo site antes de "
+            "se planejar. Ultrapassar o teto não é motivo de pânico: existe uma faixa de tolerância antes do "
+            "desenquadramento automático para outra categoria (normalmente Simples Nacional), mas é importante "
+            "acompanhar o quanto você faturou ao longo do ano.\n\n"
+            "Toda declaração é simplificada: uma vez por ano, até 31 de maio, o MEI entrega a DASN-SIMEI (uma "
+            "declaração de faturamento bem direta, sem contador obrigatório) e paga o DAS mensal em dia. Atrasar "
+            "o DAS gera multa e juros, e pode até suspender o CNPJ se ficar muito tempo em aberto — vale colocar "
+            "um lembrete mensal.\n\n"
+            "Vale a pena? Para quem já pretende trabalhar como entregador ou motorista de forma recorrente, sim "
+            "— o custo mensal é baixo perto do acesso a mais vagas (várias plataformas e transportadoras exigem "
+            "CNPJ) e da contribuição ao INSS embutida. Para quem só quer fazer um bico ocasional, vale pesar se "
+            "o volume de trabalho compensa o compromisso mensal do DAS, já que ele é devido mesmo em meses sem "
+            "faturamento."
+        ),
+    },
+    {
+        "slug": "bicicleta-eletrica-ou-comum-para-entregador",
+        "titulo": "Bicicleta elétrica ou comum para trabalhar como entregador: como escolher",
+        "resumo": "Comparação prática entre bicicleta elétrica e convencional para quem trabalha ou quer trabalhar com entregas: custo, autonomia, esforço físico e regras de trânsito.",
+        "categoria": "Entregador",
+        "conteudo": (
+            "Para quem entrega por bicicleta, a escolha entre uma bicicleta comum e uma elétrica afeta "
+            "diretamente o quanto dá pra pedalar por dia, o esforço físico e o investimento inicial. Não existe "
+            "resposta certa pra todo mundo — depende da rotina, da região e do orçamento disponível.\n\n"
+            "**Custo inicial e manutenção**: uma bicicleta comum de uso urbano custa uma fração do preço de uma "
+            "elétrica, e a manutenção é mais simples e barata — pneu, câmara, corrente e freio são peças comuns "
+            "e baratas em qualquer bicicletaria. A bicicleta elétrica tem um investimento inicial bem mais alto, "
+            "e a bateria (o item mais caro de reposição) tem vida útil limitada, normalmente entre 2 e 4 anos de "
+            "uso intenso antes de perder autonomia relevante — vale considerar essa troca futura no cálculo.\n\n"
+            "**Autonomia e rotina de carga**: a maior vantagem da elétrica é rodar mais quilômetros por dia com "
+            "menos cansaço, o que importa bastante para quem faz turnos longos ou cidades com relevo mais "
+            "difícil. Em compensação, é preciso carregar a bateria todos os dias (geralmente de 4 a 6 horas para "
+            "carga completa) — quem mora longe de onde carrega a bateria ou não tem uma rotina previsível de "
+            "carregamento pode ter dor de cabeça com isso. Bicicletas comuns não têm essa dependência: rodam o "
+            "quanto as pernas aguentarem.\n\n"
+            "**Esforço físico e saúde**: pedalar 8 horas de bicicleta comum em dias quentes ou em cidades com "
+            "ladeiras é um desgaste físico real, que se acumula ao longo da semana. A pedalada assistida da "
+            "elétrica reduz esse desgaste, o que pode ser decisivo para quem já sente dores nos joelhos/costas "
+            "ou trabalha em região muito montanhosa.\n\n"
+            "**Regras de trânsito**: no Brasil, bicicletas elétricas com motor de até 350W e velocidade limitada "
+            "a 25 km/h (só com o motor, sem contar o esforço do ciclista) são equiparadas a bicicletas comuns "
+            "pelas normas do CONTRAN — não exigem CNH, emplacamento nem seguro obrigatório. Já modelos com "
+            "motor mais potente ou que atingem velocidades maiores só no motor podem se enquadrar como "
+            "ciclomotor, exigindo habilitação e registro. Antes de comprar, confira a ficha técnica do modelo "
+            "(potência do motor e velocidade máxima assistida) para saber em qual categoria ele se encaixa.\n\n"
+            "**Furto e segurança**: bicicletas elétricas chamam mais atenção e têm valor de revenda maior, "
+            "então merecem cadeado de boa qualidade e cuidado redobrado ao estacionar, principalmente com a "
+            "bateria (algumas são removíveis e podem ser levadas separadamente para reduzir o risco).\n\n"
+            "**Resumo prático**: para quem está começando, tem poucas entregas por dia ou uma rotina apertada de "
+            "orçamento, a bicicleta comum é o ponto de partida mais acessível. Para quem já depende da entrega "
+            "como fonte principal de renda, faz muitos quilômetros por dia ou trabalha em região de relevo "
+            "difícil, o investimento numa elétrica tende a se pagar em produtividade e menos desgaste físico ao "
+            "longo do tempo."
+        ),
+    },
 ]
