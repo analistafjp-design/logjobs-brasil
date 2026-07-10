@@ -2223,3 +2223,83 @@ img{
   cursor:pointer;
   font-size:13px;
 }
+
+/* ===== Banner de convite para criar conta ===== */
+
+.cta-banner{
+  position:fixed;
+  left:24px;
+  bottom:-200px;
+  width:280px;
+  background:var(--superficie);
+  border:1px solid var(--borda);
+  border-radius:14px;
+  padding:18px;
+  box-shadow:var(--sombra-hover);
+  z-index:60;
+  transition:bottom .35s ease;
+}
+
+.cta-banner-visivel{
+  bottom:24px;
+}
+
+.cta-banner-fechar{
+  position:absolute;
+  top:8px;
+  right:10px;
+  background:none;
+  border:none;
+  font-size:18px;
+  line-height:1;
+  color:var(--texto-suave);
+  cursor:pointer;
+  padding:4px;
+}
+
+.cta-banner-fechar:hover{
+  color:var(--texto);
+}
+
+.cta-banner-titulo{
+  font-weight:700;
+  font-size:15px;
+  margin-bottom:6px;
+  padding-right:16px;
+}
+
+.cta-banner-texto{
+  font-size:13px;
+  color:var(--texto-suave);
+  line-height:1.5;
+  margin-bottom:14px;
+}
+
+.cta-banner-botao{
+  width:100%;
+  background:var(--azul);
+  color:var(--branco);
+  border:none;
+  border-radius:8px;
+  padding:10px;
+  font-size:13px;
+  font-weight:600;
+  cursor:pointer;
+  transition:background .15s ease;
+}
+
+.cta-banner-botao:hover{
+  background:var(--azul-escuro);
+}
+
+@media (max-width:600px){
+  .cta-banner{
+    left:16px;
+    right:16px;
+    width:auto;
+    bottom:-260px;
+  }
+  .cta-banner-visivel{
+    bottom:16px;
+  }
+}
