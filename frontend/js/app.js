@@ -1352,3 +1352,42 @@ function criarWidgetAssistente() {
 }
 
 criarWidgetAssistente();
+
+/* ===== Banner de convite para criar conta =====
+   Discreto, some ao fechar (não repete na mesma aba/sessão) e nunca aparece
+   para quem já está logado. Some sozinho depois de alguns segundos de
+   navegação anônima — nunca bloqueia a tela nem interrompe nada. */
+
+function criarBannerCTA() {
+  if (obterUsuario()) return;
+  if (sessionStorage.getItem('logjobs-cta-dispensado')) return;
+
+  setTimeout(() => {
+    if (obterUsuario()) return;
+
+    const banner = document.createElement('div');
+    banner.className = 'cta-banner';
+    banner.innerHTML = `
+      <button type="button" class="cta-banner-fechar" aria-label="Fechar">&times;</button>
+      <p class="cta-banner-titulo">🎯 Não perca nenhuma vaga</p>
+      <p class="cta-banner-texto">Crie uma conta grátis para salvar vagas e receber alertas de novas oportunidades.</p>
+      <button type="button" class="cta-banner-botao">Criar conta grátis</button>
+    `;
+    document.body.appendChild(banner);
+    requestAnimationFrame(() => banner.classList.add('cta-banner-visivel'));
+
+    const fechar = () => {
+      sessionStorage.setItem('logjobs-cta-dispensado', '1');
+      banner.classList.remove('cta-banner-visivel');
+      setTimeout(() => banner.remove(), 300);
+    };
+
+    banner.querySelector('.cta-banner-fechar').addEventListener('click', fechar);
+    banner.querySelector('.cta-banner-botao').addEventListener('click', () => {
+      fechar();
+      abrirModalAuth('cadastro');
+    });
+  }, 10000);
+}
+
+criarBannerCTA();
