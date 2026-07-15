@@ -1,0 +1,19 @@
+{
+  "name": "LogJobs Brasil — Vagas em Logística",
+  "short_name": "LogJobs Brasil",
+  "description": "O maior portal de vagas de logística do Brasil. Encontre oportunidades para entregadores, motoristas, estoquistas e mais.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F5F7FA",
+  "theme_color": "#0F62FE",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

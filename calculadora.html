@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Compare salários por cargo na área de logística e descubra a faixa salarial (mínimo, médio e máximo) de cada categoria.">
+<title>Comparador de Salários — LogJobs Brasil</title>
+<link rel="canonical" href="https://logjobs-brasil.onrender.com/calculadora.html">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#0F62FE">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
+</head>
+<body>
+
+<header class="navbar" id="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="logo">🚚 <span>LogJobs Brasil</span></a>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Início</a>
+      <a href="index.html#vagas">Vagas</a>
+      <a href="mapa.html">Mapa</a>
+      <a href="ranking.html">Ranking</a>
+      <a href="calculadora.html">Salários</a>
+      <a href="empresa.html">Empresas</a>
+      <a href="dashboard.html">Dashboard</a>
+      <button class="btn-tema" id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
+      <span id="areaConta"></span>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="dash-header">
+    <h1>💰 Comparador de salários por cargo</h1>
+    <p>Faixa salarial (mínimo, médio e máximo) por categoria, calculada a partir das vagas ativas na plataforma.</p>
+  </div>
+
+  <div class="dash-grid">
+    <div class="dash-card dash-full">
+      <h2>Comparar duas categorias</h2>
+      <p class="dash-sub">Escolha até duas categorias para comparar a faixa salarial lado a lado</p>
+      <div class="admin-form-grid" style="margin-bottom: 20px;">
+        <label>Categoria A
+          <select id="seletorA"><option value="">Selecione...</option></select>
+        </label>
+        <label>Categoria B (opcional)
+          <select id="seletorB"><option value="">Selecione...</option></select>
+        </label>
+      </div>
+      <div class="comparador-cards" id="comparadorResultado"></div>
+    </div>
+
+    <div class="dash-card dash-full">
+      <h2>Todas as categorias</h2>
+      <p class="dash-sub">Ordenadas da maior para a menor média salarial</p>
+      <div class="admin-tabela-wrap">
+        <table class="admin-tabela" id="tabelaSalarios">
+          <thead>
+            <tr><th>Categoria</th><th>Mínimo</th><th>Média</th><th>Máximo</th><th>Vagas com salário</th></tr>
+          </thead>
+          <tbody><tr><td colspan="5">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="logo">🚚 LogJobs Brasil</span>
+      <p>O maior portal especializado em empregos de logística do Brasil.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Candidatos</h4>
+      <a href="index.html#vagas">Buscar vagas</a>
+      <a href="calculadora.html">Comparar salários</a>
+      <a href="perfil.html#secaoAlertas">Alertas de vagas</a>
+    </div>
+    <div class="footer-col">
+      <h4>Empresas</h4>
+      <a href="empresa.html">Anunciar vaga</a>
+      <a href="ranking.html">Ranking</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+    <div class="footer-col">
+      <h4>LogJobs</h4>
+      <a href="https://github.com/analistafjp-design/logjobs-brasil/blob/main/docs/PVD.md" target="_blank" rel="noopener">Sobre</a>
+      <a href="privacidade.html">Privacidade</a>
+      <a href="mailto:contato@logjobsbrasil.com.br">Contato</a>
+    </div>
+  </div>
+  <p class="footer-copy">&copy; 2026 LogJobs Brasil. Todos os direitos reservados.</p>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-fechar" id="modalFechar" aria-label="Fechar">&times;</button>
+    <div id="modalConteudo"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="js/app.js"></script>
+<script src="js/calculadora.js"></script>
+</body>
+</html>

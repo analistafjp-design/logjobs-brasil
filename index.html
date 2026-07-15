@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="LogJobs Brasil — o maior portal de vagas de logística do Brasil. Encontre oportunidades para entregadores, motoristas, estoquistas e mais.">
+<title>LogJobs Brasil — Vagas em Logística</title>
+<link rel="canonical" href="https://logjobs-brasil.onrender.com/">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#0F62FE">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
+<meta property="og:type" content="website">
+<meta property="og:title" content="LogJobs Brasil — Vagas em Logística">
+<meta property="og:description" content="O maior portal de vagas de logística do Brasil. Encontre oportunidades para entregadores, motoristas, estoquistas e mais.">
+<meta property="og:url" content="https://logjobs-brasil.onrender.com/">
+<meta property="og:site_name" content="LogJobs Brasil">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="LogJobs Brasil — Vagas em Logística">
+<meta name="twitter:description" content="O maior portal de vagas de logística do Brasil. Encontre oportunidades para entregadores, motoristas, estoquistas e mais.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org/",
+  "@type": "WebSite",
+  "name": "LogJobs Brasil",
+  "url": "https://logjobs-brasil.onrender.com/"
+}
+</script>
+</head>
+<body>
+
+<header class="navbar" id="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="logo">🚚 <span>LogJobs Brasil</span></a>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Início</a>
+      <a href="#vagas">Vagas</a>
+      <a href="mapa.html">Mapa</a>
+      <a href="ranking.html">Ranking</a>
+      <a href="calculadora.html">Salários</a>
+      <a href="blog.html">Blog</a>
+      <a href="empresa.html">Empresas</a>
+      <a href="dashboard.html">Dashboard</a>
+      <button class="btn-tema" id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
+      <span id="areaConta"></span>
+    </nav>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero">
+    <div class="hero-inner">
+      <h1>Encontre sua próxima vaga na logística</h1>
+      <p>Milhares de vagas para entregadores, motoristas, auxiliares de logística, estoquistas e muito mais — atualizadas todos os dias.</p>
+
+      <form class="search-box" role="search" aria-label="Buscar vagas" id="searchForm">
+        <input type="text" placeholder="Cargo ou palavra-chave" aria-label="Cargo ou palavra-chave" list="listaCargos" autocomplete="off">
+        <input type="text" placeholder="Cidade" aria-label="Cidade" list="listaCidades" autocomplete="off">
+        <button type="submit">🔍 Buscar vagas</button>
+      </form>
+      <datalist id="listaCargos"></datalist>
+      <datalist id="listaCidades"></datalist>
+
+      <div class="acoes-busca-extra">
+        <button type="button" class="btn-filtros-toggle" id="btnFiltrosAvancados" aria-expanded="false" aria-controls="filtrosAvancados">
+          ⚙️ Filtros avançados <span id="filtrosAtivosCount"></span>
+        </button>
+        <button type="button" class="btn-filtros-toggle" id="btnVagasPertoDeMim">
+          📍 Vagas perto de mim
+        </button>
+      </div>
+
+      <div class="filtros-avancados" id="filtrosAvancados" hidden>
+        <div class="filtros-avancados-grid">
+          <label>Estado
+            <select id="filtroEstado">
+              <option value="">Todos</option>
+              <option>AC</option><option>AL</option><option>AP</option><option>AM</option>
+              <option>BA</option><option>CE</option><option>DF</option><option>ES</option>
+              <option>GO</option><option>MA</option><option>MT</option><option>MS</option>
+              <option>MG</option><option>PA</option><option>PB</option><option>PR</option>
+              <option>PE</option><option>PI</option><option>RJ</option><option>RN</option>
+              <option>RS</option><option>RO</option><option>RR</option><option>SC</option>
+              <option>SP</option><option>SE</option><option>TO</option>
+            </select>
+          </label>
+          <label>Modalidade
+            <select id="filtroModalidade">
+              <option value="">Todas</option>
+              <option>Presencial</option>
+              <option>Híbrido</option>
+              <option>Remoto</option>
+            </select>
+          </label>
+          <label>Turno
+            <select id="filtroTurno">
+              <option value="">Todos</option>
+              <option>Manhã</option>
+              <option>Tarde</option>
+              <option>Noite</option>
+              <option>Comercial</option>
+              <option>Escala 12x36</option>
+            </select>
+          </label>
+          <label>Tipo de contratação
+            <select id="filtroTipoContratacao">
+              <option value="">Todos</option>
+              <option>CLT</option>
+              <option>PJ</option>
+              <option>Temporário</option>
+              <option>Estágio</option>
+              <option>Autônomo</option>
+            </select>
+          </label>
+          <label>Salário mínimo
+            <input type="number" id="filtroSalarioMin" placeholder="Ex: 2000" min="0" step="100">
+          </label>
+          <label>Salário máximo
+            <input type="number" id="filtroSalarioMax" placeholder="Ex: 5000" min="0" step="100">
+          </label>
+          <label>Benefício
+            <input type="text" id="filtroBeneficio" placeholder="Ex: vale refeição">
+          </label>
+          <label>Ordenar por
+            <select id="filtroOrdenar">
+              <option value="recentes">Mais recentes</option>
+              <option value="relevancia">Relevância</option>
+              <option value="salario">Maior salário</option>
+            </select>
+          </label>
+        </div>
+        <div class="filtros-avancados-acoes">
+          <button type="button" class="btn-aplicar-filtros" id="btnAplicarFiltros">Aplicar filtros</button>
+          <button type="button" class="btn-limpar-filtros" id="btnLimparFiltrosAvancados">Limpar</button>
+        </div>
+      </div>
+
+      <div class="buscas-recentes" id="buscasRecentes" hidden>
+        <span>Buscas recentes:</span>
+        <div class="buscas-recentes-chips" id="buscasRecentesChips"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="categorias" aria-label="Categorias de vagas">
+    <button class="categoria" data-categoria="Entregador">🚚 <span>Entregador</span></button>
+    <button class="categoria" data-categoria="Motorista">🚛 <span>Motorista</span></button>
+    <button class="categoria" data-categoria="Estoquista">📦 <span>Estoquista</span></button>
+    <button class="categoria" data-categoria="Conferente">🏢 <span>Conferente</span></button>
+    <button class="categoria" data-categoria="Auxiliar Logístico">📋 <span>Auxiliar Logístico</span></button>
+    <button class="categoria" data-categoria="Operador">🚜 <span>Operador</span></button>
+  </section>
+
+  <section class="estatisticas" aria-label="Estatísticas da plataforma" id="estatisticas">
+    <div class="card">
+      <h2 id="statVagas">—</h2>
+      <p>Vagas ativas</p>
+    </div>
+    <div class="card">
+      <h2 id="statEmpresas">—</h2>
+      <p>Empresas parceiras</p>
+    </div>
+    <div class="card">
+      <h2 id="statCidades">—</h2>
+      <p>Cidades atendidas</p>
+    </div>
+    <div class="card">
+      <h2 id="statAtualizacao">20 min</h2>
+      <p id="statAtualizacaoLegenda">Atualização automática</p>
+    </div>
+  </section>
+
+  <section class="vagas" id="vagas">
+    <div class="section-header">
+      <h2>🔥 Vagas em destaque</h2>
+      <a href="#" class="ver-todas" id="limparFiltro">Ver todas as vagas →</a>
+    </div>
+
+    <div class="vagas-grid" id="vagasGrid">
+      <p class="vagas-carregando">Carregando vagas...</p>
+    </div>
+
+    <div style="text-align:center;margin-top:32px">
+      <button class="btn-carregar-mais" id="carregarMais" hidden>Carregar mais vagas</button>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="logo">🚚 LogJobs Brasil</span>
+      <p>O maior portal especializado em empregos de logística do Brasil.</p>
+    </div>
+
+    <div class="footer-col">
+      <h4>Candidatos</h4>
+      <a href="#vagas">Buscar vagas</a>
+      <a href="perfil.html#secaoIA">Criar currículo</a>
+      <a href="perfil.html#secaoAlertas">Alertas de vagas</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>Empresas</h4>
+      <a href="empresa.html">Anunciar vaga</a>
+      <a href="#" data-lista-espera="empresa">Planos</a>
+      <a href="ranking.html">Ranking</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>LogJobs</h4>
+      <a href="https://github.com/analistafjp-design/logjobs-brasil/blob/main/docs/PVD.md" target="_blank" rel="noopener">Sobre</a>
+      <a href="privacidade.html">Privacidade</a>
+      <a href="mailto:contato@logjobsbrasil.com.br">Contato</a>
+    </div>
+  </div>
+
+  <p class="footer-copy">&copy; 2026 LogJobs Brasil. Todos os direitos reservados.</p>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-fechar" id="modalFechar" aria-label="Fechar">&times;</button>
+    <div id="modalConteudo"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

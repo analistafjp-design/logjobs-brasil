@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Entrando... — LogJobs Brasil</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
+</head>
+<body>
+
+<main class="perfil-main">
+  <div class="perfil-container">
+    <div class="perfil-card" id="oauthStatus" style="text-align:center;">
+      <p class="vagas-carregando">Entrando...</p>
+    </div>
+  </div>
+</main>
+
+<script>
+(async function () {
+  const API_BASE = '/api';
+  const statusEl = document.getElementById('oauthStatus');
+  const params = new URLSearchParams(window.location.search);
+  const erro = params.get('erro');
+
+  if (erro) {
+    statusEl.innerHTML = `<h1>Não foi possível entrar</h1><p class="modal-subtitulo">${erro}</p><a class="btn-candidatar" href="index.html">Voltar para o início</a>`;
+    return;
+  }
+
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const token = hash.get('token');
+  const refreshToken = hash.get('refresh_token');
+  if (!token) {
+    statusEl.innerHTML = '<h1>Não foi possível entrar</h1><p class="modal-subtitulo">Token ausente.</p><a class="btn-candidatar" href="index.html">Voltar para o início</a>';
+    return;
+  }
+
+  try {
+    const resposta = await fetch(`${API_BASE}/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!resposta.ok) throw new Error();
+    const usuario = await resposta.json();
+    localStorage.setItem('logjobs-token', token);
+    if (refreshToken) localStorage.setItem('logjobs-refresh-token', refreshToken);
+    localStorage.setItem('logjobs-usuario', JSON.stringify(usuario));
+    window.location.replace('perfil.html');
+  } catch {
+    statusEl.innerHTML = '<h1>Não foi possível entrar</h1><p class="modal-subtitulo">Tente novamente.</p><a class="btn-candidatar" href="index.html">Voltar para o início</a>';
+  }
+})();
+</script>
+</body>
+</html>

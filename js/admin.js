@@ -1,0 +1,465 @@
+const API_BASE = '/api';
+const CHAVE_TOKEN_ADMIN = 'logjobs-admin-token';
+
+function escapeHtml(valor) {
+  const texto = valor === null || valor === undefined ? '' : String(valor);
+  return texto.replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+/* ===== Toast ===== */
+const toast = document.getElementById('toast');
+let toastTimeout;
+function mostrarToast(texto) {
+  if (!toast) return;
+  toast.textContent = texto;
+  toast.hidden = false;
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => { toast.hidden = true; }, 3500);
+}
+
+/* ===== Gráficos de barra (mesmo padrão visual de dashboard.js/perfil da empresa;
+   duplicado aqui de propósito — admin.js é um app isolado, sem app.js) ===== */
+
+const CORES_SERIE = ['--serie-1', '--serie-2', '--serie-3', '--serie-4', '--serie-5', '--serie-6', '--serie-7', '--serie-8'];
+
+function corVar(nome) {
+  return `var(${nome})`;
+}
+
+function agruparTop(lista, chaveLabel, chaveValor, maximo = 8) {
+  const ordenado = [...lista].sort((a, b) => b[chaveValor] - a[chaveValor]);
+  if (ordenado.length <= maximo) return ordenado;
+
+  const top = ordenado.slice(0, maximo - 1);
+  const resto = ordenado.slice(maximo - 1);
+  const somaResto = resto.reduce((acc, item) => acc + item[chaveValor], 0);
+  top.push({ [chaveLabel]: 'Outros', [chaveValor]: somaResto });
+  return top;
+}
+
+function formatarNumero(valor) {
+  return Number(valor).toLocaleString('pt-BR');
+}
+
+function renderizarBarras(container, dados, chaveLabel, chaveValor, mapaCores, formatador = formatarNumero) {
+  if (!container) return;
+
+  if (!dados.length) {
+    container.innerHTML = '<p class="dash-carregando">Ainda sem dados suficientes.</p>';
+    return;
+  }
+
+  const max = Math.max(...dados.map((d) => d[chaveValor]));
+
+  container.innerHTML = dados.map((d) => {
+    const pct = max > 0 ? Math.max(2, Math.round((d[chaveValor] / max) * 100)) : 0;
+    const cor = mapaCores.get(d[chaveLabel]) || corVar('--texto-suave');
+    const rotulo = escapeHtml(d[chaveLabel]);
+    return `
+      <div class="barra-item">
+        <span class="barra-rotulo" title="${rotulo}">${rotulo}</span>
+        <div class="barra-trilho"><div class="barra-preenchimento" style="width:${pct}%;background:${cor}"></div></div>
+        <span class="barra-valor">${formatador(d[chaveValor])}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function construirMapaCores(dadosAgrupados, chaveLabel) {
+  const mapa = new Map();
+  dadosAgrupados.forEach((d, i) => {
+    const cor = d[chaveLabel] === 'Outros' ? corVar('--texto-suave') : corVar(CORES_SERIE[i % CORES_SERIE.length]);
+    mapa.set(d[chaveLabel], cor);
+  });
+  return mapa;
+}
+
+/* ===== Token / sessão ===== */
+
+function obterTokenAdmin() {
+  return sessionStorage.getItem(CHAVE_TOKEN_ADMIN);
+}
+
+async function chamarAdmin(path, opcoes = {}) {
+  const resposta = await fetch(`${API_BASE}${path}`, {
+    ...opcoes,
+    headers: {
+      ...(opcoes.headers || {}),
+      'X-Admin-Token': obterTokenAdmin() || '',
+    },
+  });
+  if (resposta.status === 403) {
+    sessionStorage.removeItem(CHAVE_TOKEN_ADMIN);
+    mostrarBloqueio('Sessão expirada ou token inválido. Entre novamente.');
+    throw new Error('Acesso negado');
+  }
+  return resposta;
+}
+
+const adminBloqueado = document.getElementById('adminBloqueado');
+const adminConteudo = document.getElementById('adminConteudo');
+
+function mostrarBloqueio(mensagemErro) {
+  adminBloqueado.hidden = false;
+  adminConteudo.hidden = true;
+  const erroEl = document.getElementById('adminTokenErro');
+  if (mensagemErro) {
+    erroEl.textContent = mensagemErro;
+    erroEl.hidden = false;
+  }
+}
+
+function mostrarConteudo() {
+  adminBloqueado.hidden = true;
+  adminConteudo.hidden = false;
+}
+
+document.getElementById('formAdminToken').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const token = event.target.token.value.trim();
+  const erroEl = document.getElementById('adminTokenErro');
+  erroEl.hidden = true;
+
+  sessionStorage.setItem(CHAVE_TOKEN_ADMIN, token);
+  try {
+    const resposta = await fetch(`${API_BASE}/admin/verificar`, { headers: { 'X-Admin-Token': token } });
+    if (!resposta.ok) throw new Error();
+    mostrarConteudo();
+    iniciarPainel();
+  } catch {
+    sessionStorage.removeItem(CHAVE_TOKEN_ADMIN);
+    erroEl.textContent = 'Token inválido.';
+    erroEl.hidden = false;
+  }
+});
+
+document.getElementById('btnSairAdmin').addEventListener('click', () => {
+  sessionStorage.removeItem(CHAVE_TOKEN_ADMIN);
+  mostrarBloqueio();
+});
+
+/* ===== Abas ===== */
+
+document.querySelectorAll('.admin-tab').forEach((tab) => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.admin-tab').forEach((t) => t.classList.remove('ativa'));
+    tab.classList.add('ativa');
+    document.querySelectorAll('.admin-secao').forEach((s) => { s.hidden = true; });
+    const secao = document.getElementById(`secao${tab.dataset.aba.charAt(0).toUpperCase()}${tab.dataset.aba.slice(1)}`);
+    if (secao) secao.hidden = false;
+
+    if (tab.dataset.aba === 'candidaturas') carregarCandidaturas();
+    if (tab.dataset.aba === 'interessados') carregarInteressados();
+    if (tab.dataset.aba === 'usuarios') carregarUsuarios();
+    if (tab.dataset.aba === 'auditoria') carregarAuditoria();
+    if (tab.dataset.aba === 'geral') carregarVisaoGeral();
+  });
+});
+
+/* ===== Visão geral (dashboard) ===== */
+
+async function carregarVisaoGeral() {
+  try {
+    const [respostaAdmin, respostaMercado] = await Promise.all([
+      chamarAdmin('/admin/dashboard'),
+      fetch(`${API_BASE}/dashboard`),
+    ]);
+    const admin = await respostaAdmin.json();
+    const mercado = await respostaMercado.json();
+
+    document.getElementById('adminStatVagas').textContent = formatarNumero(admin.total_vagas ?? 0);
+    document.getElementById('adminStatCandidatos').textContent = formatarNumero(admin.candidatos ?? 0);
+    document.getElementById('adminStatEmpresas').textContent = formatarNumero(admin.empresas ?? 0);
+    document.getElementById('adminStatCandidaturas').textContent = formatarNumero(admin.total_candidaturas ?? 0);
+    document.getElementById('adminStatInteressados').textContent = formatarNumero(admin.total_interessados ?? 0);
+
+    const graficoFonte = document.getElementById('graficoAdminFonte');
+    const fontes = admin.vagas_por_fonte || [];
+    renderizarBarras(graficoFonte, fontes, 'fonte', 'total', construirMapaCores(fontes, 'fonte'));
+
+    const graficoCategoria = document.getElementById('graficoAdminCategoria');
+    const categorias = agruparTop(mercado.por_categoria || [], 'categoria', 'total', 8);
+    renderizarBarras(graficoCategoria, categorias, 'categoria', 'total', construirMapaCores(categorias, 'categoria'));
+  } catch {
+    mostrarToast('Não foi possível carregar a visão geral');
+  }
+}
+
+/* ===== Vagas ===== */
+
+let vagasAdmin = [];
+
+function formatarSalarioAdmin(valor) {
+  if (!valor) return '—';
+  return `R$ ${Number(valor).toLocaleString('pt-BR')}`;
+}
+
+function linhaVaga(vaga) {
+  return `
+    <tr data-vaga-id="${vaga.id}">
+      <td>${escapeHtml(vaga.cargo)}</td>
+      <td>${escapeHtml(vaga.empresa)}</td>
+      <td>${escapeHtml(vaga.cidade)}/${escapeHtml(vaga.estado)}</td>
+      <td>${escapeHtml(vaga.categoria)}</td>
+      <td>${formatarSalarioAdmin(vaga.salario)}</td>
+      <td>${escapeHtml(vaga.fonte)}</td>
+      <td>
+        <button class="admin-acao-btn editar" data-id="${vaga.id}">Editar</button>
+        <button class="admin-acao-btn excluir" data-id="${vaga.id}">Excluir</button>
+      </td>
+    </tr>
+  `;
+}
+
+async function carregarVagas(busca = '') {
+  const tbody = document.querySelector('#tabelaVagas tbody');
+  tbody.innerHTML = '<tr><td colspan="7">Carregando...</td></tr>';
+  try {
+    const query = busca ? `?q=${encodeURIComponent(busca)}` : '';
+    const resposta = await chamarAdmin(`/admin/vagas${query}`);
+    const dados = await resposta.json();
+    vagasAdmin = dados.vagas || [];
+    tbody.innerHTML = vagasAdmin.length
+      ? vagasAdmin.map(linhaVaga).join('')
+      : '<tr><td colspan="7">Nenhuma vaga encontrada.</td></tr>';
+  } catch (erro) {
+    tbody.innerHTML = '<tr><td colspan="7">Não foi possível carregar as vagas.</td></tr>';
+  }
+}
+
+let buscaTimeout;
+document.getElementById('buscaVagas').addEventListener('input', (event) => {
+  clearTimeout(buscaTimeout);
+  buscaTimeout = setTimeout(() => carregarVagas(event.target.value.trim()), 350);
+});
+
+const formVaga = document.getElementById('formVaga');
+const btnNovaVaga = document.getElementById('btnNovaVaga');
+const btnCancelarVaga = document.getElementById('btnCancelarVaga');
+
+function abrirFormNovaVaga() {
+  formVaga.reset();
+  formVaga.id.value = '';
+  document.getElementById('formVagaTitulo').textContent = 'Nova vaga';
+  formVaga.hidden = false;
+  formVaga.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function abrirFormEditarVaga(vaga) {
+  formVaga.reset();
+  formVaga.id.value = vaga.id;
+  formVaga.cargo.value = vaga.cargo || '';
+  formVaga.empresa.value = vaga.empresa || '';
+  formVaga.cidade.value = vaga.cidade || '';
+  formVaga.estado.value = vaga.estado || '';
+  formVaga.categoria.value = vaga.categoria || '';
+  formVaga.salario.value = vaga.salario || '';
+  formVaga.modalidade.value = vaga.modalidade || '';
+  formVaga.turno.value = vaga.turno || '';
+  formVaga.tipo_contratacao.value = vaga.tipo_contratacao || '';
+  formVaga.veiculo.value = vaga.veiculo || '';
+  formVaga.link.value = vaga.link || '';
+  formVaga.descricao.value = vaga.descricao || '';
+  formVaga.beneficios.value = vaga.beneficios || '';
+  formVaga.requisitos.value = vaga.requisitos || '';
+  document.getElementById('formVagaTitulo').textContent = `Editar: ${vaga.cargo}`;
+  formVaga.hidden = false;
+  formVaga.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+btnNovaVaga.addEventListener('click', abrirFormNovaVaga);
+btnCancelarVaga.addEventListener('click', () => { formVaga.hidden = true; });
+
+formVaga.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const erroEl = document.getElementById('formVagaErro');
+  erroEl.hidden = true;
+
+  const id = formVaga.id.value;
+  const corpo = {
+    cargo: formVaga.cargo.value.trim(),
+    empresa: formVaga.empresa.value.trim(),
+    cidade: formVaga.cidade.value.trim(),
+    estado: formVaga.estado.value.trim().toUpperCase(),
+    categoria: formVaga.categoria.value.trim(),
+    salario: formVaga.salario.value ? Number(formVaga.salario.value) : null,
+    modalidade: formVaga.modalidade.value || null,
+    turno: formVaga.turno.value || null,
+    tipo_contratacao: formVaga.tipo_contratacao.value || null,
+    veiculo: formVaga.veiculo.value.trim() || null,
+    link: formVaga.link.value.trim() || null,
+    descricao: formVaga.descricao.value.trim() || null,
+    beneficios: formVaga.beneficios.value.trim() || null,
+    requisitos: formVaga.requisitos.value.trim() || null,
+  };
+
+  try {
+    const resposta = await chamarAdmin(id ? `/admin/vagas/${id}` : '/admin/vagas', {
+      method: id ? 'PATCH' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(corpo),
+    });
+    const dados = await resposta.json();
+    if (!resposta.ok) throw new Error(dados.detail || 'Não foi possível salvar a vaga');
+
+    formVaga.hidden = true;
+    mostrarToast(id ? '✅ Vaga atualizada' : '✅ Vaga criada');
+    carregarVagas(document.getElementById('buscaVagas').value.trim());
+  } catch (erro) {
+    erroEl.textContent = erro.message;
+    erroEl.hidden = false;
+  }
+});
+
+document.querySelector('#tabelaVagas tbody').addEventListener('click', async (event) => {
+  const id = event.target.dataset.id;
+  if (!id) return;
+
+  if (event.target.classList.contains('editar')) {
+    const vaga = vagasAdmin.find((v) => String(v.id) === id);
+    if (vaga) abrirFormEditarVaga(vaga);
+    return;
+  }
+
+  if (event.target.classList.contains('excluir')) {
+    if (!confirm('Tem certeza que deseja excluir esta vaga?')) return;
+    try {
+      const resposta = await chamarAdmin(`/admin/vagas/${id}`, { method: 'DELETE' });
+      if (!resposta.ok) throw new Error();
+      mostrarToast('🗑️ Vaga excluída');
+      carregarVagas(document.getElementById('buscaVagas').value.trim());
+    } catch {
+      mostrarToast('Não foi possível excluir a vaga.');
+    }
+  }
+});
+
+/* ===== Candidaturas / Interessados / Usuários (somente leitura) ===== */
+
+function formatarData(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('pt-BR');
+}
+
+async function carregarCandidaturas() {
+  const tbody = document.getElementById('tabelaCandidaturas');
+  try {
+    const resposta = await chamarAdmin('/admin/candidaturas');
+    const dados = await resposta.json();
+    tbody.innerHTML = dados.length ? dados.map((c) => `
+      <tr>
+        <td>${escapeHtml(c.nome)}</td>
+        <td>${escapeHtml(c.email)}</td>
+        <td>${escapeHtml(c.telefone || '—')}</td>
+        <td>${escapeHtml(c.vaga_cargo || '—')}${c.vaga_empresa ? ' · ' + escapeHtml(c.vaga_empresa) : ''}</td>
+        <td>${formatarData(c.criada_em)}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="5">Nenhuma candidatura ainda.</td></tr>';
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="5">Não foi possível carregar.</td></tr>';
+  }
+}
+
+async function carregarInteressados() {
+  const tbody = document.getElementById('tabelaInteressados');
+  try {
+    const resposta = await chamarAdmin('/admin/interessados');
+    const dados = await resposta.json();
+    tbody.innerHTML = dados.length ? dados.map((i) => `
+      <tr>
+        <td>${escapeHtml(i.nome)}</td>
+        <td>${escapeHtml(i.email)}</td>
+        <td>${escapeHtml(i.tipo)}</td>
+        <td>${formatarData(i.criado_em)}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="4">Ninguém na lista de espera ainda.</td></tr>';
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="4">Não foi possível carregar.</td></tr>';
+  }
+}
+
+async function carregarUsuarios(busca = '') {
+  const tbody = document.getElementById('tabelaUsuarios');
+  tbody.innerHTML = '<tr><td colspan="6">Carregando...</td></tr>';
+  try {
+    const query = busca ? `?q=${encodeURIComponent(busca)}` : '';
+    const resposta = await chamarAdmin(`/admin/usuarios${query}`);
+    const dados = await resposta.json();
+    tbody.innerHTML = dados.length ? dados.map((u) => `
+      <tr>
+        <td>${escapeHtml(u.nome)}</td>
+        <td>${escapeHtml(u.email)}</td>
+        <td>${escapeHtml(u.tipo)}</td>
+        <td>${escapeHtml(u.cidade || '—')}</td>
+        <td>${formatarData(u.criado_em)}</td>
+        <td><button class="admin-acao-btn excluir" data-id="${u.id}">Excluir</button></td>
+      </tr>
+    `).join('') : '<tr><td colspan="6">Nenhum usuário cadastrado ainda.</td></tr>';
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="6">Não foi possível carregar.</td></tr>';
+  }
+}
+
+async function carregarAuditoria() {
+  const tbody = document.getElementById('tabelaAuditoria');
+  tbody.innerHTML = '<tr><td colspan="4">Carregando...</td></tr>';
+  try {
+    const resposta = await chamarAdmin('/admin/auditoria');
+    const dados = await resposta.json();
+    tbody.innerHTML = dados.logs.length ? dados.logs.map((l) => `
+      <tr>
+        <td>${escapeHtml(l.acao)}</td>
+        <td>${escapeHtml(l.detalhes || '—')}</td>
+        <td>${escapeHtml(l.ip || '—')}</td>
+        <td>${formatarData(l.criado_em)}</td>
+      </tr>
+    `).join('') : '<tr><td colspan="4">Nenhuma ação registrada ainda.</td></tr>';
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="4">Não foi possível carregar.</td></tr>';
+  }
+}
+
+let buscaUsuariosTimeout;
+document.getElementById('buscaUsuarios')?.addEventListener('input', (event) => {
+  clearTimeout(buscaUsuariosTimeout);
+  buscaUsuariosTimeout = setTimeout(() => carregarUsuarios(event.target.value.trim()), 350);
+});
+
+document.getElementById('tabelaUsuarios').addEventListener('click', async (event) => {
+  const id = event.target.dataset.id;
+  if (!id || !event.target.classList.contains('excluir')) return;
+  if (!confirm('Tem certeza que deseja excluir esta conta? Se for uma empresa, as vagas publicadas por ela também serão removidas.')) return;
+  try {
+    const resposta = await chamarAdmin(`/admin/usuarios/${id}`, { method: 'DELETE' });
+    if (!resposta.ok) throw new Error();
+    mostrarToast('🗑️ Usuário excluído');
+    carregarUsuarios(document.getElementById('buscaUsuarios').value.trim());
+  } catch {
+    mostrarToast('Não foi possível excluir o usuário.');
+  }
+});
+
+/* ===== Inicialização ===== */
+
+function iniciarPainel() {
+  carregarVisaoGeral();
+}
+
+(async function iniciar() {
+  const token = obterTokenAdmin();
+  if (!token) {
+    mostrarBloqueio();
+    return;
+  }
+  try {
+    const resposta = await fetch(`${API_BASE}/admin/verificar`, { headers: { 'X-Admin-Token': token } });
+    if (!resposta.ok) throw new Error();
+    mostrarConteudo();
+    iniciarPainel();
+  } catch {
+    sessionStorage.removeItem(CHAVE_TOKEN_ADMIN);
+    mostrarBloqueio();
+  }
+})();

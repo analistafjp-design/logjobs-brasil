@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Privacidade — LogJobs Brasil</title>
+<meta name="description" content="Como o LogJobs Brasil coleta, usa e protege seus dados pessoais, e como exercer seus direitos garantidos pela LGPD.">
+<link rel="canonical" href="https://logjobs-brasil.onrender.com/privacidade.html">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#0F62FE">
+<meta name="robots" content="noindex, follow">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
+</head>
+<body>
+
+<header class="navbar" id="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="logo">🚚 <span>LogJobs Brasil</span></a>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Início</a>
+      <a href="index.html#vagas">Vagas</a>
+      <a href="mapa.html">Mapa</a>
+      <a href="ranking.html">Ranking</a>
+      <a href="calculadora.html">Salários</a>
+      <a href="blog.html">Blog</a>
+      <a href="empresa.html">Empresas</a>
+      <a href="dashboard.html">Dashboard</a>
+      <button class="btn-tema" id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
+      <span id="areaConta"></span>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="artigo-container">
+    <h1>Política de Privacidade</h1>
+    <p class="artigo-meta">Última atualização: julho de 2026</p>
+
+    <div class="artigo-corpo">
+      <p>Esta página explica, em linguagem direta, quais dados o LogJobs Brasil coleta, para que servem, e como você pode acessá-los, corrigi-los ou excluí-los — conforme a Lei Geral de Proteção de Dados (LGPD, Lei nº 13.709/2018).</p>
+
+      <h2>Quais dados coletamos</h2>
+      <ul>
+        <li><strong>Conta:</strong> nome, e-mail e senha (armazenada como hash, nunca em texto puro) ao se cadastrar como candidato ou empresa.</li>
+        <li><strong>Perfil do candidato:</strong> telefone, cidade, mini-currículo, habilidades, pretensão salarial, disponibilidade, CNH, experiências, formação, cursos, certificados, idiomas e links (LinkedIn/GitHub/portfólio) — todos opcionais, preenchidos por você.</li>
+        <li><strong>Perfil da empresa:</strong> nome, telefone, cidade, descrição, logo, site e Instagram — todos opcionais, preenchidos por você.</li>
+        <li><strong>Candidatura:</strong> nome, e-mail e telefone informados no formulário de candidatura a uma vaga (não exige conta).</li>
+        <li><strong>Uso da plataforma:</strong> vagas favoritadas, alertas de busca salvos, mensagens trocadas no chat com empresas, e o histórico de buscas recentes (este último fica só no seu navegador, em <code>localStorage</code>, e nunca é enviado ao servidor).</li>
+      </ul>
+
+      <h2>Para que usamos seus dados</h2>
+      <ul>
+        <li>Permitir login, manter sua sessão e identificar seu tipo de conta (candidato, empresa ou administrador).</li>
+        <li>Exibir seu perfil para empresas com quem você se candidata ou conversa no chat.</li>
+        <li>Gerar recomendações de vagas e os recursos de IA sob demanda (análise de perfil, gerador de currículo, simulador de entrevista) — processados localmente no servidor, sem enviar seus dados a nenhuma IA de terceiros.</li>
+        <li>Calcular estatísticas agregadas (dashboard, ranking de empresas, comparador de salários) — sempre de forma agregada, nunca expondo dados individuais de outro usuário.</li>
+      </ul>
+
+      <h2>Com quem compartilhamos</h2>
+      <p>Não vendemos nem compartilhamos seus dados pessoais com terceiros para fins de publicidade. Os únicos compartilhamentos que existem são:</p>
+      <ul>
+        <li>Com a <strong>empresa</strong> para a qual você se candidata ou envia mensagem (nome, e-mail, telefone e o conteúdo da candidatura/conversa).</li>
+        <li>Com o <strong>Google</strong>, somente se você optar por "Continuar com Google" (login OAuth) — nesse caso, recebemos apenas nome, e-mail e foto do seu perfil público do Google.</li>
+        <li>Com o <strong>Jooble</strong>, provedor de vagas externas — não recebe dados seus; é uma fonte de vagas, não um destino de dados.</li>
+      </ul>
+
+      <h2>Cookies e armazenamento local</h2>
+      <p>O LogJobs Brasil não usa cookies de rastreamento ou de terceiros. Usamos apenas <code>localStorage</code>/<code>sessionStorage</code> do navegador para guardar sua sessão (token de acesso), preferência de tema (claro/escuro) e o histórico das suas últimas buscas — tudo fica no seu dispositivo, não em cookies enviados ao servidor a cada requisição.</p>
+
+      <h2>Seus direitos (LGPD)</h2>
+      <p>Você pode, a qualquer momento, direto no seu <a href="perfil.html">perfil</a>, na seção "🛡️ Privacidade e meus dados":</p>
+      <ul>
+        <li><strong>Acessar e exportar</strong> uma cópia completa de tudo o que guardamos sobre você, em formato JSON.</li>
+        <li><strong>Corrigir</strong> qualquer informação do seu perfil, a qualquer momento.</li>
+        <li><strong>Excluir</strong> sua conta e os dados associados a ela (favoritos, alertas e, se empresa, vagas publicadas) de forma definitiva.</li>
+      </ul>
+      <p>Para qualquer outra dúvida ou solicitação relacionada aos seus dados, entre em contato pelo e-mail abaixo.</p>
+
+      <h2>Segurança</h2>
+      <p>Senhas são armazenadas com hash (PBKDF2-HMAC-SHA256, com salt único por usuário) — nunca em texto puro. As sessões usam tokens JWT de curta duração, com renovação automática via refresh token revogável. O tráfego do site é protegido por cabeçalhos de segurança (HSTS, Content-Security-Policy, X-Frame-Options) e há limite de requisições (rate limiting) contra abuso automatizado.</p>
+
+      <h2>Contato</h2>
+      <p>Dúvidas sobre esta política ou sobre seus dados? Escreva para <a href="mailto:contato@logjobsbrasil.com.br">contato@logjobsbrasil.com.br</a>.</p>
+    </div>
+
+    <a href="index.html" class="artigo-voltar">← Voltar para a página inicial</a>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="logo">🚚 LogJobs Brasil</span>
+      <p>O maior portal especializado em empregos de logística do Brasil.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Candidatos</h4>
+      <a href="index.html#vagas">Buscar vagas</a>
+      <a href="blog.html">Blog</a>
+    </div>
+    <div class="footer-col">
+      <h4>Empresas</h4>
+      <a href="ranking.html">Ranking</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+    <div class="footer-col">
+      <h4>LogJobs</h4>
+      <a href="https://github.com/analistafjp-design/logjobs-brasil/blob/main/docs/PVD.md" target="_blank" rel="noopener">Sobre</a>
+      <a href="privacidade.html">Privacidade</a>
+      <a href="mailto:contato@logjobsbrasil.com.br">Contato</a>
+    </div>
+  </div>
+  <p class="footer-copy">&copy; 2026 LogJobs Brasil. Todos os direitos reservados.</p>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-fechar" id="modalFechar" aria-label="Fechar">&times;</button>
+    <div id="modalConteudo"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

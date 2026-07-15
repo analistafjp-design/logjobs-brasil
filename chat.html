@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Mensagens — LogJobs Brasil</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#0F62FE">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
+</head>
+<body>
+
+<header class="navbar" id="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="logo">🚚 <span>LogJobs Brasil</span></a>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Início</a>
+      <a href="index.html#vagas">Vagas</a>
+      <a href="mapa.html">Mapa</a>
+      <a href="ranking.html">Ranking</a>
+      <a href="calculadora.html">Salários</a>
+      <a href="blog.html">Blog</a>
+      <a href="empresa.html">Empresas</a>
+      <a href="dashboard.html">Dashboard</a>
+      <button class="btn-tema" id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
+      <span id="areaConta"></span>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main class="perfil-main">
+  <div class="perfil-container chat-container">
+
+    <div id="chatBloqueado" class="perfil-card" hidden>
+      <h1>Você precisa entrar</h1>
+      <p class="modal-subtitulo">Faça login para ver suas mensagens.</p>
+      <button class="btn-candidatar" id="btnEntrarChat">Entrar</button>
+    </div>
+
+    <div id="chatConteudo" hidden>
+      <h1>💬 Mensagens</h1>
+
+      <div class="chat-layout">
+        <aside class="chat-lista-conversas perfil-card" id="chatListaConversas">
+          <p class="vagas-carregando">Carregando conversas...</p>
+        </aside>
+
+        <section class="chat-janela perfil-card" id="chatJanela">
+          <div class="chat-janela-vazia" id="chatJanelaVazia">
+            <p class="vagas-carregando">Selecione uma conversa para começar.</p>
+          </div>
+
+          <div class="chat-janela-ativa" id="chatJanelaAtiva" hidden>
+            <div class="chat-janela-cabecalho">
+              <strong id="chatOutroNome"></strong>
+              <span class="tag" id="chatVagaTag" hidden></span>
+            </div>
+            <div class="chat-mensagens" id="chatMensagens"></div>
+            <form class="chat-form" id="chatForm">
+              <input type="text" name="texto" maxlength="2000" placeholder="Escreva uma mensagem..." autocomplete="off" required>
+              <button type="submit">Enviar</button>
+            </form>
+          </div>
+        </section>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/app.js"></script>
+<script src="js/chat.js"></script>
+</body>
+</html>

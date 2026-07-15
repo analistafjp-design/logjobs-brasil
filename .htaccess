@@ -1,0 +1,30 @@
+# Copie este arquivo para .htaccess NA RAIZ do public_html (junto com index.html, css/, js/
+# — o conteúdo hoje em frontend/), depois de colocar a pasta backend-php também dentro do
+# public_html. Ver MIGRACAO_HOSTINGER.md para o passo a passo completo.
+
+RewriteEngine On
+
+# Bloqueia acesso direto à pasta .git — o deploy via Git da Hostinger clona o
+# repositório inteiro (incluindo o histórico) direto dentro de public_html.
+RewriteRule ^\.git(/|$) - [F,L]
+
+# Bloqueia acesso direto a qualquer coisa dentro de backend-php que não seja api/ ou cron/ —
+# especialmente config.local.php (senha do banco, chave secreta) e schema.sql.
+RewriteRule ^backend-php/(lib|routes|seed)/ - [F,L]
+RewriteRule ^backend-php/config\.local\.php$ - [F,L]
+RewriteRule ^backend-php/config\.local\.php\.example$ - [F,L]
+RewriteRule ^backend-php/schema\.sql$ - [F,L]
+RewriteRule ^backend-php/setup\.php$ - [F,L]
+
+# API, sitemap, robots.txt, favicon e a página individual de vaga (compartilhável/indexável)
+# → front controller PHP. REQUEST_URI original é preservado, então o roteador em
+# backend-php/api/index.php enxerga o caminho pedido de verdade, não o caminho reescrito.
+RewriteRule ^api/(.*)$ backend-php/api/index.php [L]
+RewriteRule ^sitemap\.xml$ backend-php/api/index.php [L]
+RewriteRule ^robots\.txt$ backend-php/api/index.php [L]
+RewriteRule ^favicon\.ico$ backend-php/api/index.php [L]
+RewriteRule ^vagas/([0-9]+)$ backend-php/api/index.php [L]
+RewriteRule ^health$ backend-php/api/index.php [L]
+
+# Tudo o mais (index.html, css/, js/, blog.html, etc.) é servido normalmente como arquivo
+# estático — nenhuma regra adicional necessária, é o comportamento padrão do Apache.

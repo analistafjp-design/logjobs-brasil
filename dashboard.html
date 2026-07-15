@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Dashboard do LogJobs Brasil — vagas por categoria, por estado, empresas que mais contratam e faixa salarial média.">
+<title>Dashboard — LogJobs Brasil</title>
+<link rel="canonical" href="https://logjobs-brasil.onrender.com/dashboard.html">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#0F62FE">
+<link rel="stylesheet" href="css/style.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
+</head>
+<body>
+
+<header class="navbar" id="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="logo">🚚 <span>LogJobs Brasil</span></a>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Início</a>
+      <a href="index.html#vagas">Vagas</a>
+      <a href="mapa.html">Mapa</a>
+      <a href="ranking.html">Ranking</a>
+      <a href="calculadora.html">Salários</a>
+      <a href="blog.html">Blog</a>
+      <a href="empresa.html">Empresas</a>
+      <a href="dashboard.html">Dashboard</a>
+      <button class="btn-tema" id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
+      <span id="areaConta"></span>
+    </nav>
+
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <div class="dash-header">
+    <h1>📊 Dashboard de vagas</h1>
+    <p>Visão geral das vagas de logística coletadas em todo o Brasil, atualizada automaticamente a cada 20 minutos.</p>
+  </div>
+
+  <section class="estatisticas" aria-label="Estatísticas da plataforma">
+    <div class="card">
+      <h2 id="statVagas">—</h2>
+      <p>Vagas ativas</p>
+    </div>
+    <div class="card">
+      <h2 id="statEmpresas">—</h2>
+      <p>Empresas parceiras</p>
+    </div>
+    <div class="card">
+      <h2 id="statCidades">—</h2>
+      <p>Cidades atendidas</p>
+    </div>
+    <div class="card">
+      <h2 id="statAtualizacao">20 min</h2>
+      <p id="statAtualizacaoLegenda">Atualização automática</p>
+    </div>
+  </section>
+
+  <div class="dash-grid">
+
+    <div class="dash-card">
+      <h2>Vagas por categoria</h2>
+      <p class="dash-sub">Distribuição das vagas ativas por tipo de cargo</p>
+      <div class="barra-lista" id="graficoCategoria">
+        <p class="dash-carregando">Carregando...</p>
+      </div>
+    </div>
+
+    <div class="dash-card">
+      <h2>Vagas por estado</h2>
+      <p class="dash-sub">Os 10 estados com mais vagas ativas</p>
+      <div class="barra-lista" id="graficoEstado">
+        <p class="dash-carregando">Carregando...</p>
+      </div>
+    </div>
+
+    <div class="dash-card">
+      <h2>Empresas que mais contratam</h2>
+      <p class="dash-sub">Top 10 empresas por número de vagas ativas</p>
+      <div class="barra-lista" id="graficoEmpresas">
+        <p class="dash-carregando">Carregando...</p>
+      </div>
+    </div>
+
+    <div class="dash-card">
+      <h2>Salário médio por categoria</h2>
+      <p class="dash-sub">Média salarial informada, por tipo de cargo</p>
+      <div class="barra-lista" id="graficoSalario">
+        <p class="dash-carregando">Carregando...</p>
+      </div>
+    </div>
+
+    <div class="dash-card dash-full">
+      <h2>Evolução das coletas</h2>
+      <p class="dash-sub">Vagas novas encontradas a cada execução do agendador (20 em 20 minutos)</p>
+      <div class="grafico-linha-wrap" id="graficoEvolucao">
+        <p class="dash-carregando">Carregando...</p>
+      </div>
+    </div>
+
+  </div>
+
+</main>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="logo">🚚 LogJobs Brasil</span>
+      <p>O maior portal especializado em empregos de logística do Brasil.</p>
+    </div>
+
+    <div class="footer-col">
+      <h4>Candidatos</h4>
+      <a href="index.html#vagas">Buscar vagas</a>
+      <a href="perfil.html#secaoIA">Criar currículo</a>
+      <a href="perfil.html#secaoAlertas">Alertas de vagas</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>Empresas</h4>
+      <a href="empresa.html">Anunciar vaga</a>
+      <a href="#" data-lista-espera="empresa">Planos</a>
+      <a href="dashboard.html">Dashboard</a>
+    </div>
+
+    <div class="footer-col">
+      <h4>LogJobs</h4>
+      <a href="https://github.com/analistafjp-design/logjobs-brasil/blob/main/docs/PVD.md" target="_blank" rel="noopener">Sobre</a>
+      <a href="privacidade.html">Privacidade</a>
+      <a href="mailto:contato@logjobsbrasil.com.br">Contato</a>
+    </div>
+  </div>
+
+  <p class="footer-copy">&copy; 2026 LogJobs Brasil. Todos os direitos reservados.</p>
+</footer>
+
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-fechar" id="modalFechar" aria-label="Fechar">&times;</button>
+    <div id="modalConteudo"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="js/app.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

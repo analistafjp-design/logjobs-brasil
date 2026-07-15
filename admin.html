@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Painel Administrativo — LogJobs Brasil</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
+</head>
+<body class="admin-body">
+
+<div id="adminBloqueado" class="admin-login">
+  <div class="admin-login-card">
+    <h1>🚚 Painel Administrativo</h1>
+    <p class="modal-subtitulo">Informe o token de administrador para continuar.</p>
+    <form id="formAdminToken">
+      <label>Token de administrador
+        <input type="password" name="token" required autocomplete="off">
+      </label>
+      <p class="modal-erro" id="adminTokenErro" hidden></p>
+      <button type="submit" class="modal-enviar">Entrar</button>
+    </form>
+  </div>
+</div>
+
+<div id="adminConteudo" class="admin-app" hidden>
+  <header class="admin-header">
+    <h1>🚚 LogJobs Brasil — Admin</h1>
+    <button class="btn-sair" id="btnSairAdmin">Sair</button>
+  </header>
+
+  <nav class="admin-tabs">
+    <button class="admin-tab ativa" data-aba="geral">Visão geral</button>
+    <button class="admin-tab" data-aba="vagas">Vagas</button>
+    <button class="admin-tab" data-aba="candidaturas">Candidaturas</button>
+    <button class="admin-tab" data-aba="interessados">Lista de espera</button>
+    <button class="admin-tab" data-aba="usuarios">Usuários</button>
+    <button class="admin-tab" data-aba="auditoria">Auditoria</button>
+  </nav>
+
+  <section class="admin-secao" id="secaoGeral">
+    <div class="estatisticas" style="margin: 0 0 20px; padding: 0;">
+      <div class="card">
+        <h2 id="adminStatVagas">—</h2>
+        <p>Vagas totais</p>
+      </div>
+      <div class="card">
+        <h2 id="adminStatCandidatos">—</h2>
+        <p>Candidatos cadastrados</p>
+      </div>
+      <div class="card">
+        <h2 id="adminStatEmpresas">—</h2>
+        <p>Empresas cadastradas</p>
+      </div>
+      <div class="card">
+        <h2 id="adminStatCandidaturas">—</h2>
+        <p>Candidaturas recebidas</p>
+      </div>
+      <div class="card">
+        <h2 id="adminStatInteressados">—</h2>
+        <p>Na lista de espera</p>
+      </div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <h2>Vagas por origem</h2>
+        <p class="dash-sub">Manual (admin), empresa (self-service), exemplo ou Jooble</p>
+        <div class="barra-lista" id="graficoAdminFonte"><p class="dash-carregando">Carregando...</p></div>
+      </div>
+      <div class="dash-card">
+        <h2>Vagas por categoria</h2>
+        <p class="dash-sub">Top categorias por número de vagas ativas</p>
+        <div class="barra-lista" id="graficoAdminCategoria"><p class="dash-carregando">Carregando...</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="admin-secao" id="secaoVagas" hidden>
+    <div class="admin-toolbar">
+      <input type="search" id="buscaVagas" placeholder="Buscar por cargo, empresa ou cidade...">
+      <button class="btn-candidatar" id="btnNovaVaga">+ Nova vaga</button>
+    </div>
+
+    <form id="formVaga" class="admin-form" hidden>
+      <h3 id="formVagaTitulo">Nova vaga</h3>
+      <input type="hidden" name="id">
+      <div class="admin-form-grid">
+        <label>Cargo <input type="text" name="cargo" required></label>
+        <label>Empresa <input type="text" name="empresa" required></label>
+        <label>Cidade <input type="text" name="cidade" required></label>
+        <label>Estado (UF) <input type="text" name="estado" maxlength="2" required></label>
+        <label>Categoria <input type="text" name="categoria" required></label>
+        <label>Salário <input type="number" step="0.01" name="salario"></label>
+        <label>Modalidade
+          <select name="modalidade">
+            <option value="">—</option>
+            <option>Presencial</option>
+            <option>Híbrido</option>
+            <option>Remoto</option>
+          </select>
+        </label>
+        <label>Turno
+          <select name="turno">
+            <option value="">—</option>
+            <option>Manhã</option>
+            <option>Tarde</option>
+            <option>Noite</option>
+            <option>Comercial</option>
+            <option>Escala 12x36</option>
+          </select>
+        </label>
+        <label>Tipo de contratação
+          <select name="tipo_contratacao">
+            <option value="">—</option>
+            <option>CLT</option>
+            <option>PJ</option>
+            <option>Temporário</option>
+            <option>Estágio</option>
+            <option>Autônomo</option>
+          </select>
+        </label>
+        <label>Veículo próprio <input type="text" name="veiculo"></label>
+        <label>Link externo (opcional) <input type="url" name="link"></label>
+      </div>
+      <label>Descrição <textarea name="descricao" rows="3"></textarea></label>
+      <label>Benefícios <input type="text" name="beneficios" placeholder="Separados por vírgula"></label>
+      <label>Requisitos <input type="text" name="requisitos" placeholder="Separados por vírgula"></label>
+      <p class="modal-erro" id="formVagaErro" hidden></p>
+      <div class="admin-form-acoes">
+        <button type="submit" class="modal-enviar">Salvar</button>
+        <button type="button" class="btn-sair" id="btnCancelarVaga">Cancelar</button>
+      </div>
+    </form>
+
+    <div class="admin-tabela-wrap">
+      <table class="admin-tabela" id="tabelaVagas">
+        <thead>
+          <tr><th>Cargo</th><th>Empresa</th><th>Cidade/UF</th><th>Categoria</th><th>Salário</th><th>Fonte</th><th></th></tr>
+        </thead>
+        <tbody><tr><td colspan="7">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="admin-secao" id="secaoCandidaturas" hidden>
+    <div class="admin-tabela-wrap">
+      <table class="admin-tabela">
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Telefone</th><th>Vaga</th><th>Data</th></tr></thead>
+        <tbody id="tabelaCandidaturas"><tr><td colspan="5">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="admin-secao" id="secaoInteressados" hidden>
+    <div class="admin-tabela-wrap">
+      <table class="admin-tabela">
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Data</th></tr></thead>
+        <tbody id="tabelaInteressados"><tr><td colspan="4">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="admin-secao" id="secaoUsuarios" hidden>
+    <div class="admin-toolbar">
+      <input type="search" id="buscaUsuarios" placeholder="Buscar por nome ou e-mail...">
+    </div>
+    <div class="admin-tabela-wrap">
+      <table class="admin-tabela">
+        <thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Cidade</th><th>Cadastro</th><th></th></tr></thead>
+        <tbody id="tabelaUsuarios"><tr><td colspan="6">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="admin-secao" id="secaoAuditoria" hidden>
+    <p class="modal-subtitulo">Últimas ações administrativas sensíveis (criar/editar/excluir vaga, excluir usuário, atualizar vagas manualmente).</p>
+    <div class="admin-tabela-wrap">
+      <table class="admin-tabela">
+        <thead><tr><th>Ação</th><th>Detalhes</th><th>IP</th><th>Data</th></tr></thead>
+        <tbody id="tabelaAuditoria"><tr><td colspan="4">Carregando...</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/admin.js"></script>
+</body>
+</html>

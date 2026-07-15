@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Meu Perfil — LogJobs Brasil</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%9A%9A%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="theme-color" content="#0F62FE">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/admin.css">
+<script>
+  (function () {
+    var tema = localStorage.getItem('logjobs-tema');
+    if (tema === 'dark' || tema === 'light') {
+      document.documentElement.setAttribute('data-theme', tema);
+    }
+  })();
+</script>
+</head>
+<body>
+
+<header class="navbar" id="navbar">
+  <div class="navbar-inner">
+    <a href="index.html" class="logo">🚚 <span>LogJobs Brasil</span></a>
+    <nav class="nav-links" id="navLinks">
+      <a href="index.html">Início</a>
+      <a href="index.html#vagas">Vagas</a>
+      <a href="mapa.html">Mapa</a>
+      <a href="ranking.html">Ranking</a>
+      <a href="calculadora.html">Salários</a>
+      <a href="blog.html">Blog</a>
+      <a href="empresa.html">Empresas</a>
+      <a href="dashboard.html">Dashboard</a>
+      <button class="btn-tema" id="btnTema" aria-label="Alternar tema claro/escuro">🌙</button>
+      <span id="areaConta"></span>
+    </nav>
+    <button class="nav-toggle" id="navToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="navLinks">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</header>
+
+<main class="perfil-main">
+  <div class="perfil-container">
+
+    <div id="perfilBloqueado" class="perfil-card" hidden>
+      <h1>Você precisa entrar</h1>
+      <p class="modal-subtitulo">Faça login para ver e editar seu perfil.</p>
+      <button class="btn-candidatar" id="btnEntrarPerfil">Entrar</button>
+    </div>
+
+    <div id="perfilConteudo" hidden>
+      <h1 id="perfilTitulo">Meu perfil</h1>
+
+      <section class="perfil-card" id="secaoResumoCandidato">
+        <div class="estatisticas" style="margin: 0; padding: 0;">
+          <div class="card">
+            <h2 id="statResumoFavoritos">—</h2>
+            <p>Vagas salvas</p>
+          </div>
+          <div class="card">
+            <h2 id="statResumoCandidaturas">—</h2>
+            <p>Candidaturas enviadas</p>
+          </div>
+          <div class="card">
+            <h2 id="statResumoAlertas">—</h2>
+            <p>Alertas ativos</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="perfil-card" id="secaoCompletude">
+        <h2>Completude do perfil</h2>
+        <div class="completude-barra"><div class="completude-preenchida" id="completudeBarra"></div></div>
+        <p class="modal-subtitulo" id="completudeTexto"></p>
+      </section>
+
+      <section class="perfil-card">
+        <h2>Dados da conta</h2>
+        <form id="formPerfil">
+          <label>Nome
+            <input type="text" name="nome" required>
+          </label>
+          <label>E-mail
+            <input type="email" name="email" disabled>
+          </label>
+          <label>Telefone
+            <input type="tel" name="telefone" placeholder="(11) 99999-9999">
+          </label>
+          <label>Cidade
+            <input type="text" name="cidade" placeholder="Sua cidade">
+          </label>
+          <label id="labelResumo">Mini-currículo
+            <textarea name="resumo" rows="4" placeholder="Conte um pouco sobre sua experiência..."></textarea>
+          </label>
+          <div class="admin-form-grid" id="camposCandidato">
+            <label>Habilidades <input type="text" name="habilidades" placeholder="Ex: Direção defensiva, Empilhadeira, Excel"></label>
+            <label>Pretensão salarial <input type="number" step="0.01" name="pretensao_salarial" placeholder="Ex: 2500"></label>
+            <label>Disponibilidade
+              <select name="disponibilidade">
+                <option value="">—</option>
+                <option>Imediata</option>
+                <option>15 dias</option>
+                <option>30 dias</option>
+                <option>A combinar</option>
+              </select>
+            </label>
+            <label>CNH
+              <select name="possui_cnh">
+                <option value="">Não possuo</option>
+                <option>A</option>
+                <option>B</option>
+                <option>AB</option>
+                <option>C</option>
+                <option>D</option>
+                <option>E</option>
+              </select>
+            </label>
+            <label>Veículo próprio
+              <select name="veiculo_proprio">
+                <option value="">—</option>
+                <option value="sim">Sim</option>
+                <option value="nao">Não</option>
+              </select>
+            </label>
+            <label>LinkedIn <input type="url" name="linkedin_url" placeholder="https://linkedin.com/in/..."></label>
+            <label>GitHub <input type="url" name="github_url" placeholder="https://github.com/..."></label>
+            <label>Portfólio <input type="url" name="portfolio_url" placeholder="https://..."></label>
+          </div>
+          <div class="admin-form-grid" id="camposEmpresa" hidden>
+            <label>Logo (URL da imagem) <input type="url" name="logo_url" placeholder="https://.../logo.png"></label>
+            <label>Site <input type="url" name="site_url" placeholder="https://suaempresa.com.br"></label>
+            <label>Instagram <input type="url" name="instagram_url" placeholder="https://instagram.com/suaempresa"></label>
+          </div>
+          <p class="modal-erro" id="perfilErro" hidden></p>
+          <p class="perfil-sucesso" id="perfilSucesso" hidden>✅ Perfil atualizado!</p>
+          <button type="submit" class="modal-enviar">Salvar alterações</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoListasCandidato">
+        <h2>💼 Experiência profissional</h2>
+        <div id="listaExperiencias"></div>
+        <form id="formExperiencia" class="admin-form-grid">
+          <label>Cargo <input type="text" name="cargo" required></label>
+          <label>Empresa <input type="text" name="empresa" required></label>
+          <label>Início <input type="text" name="inicio" placeholder="MM/AAAA"></label>
+          <label>Fim <input type="text" name="fim" placeholder="MM/AAAA (vazio = atual)"></label>
+          <label style="grid-column: 1 / -1;">Descrição <input type="text" name="descricao"></label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">+ Adicionar experiência</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoFormacoes">
+        <h2>🎓 Formação</h2>
+        <div id="listaFormacoes"></div>
+        <form id="formFormacao" class="admin-form-grid">
+          <label>Curso <input type="text" name="curso" required></label>
+          <label>Instituição <input type="text" name="instituicao" required></label>
+          <label>Nível
+            <select name="nivel">
+              <option value="">—</option>
+              <option>Ensino Médio</option>
+              <option>Técnico</option>
+              <option>Graduação</option>
+              <option>Pós-graduação</option>
+              <option>Mestrado</option>
+              <option>Doutorado</option>
+            </select>
+          </label>
+          <label>Status
+            <select name="status">
+              <option value="">—</option>
+              <option>Concluído</option>
+              <option>Cursando</option>
+              <option>Trancado</option>
+            </select>
+          </label>
+          <label>Ano <input type="text" name="ano" placeholder="AAAA"></label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">+ Adicionar formação</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoCursos">
+        <h2>📚 Cursos</h2>
+        <div id="listaCursos"></div>
+        <form id="formCurso" class="admin-form-grid">
+          <label>Nome <input type="text" name="nome" required></label>
+          <label>Instituição <input type="text" name="instituicao"></label>
+          <label>Ano <input type="text" name="ano" placeholder="AAAA"></label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">+ Adicionar curso</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoCertificados">
+        <h2>📜 Certificados</h2>
+        <div id="listaCertificados"></div>
+        <form id="formCertificado" class="admin-form-grid">
+          <label>Nome <input type="text" name="nome" required></label>
+          <label>Instituição <input type="text" name="instituicao"></label>
+          <label>Ano <input type="text" name="ano" placeholder="AAAA"></label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">+ Adicionar certificado</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoIdiomas">
+        <h2>🌐 Idiomas</h2>
+        <div id="listaIdiomas"></div>
+        <form id="formIdioma" class="admin-form-grid">
+          <label>Idioma <input type="text" name="idioma" required></label>
+          <label>Nível
+            <select name="nivel">
+              <option value="">—</option>
+              <option>Básico</option>
+              <option>Intermediário</option>
+              <option>Avançado</option>
+              <option>Fluente</option>
+              <option>Nativo</option>
+            </select>
+          </label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">+ Adicionar idioma</button>
+        </form>
+      </section>
+
+      <section class="perfil-card">
+        <h2>🔒 Segurança</h2>
+        <p class="modal-subtitulo">Verificação em duas etapas (2FA): exige um código do seu app autenticador (Google Authenticator, Authy etc.) além da senha para entrar na conta.</p>
+        <div id="totpStatus"></div>
+      </section>
+
+      <section class="perfil-card">
+        <h2>🛡️ Privacidade e meus dados</h2>
+        <p class="modal-subtitulo">De acordo com a LGPD, você pode baixar uma cópia de tudo o que guardamos sobre você, ou excluir sua conta e seus dados permanentemente.</p>
+        <div class="perfil-privacidade-acoes">
+          <button type="button" class="btn-secundario" id="btnExportarDados">⬇️ Baixar meus dados</button>
+          <button type="button" class="btn-perigo" id="btnExcluirConta">🗑️ Excluir minha conta</button>
+        </div>
+        <form id="formExcluirConta" hidden style="margin-top:16px;">
+          <p class="modal-subtitulo"><strong>Essa ação não pode ser desfeita.</strong> Suas vagas salvas, alertas e (se empresa) vagas publicadas serão apagados. Confirme sua senha:</p>
+          <label>Senha atual
+            <input type="password" name="senha" required autocomplete="current-password">
+          </label>
+          <p class="modal-erro" id="excluirContaErro" hidden></p>
+          <button type="submit" class="btn-perigo">Confirmar exclusão</button>
+          <button type="button" class="btn-sair" id="btnCancelarExcluirConta">Cancelar</button>
+        </form>
+      </section>
+
+      <section class="perfil-card" id="secaoConquistas">
+        <h2>🏅 Suas conquistas <span id="conquistasNivel" class="tag compatibilidade"></span></h2>
+        <div id="perfilConquistas"><p class="vagas-carregando">Carregando...</p></div>
+      </section>
+
+      <section class="perfil-card" id="secaoRecomendadas">
+        <h2>✨ Vagas recomendadas para você</h2>
+        <div id="perfilRecomendadas"><p class="vagas-carregando">Carregando...</p></div>
+      </section>
+
+      <section class="perfil-card">
+        <h2>Vagas salvas</h2>
+        <div id="perfilFavoritos"><p class="vagas-carregando">Carregando...</p></div>
+      </section>
+
+      <section class="perfil-card" id="secaoAlertas">
+        <h2>🔔 Alertas de vagas</h2>
+        <p class="modal-subtitulo" style="margin-bottom: 16px;">Salve critérios de busca e veja quantas vagas correspondem, sem precisar repetir a pesquisa.</p>
+        <form id="formAlerta" class="admin-form-grid" style="margin-bottom: 20px;">
+          <label>Cargo <input type="text" name="cargo" placeholder="Ex: motorista"></label>
+          <label>Categoria <input type="text" name="categoria" placeholder="Ex: Entregador"></label>
+          <label>Cidade <input type="text" name="cidade"></label>
+          <label>Estado (UF) <input type="text" name="estado" maxlength="2"></label>
+          <button type="submit" class="modal-enviar" style="grid-column: 1 / -1;">Salvar alerta</button>
+        </form>
+        <p class="modal-erro" id="alertaErro" hidden></p>
+        <div id="perfilAlertas"><p class="vagas-carregando">Carregando...</p></div>
+      </section>
+
+      <section class="perfil-card" id="secaoCandidaturasHistorico">
+        <h2>📨 Minhas candidaturas</h2>
+        <div id="perfilCandidaturas"><p class="vagas-carregando">Carregando...</p></div>
+      </section>
+
+      <section class="perfil-card" id="secaoIA" hidden>
+        <h2>🤖 IA para você</h2>
+
+        <div class="ia-bloco">
+          <h3>Análise do seu perfil</h3>
+          <div id="iaAnalisePerfil"><p class="vagas-carregando">Carregando...</p></div>
+        </div>
+
+        <div class="ia-bloco">
+          <h3>Currículo formatado</h3>
+          <p class="modal-subtitulo">Baixe um currículo em texto, pronto para copiar ou imprimir, gerado a partir dos dados do seu perfil.</p>
+          <button type="button" class="btn-candidatar" id="btnGerarCurriculo">📄 Gerar currículo</button>
+        </div>
+
+        <div class="ia-bloco">
+          <h3>Simulador de entrevista</h3>
+          <form id="formSimulador">
+            <label>Categoria
+              <select name="categoria" id="simuladorCategoria">
+                <option value="">Perguntas gerais</option>
+              </select>
+            </label>
+            <button type="submit" class="modal-enviar" style="max-width:220px;">Gerar perguntas</button>
+          </form>
+          <div id="iaSimuladorResultado"></div>
+        </div>
+      </section>
+    </div>
+
+  </div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="modal-fechar" id="modalFechar" aria-label="Fechar">&times;</button>
+    <div id="modalConteudo"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/app.js"></script>
+<script src="js/perfil.js"></script>
+</body>
+</html>
