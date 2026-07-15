@@ -89,7 +89,17 @@ via navegador a esse arquivo, mas cuidado ao fazer backup/versionar o projeto.
 
 ### 3. Subir os arquivos
 
-Estrutura final dentro de `public_html/` no servidor:
+**Opção automática (recomendada):** o workflow
+`.github/workflows/deploy-hostinger.yml` gera, a cada push na `main`, uma
+branch `hostinger-deploy` já com a estrutura achatada abaixo (conteúdo de
+`frontend/` na raiz, `backend-php/` do lado e `.htaccess` prontos). Na tela
+"Implante de GitHub" do hPanel, selecione essa branch (`hostinger-deploy`) em
+vez da `main` — cada push feito na `main` atualiza o site automaticamente. O
+`config.local.php` continua sendo criado à mão direto no servidor (passo 2),
+nunca faz parte dessa branch gerada.
+
+**Opção manual:** copiar os arquivos você mesmo, seguindo a estrutura final
+dentro de `public_html/` no servidor:
 
 ```
 public_html/

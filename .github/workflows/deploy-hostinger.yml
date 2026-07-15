@@ -1,0 +1,36 @@
+name: Build Hostinger deploy branch
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Montar estrutura achatada (frontend/ + backend-php/ na raiz)
+        run: |
+          set -e
+          rm -rf /tmp/deploy
+          mkdir -p /tmp/deploy
+          cp -r frontend/. /tmp/deploy/
+          cp -r backend-php /tmp/deploy/backend-php
+          cp backend-php/htaccess.example /tmp/deploy/.htaccess
+
+      - name: Publicar branch hostinger-deploy
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan hostinger-deploy
+          git rm -rf . > /dev/null
+          cp -r /tmp/deploy/. .
+          git add -A
+          git commit -m "Build: sincroniza deploy da Hostinger a partir de ${{ github.sha }}"
+          git push --force origin HEAD:hostinger-deploy
