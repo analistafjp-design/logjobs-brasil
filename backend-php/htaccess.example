@@ -4,6 +4,10 @@
 
 RewriteEngine On
 
+# Bloqueia acesso direto à pasta .git — o deploy via Git da Hostinger clona o
+# repositório inteiro (incluindo o histórico) direto dentro de public_html.
+RewriteRule ^\.git(/|$) - [F,L]
+
 # Bloqueia acesso direto a qualquer coisa dentro de backend-php que não seja api/ ou cron/ —
 # especialmente config.local.php (senha do banco, chave secreta) e schema.sql.
 RewriteRule ^backend-php/(lib|routes|seed)/ - [F,L]
